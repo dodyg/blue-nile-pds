@@ -1,0 +1,11 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+.idea/
+*.db
+*.db-shm
+*.db-wal
+*.DotSettings.user
+atompds/appsettings.Development.json
