@@ -1,4 +1,4 @@
-﻿using atompds.ErrorDetail;
+﻿using atompds.Model;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace atompds.Auth;

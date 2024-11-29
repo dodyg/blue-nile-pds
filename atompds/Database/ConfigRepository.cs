@@ -1,5 +1,4 @@
-﻿using atompds.Model;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace atompds.Database;
 

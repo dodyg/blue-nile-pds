@@ -1,6 +1,6 @@
 ﻿using atompds.Auth;
 using atompds.Database;
-using atompds.ErrorDetail;
+using atompds.Model;
 using FishyFlip.Lexicon.App.Bsky.Actor;
 using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;

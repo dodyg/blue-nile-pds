@@ -1,4 +1,4 @@
-﻿namespace atompds.ErrorDetail;
+﻿namespace atompds.Model;
 
 public class ErrorDetailException(FishyFlip.Models.ErrorDetail errorDetail, int statusCode = 400, Exception? innerException = null)
     : Exception(errorDetail.Message, innerException)

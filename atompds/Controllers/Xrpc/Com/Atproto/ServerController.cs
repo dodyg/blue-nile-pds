@@ -1,5 +1,5 @@
 ﻿using atompds.Database;
-using atompds.ErrorDetail;
+using atompds.Model;
 using FishyFlip.Lexicon.Com.Atproto.Server;
 using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;

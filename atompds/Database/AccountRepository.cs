@@ -1,12 +1,12 @@
 ﻿using System.Text.Json.Serialization;
 using atompds.Enc;
-using atompds.Model;
 using atompds.Utils;
 using FishyFlip.Lexicon.Com.Atproto.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace atompds.Database;
+
 
 public class AccountRepository
 {
@@ -55,22 +55,38 @@ public class AccountRepository
         return new AccountInfo(account.Did, account.Handle);
     }
     
-    private async Task<AccountRecord?> GetAccountRecord(string identifier)
+    public async Task<AccountRecord?> GetAccountAsync(string identifier)
     {
-        return await _db.Accounts
-            .FirstOrDefaultAsync(x => x.Did == identifier || x.Handle == identifier);
-    }
-    
-    public async Task<AccountInfo?> GetAccountAsync(string identifier)
-    {
-        var result = await GetAccountRecord(identifier);
-
-        if (result != null)
+        var accounts = _db.Accounts.AsQueryable();
+        if (identifier.StartsWith("did:"))
         {
-            return new AccountInfo(result.Did, result.Handle);
+            accounts = accounts.Where(x => x.Did == identifier);
+        }
+        else
+        {
+            accounts = accounts.Where(x => x.Handle == identifier);
         }
         
-        return null;
+        return await accounts.FirstOrDefaultAsync();
+    }
+
+    private IQueryable<AccountRecord> SelectAccountQB(AvailabilityFlags? flags)
+    {
+        var accounts = _db.Accounts.AsQueryable();
+        if (flags?.IncludeTakenDown != null)
+        {
+            accounts = accounts.Where(x => x.TakenDown == flags.IncludeTakenDown);
+        }
+        
+        if (flags?.IncludeDeactivated != null)
+        {
+            accounts = accounts.Where(x => x.Deactivated == flags.IncludeDeactivated);
+        }
+    }
+
+    public async Task GetAccountsAsync(string[] dids, AvailabilityFlags? availabilityFlags)
+    {
+        
     }
     
     public async Task<string?> HandleByDidAsync(string did)
@@ -89,7 +105,7 @@ public class AccountRepository
     
     public async Task<(string did, string handle)> VerifyAccountLoginAsync(string identifier, string password)
     {
-        var result = await GetAccountRecord(identifier);
+        var result = await GetAccountAsync(identifier);
         if (result == null)
         {
             throw new Exception("no account found");

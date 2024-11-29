@@ -1,4 +1,4 @@
-﻿using atompds.ErrorDetail;
+﻿using atompds.Model;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,7 +19,15 @@ public class ErrorController : ControllerBase
     [HttpGet]
     public IActionResult Error()
     {
-        var exceptionHandlerPathFeature = HttpContext.Features.Get<IExceptionHandlerPathFeature>()!;
+        var exceptionHandlerPathFeature = HttpContext.Features.Get<IExceptionHandlerPathFeature>();
+        if (exceptionHandlerPathFeature == null)
+        {
+            return Problem(
+                detail: "You're not supposed to be here",
+                statusCode: 400
+            );
+        }
+        
         var exception = exceptionHandlerPathFeature.Error;
         
         if (exception is ErrorDetailException errorDetailException)

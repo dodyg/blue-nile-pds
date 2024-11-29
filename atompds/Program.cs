@@ -1,15 +1,12 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using atompds.Auth;
-using atompds.Controllers;
+using atompds.Config;
 using atompds.Database;
 using atompds.Utils;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
-using Scalar.AspNetCore;
+using Microsoft.Extensions.Options;
 
 namespace atompds;
 
@@ -25,7 +22,9 @@ public class Program
         builder.Services.AddCors();
         builder.AddDatabase();
         builder.Services.AddRepositories();
-        builder.Services.Configure<CliConfig>(builder.Configuration.GetSection("Config"));
+        var environment = builder.Configuration.GetSection("Config").Get<ServerEnvironment>() ?? throw new Exception("Missing server environment configuration");
+        var serverConfig = new ServerConfig(environment);
+        ServerConfig.RegisterServices(builder.Services, serverConfig);
         
         // response serialize, ignore when writing default
         builder.Services.AddControllers().AddJsonOptions(options =>
@@ -81,22 +80,4 @@ public class Program
         app.MapGet("/", () => $"Hello! This is an ATProto PDS instance, running atompds v{version}.");
         await app.RunAsync();
     }
-}
-
-public class CliConfig
-{
-    public CliConfig() { }
-
-	public CliConfig(string pdsPfx, string pdsDid, string[] availableUserDomains)
-	{
-		PdsPfx = pdsPfx;
-		PdsDid = pdsDid;
-		AvailableUserDomains = availableUserDomains;
-	}
-
-	public string PdsPfx { get; init; } = default!;
-	public string PdsDid { get; init; } = default!;
-	public string AppViewUrl { get; init; } = default!;
-	public string AppViewDid { get; init; } = default!;
-	public string[] AvailableUserDomains { get; init; } = [];
 }

@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "atompds", "atompds\atompds.csproj", "{0A05980F-B070-4727-A15B-17D34F572FE2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pdsadmin", "pdsadmin\pdsadmin.csproj", "{61CFBCD5-B6CF-4212-B5D2-796C86E7C8D6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{0A05980F-B070-4727-A15B-17D34F572FE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0A05980F-B070-4727-A15B-17D34F572FE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0A05980F-B070-4727-A15B-17D34F572FE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61CFBCD5-B6CF-4212-B5D2-796C86E7C8D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61CFBCD5-B6CF-4212-B5D2-796C86E7C8D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61CFBCD5-B6CF-4212-B5D2-796C86E7C8D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61CFBCD5-B6CF-4212-B5D2-796C86E7C8D6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
