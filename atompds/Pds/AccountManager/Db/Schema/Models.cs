@@ -26,9 +26,6 @@ public class Actor
     [StringLength(2048)] public required string? TakedownRef { get; set; }
     public DateTime? DeactivatedAt { get; set; }
     public DateTime? DeleteAfter { get; set; }
-    
-    [ForeignKey(nameof(Did))]
-    public virtual required Account Account { get; set; }
 }
 
 // [Table(TableName)]
@@ -145,9 +142,6 @@ public class InviteCode
     [StringLength(2048)] public required string ForAccount { get; set; }
     [StringLength(2048)] public required string CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
-    
-    [ForeignKey(nameof(ForAccount))]
-    public virtual required Actor Actor { get; set; }
 }
 
 [Table(TableName)]

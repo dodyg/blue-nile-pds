@@ -48,6 +48,20 @@ public class Auth
         var encoded = JWT.Encode(payload, jwtKey, JwsAlgorithm.HS256, extraHeaders: headers);
         return encoded;
     }
+    
+    public RefreshToken DecodeRefreshToken(string token, string jwtKey)
+    {
+        var decoded = JWT.Decode<Dictionary<string, object>>(token, jwtKey);
+        if (decoded["scope"].ToString() != REFRESH_TOKEN_SCOPE)
+        {
+            throw new Exception("Invalid refresh token scope");
+        }
+        
+        var sub = decoded["sub"].ToString() ?? throw new Exception("Missing sub");
+        var exp = long.Parse(decoded["exp"].ToString() ?? throw new Exception("Missing exp"));
+        var jti = decoded["jti"].ToString() ?? throw new Exception("Missing jti");
+        return new RefreshToken(sub, exp, jti);
+    }
 
     public string CreateRefreshToken(string did, string jwtKey, string serviceDid, string? jti, TimeSpan? expiresIn)
     {

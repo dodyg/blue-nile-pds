@@ -1,4 +1,4 @@
-﻿namespace atompds.Config;
+﻿namespace atompds.Pds.Config;
 
 public record ServerConfig
 {

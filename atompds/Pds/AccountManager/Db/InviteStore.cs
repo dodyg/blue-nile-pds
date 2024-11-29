@@ -1,8 +1,8 @@
-﻿using atompds.Model;
-using FishyFlip.Models;
+﻿using atompds.AccountManager.Db;
+using atompds.Model;
 using Microsoft.EntityFrameworkCore;
 
-namespace atompds.AccountManager.Db;
+namespace atompds.Pds.AccountManager.Db;
 
 public class InviteStore
 {
@@ -14,10 +14,15 @@ public class InviteStore
 
     public async Task EnsureInviteIsAvailable(string code)
     {
-        var invite = await _db.InviteCodes
-            .Include(x => x.Actor)
-            .Where(x => x.Actor.TakedownRef == null)
-            .Where(x => x.Code == code)
+        var inviteActors = _db.InviteCodes.GroupJoin(_db.Actors,
+            invite => invite.ForAccount,
+            actor => actor.Did,
+            (invite, actors) => new {Invite = invite, Actors = actors});
+        
+        var invite = await inviteActors
+            .Where(x => x.Actors.All(a => a.TakedownRef == null))
+            .Where(x => x.Invite.Code == code)
+            .Select(x => x.Invite)
             .FirstOrDefaultAsync();
 
         if (invite == null || invite.Disabled)
@@ -33,4 +38,21 @@ public class InviteStore
             throw new ErrorDetailException(new InvalidInviteCodeErrorDetail("Provided invite code not available"));
         }
     }
+    
+    public async Task RecordInviteUse(string did, string? inviteCode, DateTime now)
+    {
+        if (inviteCode == null)
+        {
+            return;
+        }
+        
+        await _db.InviteCodeUses.AddAsync(new atompds.AccountManager.Db.Schema.InviteCodeUse
+        {
+            UsedBy = did,
+            Code = inviteCode,
+            UsedAt = now
+        });
+        
+        await _db.SaveChangesAsync();
+    } 
 }

@@ -1,9 +1,19 @@
-﻿using atompds.Database;
+﻿using System.Net.Mail;
+using System.Text;
 using atompds.Model;
+using atompds.Pds.Config;
+using atompds.Pds.Handle;
 using FishyFlip.Lexicon.Com.Atproto.Server;
 using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
+using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto;
 
@@ -12,29 +22,40 @@ namespace atompds.Controllers.Xrpc.Com.Atproto;
 public class ServerController : ControllerBase
 {
     private readonly ILogger<ServerController> _logger;
-    private readonly ConfigRepository _configRepository;
-    private readonly AccountRepository _accountRepository;
+    private readonly AccountManager.AccountManager _accountManager;
+    private readonly IdentityConfig _identityConfig;
+    private readonly ServiceConfig _serviceConfig;
     private readonly JwtHandler _jwtHandler;
+    private readonly InvitesConfig _invitesConfig;
+    private readonly HttpClient _httpClient;
+    private readonly Handle _handle;
 
     public ServerController(ILogger<ServerController> logger, 
-        ConfigRepository configRepository, 
-        AccountRepository accountRepository,
-        JwtHandler jwtHandler)
+        AccountManager.AccountManager accountManager,
+        IdentityConfig identityConfig,
+        ServiceConfig serviceConfig,
+        JwtHandler jwtHandler,
+        InvitesConfig invitesConfig,
+        HttpClient httpClient,
+        Handle handle)
     {
         _logger = logger;
-        _configRepository = configRepository;
-        _accountRepository = accountRepository;
+        _accountManager = accountManager;
+        _identityConfig = identityConfig;
+        _serviceConfig = serviceConfig;
         _jwtHandler = jwtHandler;
+        _invitesConfig = invitesConfig;
+        _httpClient = httpClient;
+        _handle = handle;
     }
     
     [HttpGet("com.atproto.server.describeServer")]
-    public async Task<IActionResult> DescribeServer()
+    public IActionResult DescribeServer()
     {
-        var cfg = await _configRepository.GetConfigAsync();
         return Ok(new DescribeServerOutput
         {
-            Did = new ATDid(cfg.PdsDid),
-            AvailableUserDomains = cfg.AvailableUserDomains.ToList(),
+            Did = new ATDid(_serviceConfig.Did),
+            AvailableUserDomains = _identityConfig.ServiceHandleDomains.ToList(),
             InviteCodeRequired = true
         });
     }
@@ -52,85 +73,6 @@ public class ServerController : ControllerBase
         {
             _logger.LogError(e, "Failed to create session");
             return Unauthorized();
-        }
-    }
-    
-    [HttpPost("com.atproto.server.createAccount")]
-    [EnableRateLimiting(Program.FixedWindowLimiterName)]
-    public async Task<IActionResult> CreateAccount([FromBody] CreateAccountInput request)
-    {
-        try
-        {
-            var config = await _configRepository.GetConfigAsync();
-            
-            if (string.IsNullOrWhiteSpace(request.InviteCode))
-            {
-                throw new ErrorDetailException(new InvalidInviteCodeErrorDetail("missing invite code"));
-                return BadRequest(new InvalidInviteCodeErrorDetail("missing invite code"));
-            }
-
-            if (request.InviteCode != "kweh")
-            {
-                throw new ErrorDetailException(new InvalidInviteCodeErrorDetail("invalid invite code"));
-                return BadRequest(new InvalidInviteCodeErrorDetail("invalid invite code"));
-            }
-            
-            if (!string.IsNullOrWhiteSpace(request.Did?.Handler))
-            {
-                throw new ErrorDetailException(new IncompatibleDidDocErrorDetail("DID is not allowed to be set"));
-                return BadRequest(new IncompatibleDidDocErrorDetail("DID is not allowed to be set"));
-            }
-            
-            // ensure handle is not empty
-            if (string.IsNullOrWhiteSpace(request.Handle?.Handle))
-            {
-                throw new ErrorDetailException(new InvalidHandleErrorDetail("missing handle"));
-                return BadRequest(new InvalidHandleErrorDetail("missing handle"));
-            }
-            
-            // ensure handle ends with available domain
-            if (!config.AvailableUserDomains.Any(x => request.Handle.Handle.EndsWith(x)))
-            {
-                throw new ErrorDetailException(new UnsupportedDomainErrorDetail("handle must end with an available domain"));
-                return BadRequest(new UnsupportedDomainErrorDetail("handle must end with an available domain"));
-            }
-            
-            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
-            {
-                throw new ErrorDetailException(new InvalidPasswordErrorDetail("invalid password"));
-                return BadRequest(new InvalidPasswordErrorDetail("invalid password"));
-            }
-
-            AccountRepository.AccountInfo accountInfo;
-            try
-            {
-                accountInfo = await _accountRepository.CreateAccountAsync(request);
-            }
-            catch (DuplicateAccountException e)
-            {
-                return BadRequest(new HandleNotAvailableErrorDetail("account already exists"));
-            }
-
-            var response = await _jwtHandler.GenerateJwtToken(new CreateSessionInput
-            {
-                Identifier = accountInfo.Did,
-                Password = request.Password
-            });
-            
-            var createResponse = new CreateAccountOutput
-            {
-                AccessJwt = response.AccessJwt,
-                RefreshJwt = response.RefreshJwt,
-                Handle = new ATHandle(accountInfo.Handle),
-                Did = new ATDid(accountInfo.Did)
-            };
-            return Ok(createResponse);
-        }
-        catch (Exception e)
-        {
-            var guid = Guid.NewGuid().ToString();
-            _logger.LogError(e, "{prefix} Failed to create account", guid);
-            return BadRequest(new InvalidRequestErrorDetail($"failed to create account, report this using the following code: {guid}"));
         }
     }
 }

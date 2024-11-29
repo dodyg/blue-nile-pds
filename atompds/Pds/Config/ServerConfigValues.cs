@@ -1,6 +1,4 @@
-﻿namespace atompds.Config;
-
-using System.Collections.Generic;
+﻿namespace atompds.Pds.Config;
 
 public record ServiceConfig
 {
@@ -43,7 +41,6 @@ public record IdentityConfig
     public int CacheMaxTTL { get; init; }
     public string? RecoveryDidKey { get; init; }
     public List<string> ServiceHandleDomains { get; init; }
-    public List<string>? HandleBackupNameservers { get; init; }
     public bool EnableDidDocWithSession { get; init; }
 }
 

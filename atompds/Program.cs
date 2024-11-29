@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using atompds.Auth;
-using atompds.Config;
 using atompds.Database;
+using atompds.Pds.Config;
 using atompds.Utils;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.RateLimiting;

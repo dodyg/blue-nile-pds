@@ -1,4 +1,7 @@
-﻿namespace atompds.Config;
+﻿// ReSharper disable InconsistentNaming
+// ReSharper disable PropertyCanBeMadeInitOnly.Global
+
+namespace atompds.Pds.Config;
 
 public class ServerEnvironment
 {
@@ -71,7 +74,6 @@ public class ServerEnvironment
     public int PDS_ID_RESOLVER_TIMEOUT { get; set; }  = 3 * SECOND;
     public string? PDS_RECOVERY_DID_KEY { get; set; }
     public List<string> PDS_SERVICE_HANDLE_DOMAINS { get; set; } = [];
-    public List<string> PDS_HANDLE_BACKUP_NAMESERVERS { get; set; } = [];
     public bool PDS_ENABLE_DID_DOC_WITH_SESSION { get; set; } = false;
     
     public IdentityConfig IdentityConfig => new()
@@ -83,7 +85,6 @@ public class ServerEnvironment
         RecoveryDidKey = PDS_RECOVERY_DID_KEY,
         ServiceHandleDomains = PDS_SERVICE_HANDLE_DOMAINS?.Count > 0 ? PDS_SERVICE_HANDLE_DOMAINS : 
             PDS_HOSTNAME == "localhost" ? new List<string> { ".test" } : new List<string> { $".{PDS_HOSTNAME}" },
-        HandleBackupNameservers = PDS_HANDLE_BACKUP_NAMESERVERS,
         EnableDidDocWithSession = PDS_ENABLE_DID_DOC_WITH_SESSION
     };
     
