@@ -1,4 +1,5 @@
-﻿using atompds.AccountManager.Db.Schema;
+﻿using atompds.Pds;
+using atompds.Pds.AccountManager.Db.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace atompds.AccountManager.Db;
@@ -15,7 +16,7 @@ public class AccountManagerDb : DbContext
     //public DbSet<DeviceAccount> DeviceAccounts { get; set; }
     //public DbSet<AuthorizationRequest> AuthorizationRequests { get; set; }
     //public DbSet<Token> Tokens { get; set; }
-    public DbSet<Schema.RefreshToken> RefreshTokens { get; set; }
+    public DbSet<Pds.AccountManager.Db.Schema.RefreshToken> RefreshTokens { get; set; }
     //public DbSet<UsedRefreshToken> UsedRefreshTokens { get; set; }
     public DbSet<AppPassword> AppPasswords { get; set; }
     public DbSet<RepoRoot> RepoRoots { get; set; }

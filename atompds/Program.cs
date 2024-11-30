@@ -20,8 +20,6 @@ public class Program
 
         builder.Services.AddOpenApi();
         builder.Services.AddCors();
-        builder.AddDatabase();
-        builder.Services.AddRepositories();
         var environment = builder.Configuration.GetSection("Config").Get<ServerEnvironment>() ?? throw new Exception("Missing server environment configuration");
         var serverConfig = new ServerConfig(environment);
         ServerConfig.RegisterServices(builder.Services, serverConfig);
@@ -49,21 +47,11 @@ public class Program
 			logging.CombineLogs = true;
 		});
         
-		builder.Services.ConfigureAuthServices();
-		builder.Services.AddScoped<DataContextSeeder>();
-		
+
         var app = builder.Build();
-        
-        using (var scope = app.Services.CreateScope())
-		{
-			var db = scope.ServiceProvider.GetRequiredService<DataContext>();
-			await db.SetupAsync();
-			var seeder = scope.ServiceProvider.GetRequiredService<DataContextSeeder>();
-			await seeder.SeedAsync();
-		}
+
         
         app.UseRouting();
-        app.ConfigureAuthApp();
         app.MapControllers();
         app.UseExceptionHandler("/error");	
         

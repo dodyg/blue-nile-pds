@@ -1,5 +1,6 @@
 ﻿using atompds.AccountManager.Db;
 using atompds.Model;
+using atompds.Pds.AccountManager.Db.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace atompds.Pds.AccountManager.Db;
@@ -46,7 +47,7 @@ public class InviteStore
             return;
         }
         
-        await _db.InviteCodeUses.AddAsync(new atompds.AccountManager.Db.Schema.InviteCodeUse
+        await _db.InviteCodeUses.AddAsync(new InviteCodeUse
         {
             UsedBy = did,
             Code = inviteCode,

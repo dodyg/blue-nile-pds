@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace atompds.AccountManager.Db.Schema;
+namespace atompds.Pds.AccountManager.Db.Schema;
 
 [Table(TableName)]
 public class Account

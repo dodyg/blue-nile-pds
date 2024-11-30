@@ -1,4 +1,6 @@
-﻿namespace atompds.Pds.Config;
+﻿using Crypto.Secp256k1;
+
+namespace atompds.Pds.Config;
 
 public record ServiceConfig
 {
@@ -86,4 +88,5 @@ public record BskyAppViewConfig : IBskyAppViewConfig
 public record SecretsConfig
 {
     public required string JwtSecret { get; init; }
+    public required Secp256k1Keypair PlcRotationKey { get; set; }
 }

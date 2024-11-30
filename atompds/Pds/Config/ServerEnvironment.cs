@@ -125,9 +125,14 @@ public class ServerEnvironment
     // Secrets
     public required string PDS_JWT_SECRET { get; set; }
     
+    // Keys
+    public required string PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX { get; set; }
+    
+    
     public SecretsConfig SecretsConfig => new()
     {
-        JwtSecret = PDS_JWT_SECRET
+        JwtSecret = PDS_JWT_SECRET,
+        PlcRotationKey = Crypto.Secp256k1.Secp256k1Keypair.Import(PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX, false)
     };
     
     // Fetch

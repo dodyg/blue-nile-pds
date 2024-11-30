@@ -95,7 +95,7 @@ public class Auth
             return false;
         }
         
-        await _accountDb.RefreshTokens.AddAsync(new Db.Schema.RefreshToken
+        await _accountDb.RefreshTokens.AddAsync(new Pds.AccountManager.Db.Schema.RefreshToken
         {
             Id = token.Jti,
             Did = token.Sub,

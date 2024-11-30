@@ -1,5 +1,5 @@
 ﻿using atompds.AccountManager.Db;
-using atompds.AccountManager.Db.Schema;
+using atompds.Pds.AccountManager.Db.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace atompds.Pds.AccountManager.Db;

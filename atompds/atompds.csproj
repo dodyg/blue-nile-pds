@@ -22,10 +22,12 @@
       <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.2.1" />
       <PackageReference Include="Scalar.AspNetCore" Version="1.2.44" />
       <PackageReference Include="Scrypt.NET" Version="1.3.0" />
+      <PackageReference Include="Secp256k1.Net" Version="1.2.0" />
       <PackageReference Include="SimpleBase" Version="4.0.2" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Migrations\" />
+      <ProjectReference Include="..\Crypto\Crypto.csproj" />
+      <ProjectReference Include="..\DidLib\DidLib.csproj" />
     </ItemGroup>
 </Project>

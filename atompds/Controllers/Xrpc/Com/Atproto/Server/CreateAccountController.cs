@@ -1,16 +1,13 @@
 ﻿using System.Net.Mail;
 using atompds.Model;
+using atompds.Pds.ActorStore.Db;
 using atompds.Pds.Config;
 using atompds.Pds.Handle;
+using Crypto.Secp256k1;
+using DidLib;
 using FishyFlip.Lexicon.Com.Atproto.Server;
-using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.X9;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Generators;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Security;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 
@@ -25,42 +22,43 @@ public class CreateAccountController : ControllerBase
     private readonly InvitesConfig _invitesConfig;
     private readonly HttpClient _httpClient;
     private readonly Handle _handle;
-    
+    private readonly ActorStore _actorStore;
+    private readonly SecretsConfig _secretsConfig;
+
+    public CreateAccountController(ILogger<CreateAccountController> logger,
+        AccountManager.AccountManager accountManager,
+        IdentityConfig identityConfig,
+        ServiceConfig serviceConfig,
+        InvitesConfig invitesConfig,
+        HttpClient httpClient,
+        Handle handle,
+        ActorStore actorStore,
+        SecretsConfig secretsConfig)
+    {
+        _logger = logger;
+        _accountManager = accountManager;
+        _identityConfig = identityConfig;
+        _serviceConfig = serviceConfig;
+        _invitesConfig = invitesConfig;
+        _httpClient = httpClient;
+        _handle = handle;
+        _actorStore = actorStore;
+        _secretsConfig = secretsConfig;
+    }
     
     
      [HttpPost("com.atproto.server.createAccount")]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountInput request)
     {
-        await ValidateInputsForLocalPds(request);
+        var validatedInputs = await ValidateInputsForLocalPds(request);
 
         string didDoc;
         string accessJwt;
         string refreshJwt;
-        
-        try
-        {
-            var cid = "";
-            var rev = "";
-            var deactivated = false;
-            (accessJwt, refreshJwt) = await _accountManager.CreateAccount(request.Did?.Handler, request.Handle?.Handle, request.Email, request.Password, cid, rev, request.InviteCode,
-                deactivated);
-        }
-        catch (Exception e)
-        {
-            return BadRequest(new HandleNotAvailableErrorDetail("account already exists"));
-        }
-
-        var createResponse = new CreateAccountOutput
-        {
-            AccessJwt = accessJwt,
-            RefreshJwt = refreshJwt,
-            Handle = new ATHandle(accountInfo.Handle),
-            Did = new ATDid(accountInfo.Did)
-        };
-        return Ok(createResponse);
+        _actorStore.Create(validatedInputs.did, validatedInputs.signingKey);
     }
 
-    private async Task ValidateInputsForLocalPds(CreateAccountInput createAccountInput)
+    private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, AtProtoOp? plcOp, bool deactivated)> ValidateInputsForLocalPds(CreateAccountInput createAccountInput)
     {
         if (createAccountInput.PlcOp != null)
         {
@@ -98,33 +96,41 @@ public class CreateAccountController : ControllerBase
         {
             throw new ErrorDetailException(new InvalidRequestErrorDetail($"Email already taken: {createAccountInput.Email}"));
         }
-        
-        var signingKey = GenerateKeyPair();
 
+        var signingKey = Secp256k1Keypair.Create(true);
+
+        string did;
+        AtProtoOp plcOp;
+        bool deactivated = false;
         if (createAccountInput.Did != null)
         {
             // if did != requested, throw error
+            deactivated = true;
             throw new ErrorDetailException(new InvalidRequestErrorDetail("TEMP"));
         }
         else
         {
-            // TODO: need to load keypair for either pldRotationKey.privateKeyHex (Secp256k1) or pldRotationKey.keyId (KmsKeyPair)
+            (did, plcOp) = await FormatDidAndPlcOp(handle, createAccountInput, signingKey);
         }
+        
+        return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, deactivated);
     }
-
-    private AsymmetricCipherKeyPair GenerateKeyPair()
+    
+    public async Task<(string Did, object? PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
     {
-        var curve = ECNamedCurveTable.GetByName("secp256k1");
-        var domain = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H, curve.GetSeed());
+        string[] rotationKeys = [_secretsConfig.PlcRotationKey.Did()];
+        if (_identityConfig.RecoveryDidKey != null)
+        {
+            rotationKeys = [_identityConfig.RecoveryDidKey, ..rotationKeys];
+        }
+        if (createAccountInput.RecoveryKey != null)
+        {
+            rotationKeys = [createAccountInput.RecoveryKey, ..rotationKeys];
+        }
         
-        var random = new SecureRandom();
-        var keyParams = new ECKeyGenerationParameters(domain, random);
-        
-        var generator = new ECKeyPairGenerator("ECDSA");
-        generator.Init(keyParams);
-        var keyPair = generator.GenerateKeyPair();
-
-        return keyPair;
+        // plcCreate ...
+        var plcCreate = await DidLib.Operations.CreateOp(signingKey.Did(), handle, _serviceConfig.PublicUrl, rotationKeys, _secretsConfig.PlcRotationKey);
+        return (plcCreate.Did, plcCreate.Op);
     }
     
     private bool IsValidEmail(string email)
