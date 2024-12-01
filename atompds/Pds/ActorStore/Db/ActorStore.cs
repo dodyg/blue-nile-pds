@@ -1,10 +1,8 @@
-﻿using atompds.Model;
-using atompds.Pds.Config;
+﻿using atompds.Pds.Config;
 using Crypto;
 using Crypto.Secp256k1;
-using FishyFlip.Models;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Xrpc;
 
 namespace atompds.Pds.ActorStore.Db;
 
@@ -46,7 +44,7 @@ public class ActorStore
         var (_, dbLocation, _) = GetLocation(did);
         if (!File.Exists(dbLocation))
         {
-            throw new ErrorDetailException(new InvalidRequestErrorDetail("Repo not found"));
+            throw new XRPCError(new InvalidRequestErrorDetail("Repo not found"));
         }
         
         var connectionString = $"Data Source={dbLocation};";
@@ -79,7 +77,7 @@ public class ActorStore
         Directory.CreateDirectory(location.Directory);
         if (File.Exists(location.DbLocation))
         {
-            throw new ErrorDetailException(new InvalidRequestErrorDetail("Repo already exists"));
+            throw new XRPCError(new InvalidRequestErrorDetail("Repo already exists"));
         }
         
         var privKey = keyPair.Export();
@@ -101,5 +99,16 @@ public class ActorStore
         actorStoreDb.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
         
         // TODO: Migration
+    }
+    
+    public void Destroy(string did)
+    {
+        // TODO: delete blobstore
+        var location = GetLocation(did);
+        
+        if (Directory.Exists(location.Directory))
+        {
+            Directory.Delete(location.Directory, true);
+        }
     }
 }

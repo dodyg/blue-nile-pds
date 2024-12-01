@@ -9,6 +9,8 @@ using FishyFlip.Lexicon.Com.Atproto.Sync;
 using FishyFlip.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Debug;
+using Org.BouncyCastle.Security;
+using Secp256k1Net;
 
 namespace pdsadmin;
 
@@ -20,6 +22,7 @@ public partial class AccountCommands
     [Command("list")]
     public async Task List()
     {
+        var session = await Program.LoginAsync();
         var repos = await Program.Protocol.ListReposAsync(100);
 
         ListReposOutput? output = null;
@@ -63,6 +66,7 @@ public partial class AccountCommands
     [Command("create")]
     public async Task Create(string email, string handle)
     {
+        var session = await Program.LoginAsync();
         var atHandle = ATHandle.Create(handle) ?? throw new Exception("Failed to create handle");
         var rnd = RandomNumberGenerator.Create();
         var password = new byte[30];
@@ -97,6 +101,7 @@ public partial class AccountCommands
     [Command("delete")]
     public async Task Delete(string did)
     {
+        var session = await Program.LoginAsync();
         var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
         var result = await Program.Protocol.DeleteAccountAsync(atDid);
         result.Switch(
@@ -112,6 +117,7 @@ public partial class AccountCommands
     [Command("takedown")]
     public async Task Takedown(string did)
     {
+        var session = await Program.LoginAsync();
       var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
       var atObject = new RepoRef(atDid);
       var takedownRef = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -131,6 +137,7 @@ public partial class AccountCommands
     [Command("untakedown")]
     public async Task Untakedown(string did)
     {
+        var session = await Program.LoginAsync();
         var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
         var atObject = new RepoRef(atDid);
         var takedownAttr = new StatusAttr(false);
@@ -149,6 +156,7 @@ public partial class AccountCommands
     [Command("reset-password")]
     public async Task ResetPassword(string did)
     {
+        var session = await Program.LoginAsync();
         var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
         var rnd = RandomNumberGenerator.Create();
         var password = new byte[30];
@@ -202,6 +210,7 @@ public partial class RootCommands
     [Command("create-invite-code")]
     public async Task CreateInviteCode()
     {
+        var session = await Program.LoginAsync();
         var result = await Program.CreateInviteCodeAsync(1);
         Program.Logger.LogInformation("Invite code: {Code}", result.Code);
     }
@@ -219,7 +228,7 @@ public class Program
     public static ILogger Logger { get; set; } = null!;
     public static Session Session { get; set; } = null!;
 
-    private static async Task<Session> LoginAsync()
+    public static async Task<Session> LoginAsync()
     {
         return await Protocol.AuthenticateWithPasswordAsync("admin", PdsEnv.PdsAdminPassword) ?? throw new Exception("Failed to login");
     }
@@ -249,7 +258,6 @@ public class Program
             .WithInstanceUrl(new Uri($"https://{PdsEnv.PdsHostname}"))
             .WithLogger(Logger);
         Protocol = protoBuilder.Build();
-        Session = await LoginAsync();
 
         var app = ConsoleApp.Create();
         app.Add<RootCommands>();

@@ -1,4 +1,4 @@
-﻿using atompds.Controllers.Xrpc.Com.Atproto;
+﻿using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace atompds.Controllers.Xrpc;
@@ -10,6 +10,10 @@ public class HealthController : ControllerBase
     [HttpGet("_health")]
     public IActionResult GetHealth()
     {
-        return Ok(new IdentityController.HealthResponse(StaticConfig.Version));
+        return Ok(new HealthResponse(StaticConfig.Version));
     }
+    
+    public record HealthResponse(
+        [property: JsonPropertyName("version")]
+        string Version);
 }

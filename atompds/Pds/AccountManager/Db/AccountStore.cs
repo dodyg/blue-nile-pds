@@ -1,14 +1,31 @@
-﻿using atompds.Model;
-using atompds.Pds;
-using atompds.Pds.AccountManager.Db;
+﻿using atompds.AccountManager;
+using atompds.AccountManager.Db;
 using atompds.Pds.AccountManager.Db.Schema;
 using atompds.Pds.Config;
 using Microsoft.EntityFrameworkCore;
-using Scrypt;
+using Xrpc;
 
-namespace atompds.AccountManager.Db;
+namespace atompds.Pds.AccountManager.Db;
 
 public record AvailabilityFlags(bool? IncludeTakenDown = null, bool? IncludeDeactivated = null);
+
+
+public record ActorAccount(string Did, string? Handle, DateTime CreatedAt, string? TakedownRef, 
+    DateTime? DeactivatedAt, DateTime? DeleteAfter, string? Email, DateTime? EmailConfirmedAt, bool? InvitesDisabled)
+{
+    public static ActorAccount? FromActor(Actor? actor, Account? account)
+    {
+        if (actor == null)
+        {
+            return null;
+        }
+            
+        return new ActorAccount(actor.Did, actor.Handle, actor.CreatedAt, actor.TakedownRef, actor.DeactivatedAt,
+            actor.DeleteAfter, account?.Email, account?.EmailConfirmedAt, account?.InvitesDisabled);
+    }
+    
+    public bool SoftDeleted => TakedownRef != null;
+}
 
 public class AccountStore
 {
@@ -27,21 +44,6 @@ public class AccountStore
         _serviceConfig = serviceConfig;
         _inviteStore = inviteStore;
         _logger = logger;
-    }
-    
-    public record ActorAccount(string Did, string? Handle, DateTime CreatedAt, string? TakedownRef, 
-        DateTime? DeactivatedAt, DateTime? DeleteAfter, string? Email, DateTime? EmailConfirmedAt, bool? InvitesDisabled)
-    {
-        public static ActorAccount? FromActor(Actor? actor, Account? account)
-        {
-            if (actor == null)
-            {
-                return null;
-            }
-            
-            return new ActorAccount(actor.Did, actor.Handle, actor.CreatedAt, actor.TakedownRef, actor.DeactivatedAt,
-                actor.DeleteAfter, account?.Email, account?.EmailConfirmedAt, account?.InvitesDisabled);
-        }
     }
     
     private record ActorAccTuple(Actor Actor, Account? Account);
@@ -150,7 +152,7 @@ public class AccountStore
         catch (DbUpdateException e)
         {
             _logger.LogError(e, "Failed to register actor");
-            throw new ErrorDetailException(new InvalidRequestErrorDetail("User already exists"));
+            throw new XRPCError(new InvalidRequestErrorDetail("User already exists"));
         }
     }
     
@@ -172,7 +174,7 @@ public class AccountStore
         catch (DbUpdateException e)
         {
             _logger.LogError(e, "Failed to register account");
-            throw new ErrorDetailException(new InvalidRequestErrorDetail("Account already exists"));
+            throw new XRPCError(new InvalidRequestErrorDetail("Account already exists"));
         }
     }
 

@@ -7,9 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Secp256k1.Native" Version="0.1.23" />
-      <PackageReference Include="Secp256k1.Net" Version="1.2.0" />
-      <PackageReference Include="SimpleBase" Version="4.0.2" />
+      <PackageReference Include="DnsClient" Version="1.8.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\CommonWeb\CommonWeb.csproj" />
+      <ProjectReference Include="..\Crypto\Crypto.csproj" />
     </ItemGroup>
 
 </Project>

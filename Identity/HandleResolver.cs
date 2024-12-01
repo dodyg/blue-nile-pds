@@ -1,8 +1,7 @@
 ﻿using System.Net;
 using DnsClient;
-using DnsClient.Protocol;
 
-namespace atompds.Pds.Resolver;
+namespace Identity;
 
 public class HandleResolver
 {

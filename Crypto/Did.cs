@@ -10,7 +10,7 @@ public class Did
         { Const.SECP256K1_JWT_ALG, new Secp256k1Plugin() }
     };
     
-    public ParsedMultiKey ParseMultiKey(string multiKey)
+    public static ParsedMultiKey ParseMultiKey(string multiKey)
     {
         var prefixedBytes = Utils.ExtractPrefixedBytes(multiKey);
         var plugin = KeyPlugins.Values.FirstOrDefault(x => Utils.HasPrefix(prefixedBytes, x.Prefix));
@@ -21,6 +21,11 @@ public class Did
         
         var keyBytes = plugin.DecompressPubKey(prefixedBytes[plugin.Prefix.Length..]);
         return new ParsedMultiKey(plugin.JwtAlg, keyBytes);
+    }
+    
+    public static ParsedMultiKey ParseDidKey(string did)
+    {
+        return ParseMultiKey(Utils.ExtractMultiKey(did));
     }
     
     public static string FormatDidKey(string jwtAlg, byte[] keyBytes)

@@ -1,6 +1,6 @@
-﻿using atompds.Model;
-using Microsoft.AspNetCore.Diagnostics;
+﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Xrpc;
 
 namespace atompds.Controllers;
 
@@ -30,9 +30,9 @@ public class ErrorController : ControllerBase
         
         var exception = exceptionHandlerPathFeature.Error;
         
-        if (exception is ErrorDetailException errorDetailException)
+        if (exception is XRPCError errorDetailException)
         {
-            return StatusCode(errorDetailException.StatusCode, errorDetailException.ErrorDetail);
+            return StatusCode((int)errorDetailException.Status, errorDetailException.Detail);
         }
         
         var guid = Guid.NewGuid().ToString();

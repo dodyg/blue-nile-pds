@@ -1,7 +1,7 @@
 ﻿using atompds.AccountManager.Db;
-using atompds.Model;
 using atompds.Pds.AccountManager.Db.Schema;
 using Microsoft.EntityFrameworkCore;
+using Xrpc;
 
 namespace atompds.Pds.AccountManager.Db;
 
@@ -28,7 +28,7 @@ public class InviteStore
 
         if (invite == null || invite.Disabled)
         {
-            throw new ErrorDetailException(new InvalidInviteCodeErrorDetail("Provided invite code is not available"));
+            throw new XRPCError(new InvalidInviteCodeErrorDetail("Provided invite code is not available"));
         }
 
         var uses = await _db.InviteCodeUses
@@ -36,7 +36,7 @@ public class InviteStore
 
         if (invite.AvailableUses <= uses)
         {
-            throw new ErrorDetailException(new InvalidInviteCodeErrorDetail("Provided invite code not available"));
+            throw new XRPCError(new InvalidInviteCodeErrorDetail("Provided invite code not available"));
         }
     }
     

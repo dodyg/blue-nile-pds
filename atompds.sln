@@ -8,6 +8,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crypto", "Crypto\Crypto.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DidLib", "DidLib\DidLib.csproj", "{3A0B2B59-2687-44B6-AFBB-9FCE5E835D88}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repo", "Repo\Repo.csproj", "{5B47217E-935B-497E-8EE2-9533C8FB22D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Identity", "Identity\Identity.csproj", "{971D8A2E-8BFB-4FF2-8D6A-37FB31170C4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonWeb", "CommonWeb\CommonWeb.csproj", "{75777CA1-8B97-48B6-98AB-12596711131A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xrpc", "Xrpc\Xrpc.csproj", "{70131178-120C-4D1A-ACCA-CA88ADBD53BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +38,21 @@ Global
 		{3A0B2B59-2687-44B6-AFBB-9FCE5E835D88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A0B2B59-2687-44B6-AFBB-9FCE5E835D88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A0B2B59-2687-44B6-AFBB-9FCE5E835D88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B47217E-935B-497E-8EE2-9533C8FB22D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B47217E-935B-497E-8EE2-9533C8FB22D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B47217E-935B-497E-8EE2-9533C8FB22D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B47217E-935B-497E-8EE2-9533C8FB22D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{971D8A2E-8BFB-4FF2-8D6A-37FB31170C4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{971D8A2E-8BFB-4FF2-8D6A-37FB31170C4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{971D8A2E-8BFB-4FF2-8D6A-37FB31170C4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{971D8A2E-8BFB-4FF2-8D6A-37FB31170C4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75777CA1-8B97-48B6-98AB-12596711131A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75777CA1-8B97-48B6-98AB-12596711131A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75777CA1-8B97-48B6-98AB-12596711131A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75777CA1-8B97-48B6-98AB-12596711131A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70131178-120C-4D1A-ACCA-CA88ADBD53BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70131178-120C-4D1A-ACCA-CA88ADBD53BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70131178-120C-4D1A-ACCA-CA88ADBD53BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70131178-120C-4D1A-ACCA-CA88ADBD53BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

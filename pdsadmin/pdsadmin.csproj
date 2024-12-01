@@ -21,4 +21,8 @@
       </Reference>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Crypto\Crypto.csproj" />
+    </ItemGroup>
+
 </Project>

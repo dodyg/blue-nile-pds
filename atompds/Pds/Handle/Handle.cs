@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
-using atompds.Model;
 using atompds.Pds.Config;
-using atompds.Pds.Resolver;
+using Identity;
+using Xrpc;
 
 namespace atompds.Pds.Handle;
 
@@ -21,12 +21,12 @@ public partial class Handle
         
         if (!IsValidTld(handle))
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle TLD is invalid or disallowed"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle TLD is invalid or disallowed"));
         }
         
         if (HasExplicitSlur(handle))
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Inappropriate language in handle"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Inappropriate language in handle"));
         }
         
         if (IsServiceDomain(handle, _identityConfig.ServiceHandleDomains.ToArray()))
@@ -37,13 +37,13 @@ public partial class Handle
         {
             if (did == null)
             {
-                throw new ErrorDetailException(new InvalidHandleErrorDetail("Not a supported handle domain"));
+                throw new XRPCError(new InvalidHandleErrorDetail("Not a supported handle domain"));
             }
             
             var resolvedDid = await _handleResolver.Resolve(handle, CancellationToken.None);
             if (resolvedDid == null || resolvedDid != did)
             {
-                throw new ErrorDetailException(new InvalidHandleErrorDetail("External handle did not resolve to DID"));
+                throw new XRPCError(new InvalidHandleErrorDetail("External handle did not resolve to DID"));
             }
         }
         
@@ -56,22 +56,22 @@ public partial class Handle
         var front = handle[..^supportedDomain.Length];
         if (front.Contains('.'))
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Invalid characters in handle"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Invalid characters in handle"));
         }
         
         if (front.Length < 3)
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle too short"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle too short"));
         }
         
         if (front.Length > 18)
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle too long"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle too long"));
         }
         
         if (!allowReserved && Reserved.ReservedSubdomains.Any(x => x == front))
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Reserved handle"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Reserved handle"));
         }
     }
     
@@ -137,18 +137,18 @@ public partial class Handle
     {
         if (!BasicHandleRegex().IsMatch(handle))
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Disallowed characters in handle (ASCII letters, digits, dashes, periods only)"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Disallowed characters in handle (ASCII letters, digits, dashes, periods only)"));
         }
 
         if (handle.Length > 253)
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle is too long (253 chars max)"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle is too long (253 chars max)"));
         }
 
         var labels = handle.Split('.');
         if (labels.Length < 2)
         {
-            throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle domain needs at least two parts"));
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle domain needs at least two parts"));
         }
 
         for (var i = 0; i < labels.Length; i++)
@@ -156,19 +156,19 @@ public partial class Handle
             var l = labels[i];
             if (l.Length < 1)
             {
-                throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle parts can not be empty"));
+                throw new XRPCError(new InvalidHandleErrorDetail("Handle parts can not be empty"));
             }
             if (l.Length > 63)
             {
-                throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle part too long (max 63 chars)"));
+                throw new XRPCError(new InvalidHandleErrorDetail("Handle part too long (max 63 chars)"));
             }
             if (l.EndsWith('-') || l.StartsWith('-'))
             {
-                throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle parts can not start or end with hyphens"));
+                throw new XRPCError(new InvalidHandleErrorDetail("Handle parts can not start or end with hyphens"));
             }
             if (i + 1 == labels.Length && !Regex.IsMatch(l, "^[a-zA-Z]"))
             {
-                throw new ErrorDetailException(new InvalidHandleErrorDetail("Handle final component (TLD) must start with ASCII letter"));
+                throw new XRPCError(new InvalidHandleErrorDetail("Handle final component (TLD) must start with ASCII letter"));
             }
         }
     }
