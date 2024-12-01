@@ -57,9 +57,11 @@ public class CreateAccountController : ControllerBase
      [HttpPost("com.atproto.server.createAccount")]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountInput request)
     {
+        string? validatedDid = null;
         try
         {
             var validatedInputs = await ValidateInputsForLocalPds(request);
+            validatedDid = validatedInputs.did;
 
             _actorStore.Create(validatedInputs.did, validatedInputs.signingKey);
 
@@ -109,7 +111,10 @@ public class CreateAccountController : ControllerBase
         {
             // if exception, delete actorstore
             _logger.LogError(e, "Failed to create account");
-            
+            if (!string.IsNullOrWhiteSpace(validatedDid))
+            {
+                _actorStore.Destroy(validatedDid);
+            }
             throw;
         }
     }

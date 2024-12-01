@@ -1,5 +1,4 @@
 ﻿using atompds.AccountManager;
-using atompds.AccountManager.Db;
 using atompds.Pds.AccountManager.Db;
 using atompds.Pds.Config;
 using Scrypt;
@@ -51,7 +50,7 @@ public class AccountManager
         var refreshDecoded = _auth.DecodeRefreshToken(tokens.RefreshToken, _secretsConfig.JwtSecret);
         var now = DateTime.UtcNow;
 
-        if (inviteCode != null)
+        if (!string.IsNullOrEmpty(inviteCode))
         {
             // ensure invite code is available
             await _inviteStore.EnsureInviteIsAvailable(inviteCode);

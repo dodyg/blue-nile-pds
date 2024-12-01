@@ -53,7 +53,10 @@ public partial class Handle
     private void EnsureHandleServiceConstraints(string handle, string[] availableUserDomains, bool allowReserved = false)
     {
         var supportedDomain = availableUserDomains.FirstOrDefault(handle.EndsWith) ?? "";
-        var front = handle[..^supportedDomain.Length];
+        
+        // ex. handle = "foo.bar.baz", supportedDomain = "bar.baz"
+        // check that "foo" is valid
+        var front = handle[..(handle.Length - supportedDomain.Length - 1)];
         if (front.Contains('.'))
         {
             throw new XRPCError(new InvalidHandleErrorDetail("Invalid characters in handle"));

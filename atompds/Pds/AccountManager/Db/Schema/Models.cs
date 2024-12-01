@@ -8,7 +8,7 @@ public class Account
 {
     public const string TableName = "account";
     
-    [Key,StringLength(2048)] public required string Did { get; set; }
+    [StringLength(2048)] public required string Did { get; set; }
     [StringLength(2048)] public required string Email { get; set; }
     [StringLength(2048)] public required string PasswordSCrypt { get; set; }
     public DateTime? EmailConfirmedAt { get; set; }
@@ -20,7 +20,7 @@ public class Actor
 {
     public const string TableName = "actor";
 
-    [Key,StringLength(2048)] public required string Did { get; set; }
+    [StringLength(2048)] public required string Did { get; set; }
     [StringLength(2048)] public required string Handle { get; set; }
     public required DateTime CreatedAt { get; set; }
     [StringLength(2048)] public required string? TakedownRef { get; set; }

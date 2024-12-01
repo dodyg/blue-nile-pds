@@ -11,11 +11,13 @@ public class DescribeServerController : ControllerBase
 {
     private readonly IdentityConfig _identityConfig;
     private readonly ServiceConfig _serviceConfig;
-    
-    public DescribeServerController(IdentityConfig identityConfig, ServiceConfig serviceConfig)
+    private readonly InvitesConfig _invitesConfig;
+
+    public DescribeServerController(IdentityConfig identityConfig, ServiceConfig serviceConfig, InvitesConfig invitesConfig)
     {
         _identityConfig = identityConfig;
         _serviceConfig = serviceConfig;
+        _invitesConfig = invitesConfig;
     }
     
     [HttpGet("com.atproto.server.describeServer")]
@@ -25,7 +27,7 @@ public class DescribeServerController : ControllerBase
         {
             Did = new ATDid(_serviceConfig.Did),
             AvailableUserDomains = _identityConfig.ServiceHandleDomains.ToList(),
-            InviteCodeRequired = true
+            InviteCodeRequired = _invitesConfig.Required
         });
     }
 }

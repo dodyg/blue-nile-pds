@@ -1,5 +1,4 @@
-﻿using atompds.AccountManager.Db;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Scrypt;
 
 namespace atompds.Pds.AccountManager.Db;

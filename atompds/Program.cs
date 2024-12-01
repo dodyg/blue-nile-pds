@@ -1,8 +1,9 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using atompds.Pds.AccountManager.Db;
 using atompds.Pds.Config;
 using Microsoft.AspNetCore.HttpLogging;
-using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 
 namespace atompds;
 
@@ -37,7 +38,12 @@ public class Program
         
 
         var app = builder.Build();
-
+        
+        using (var scope = app.Services.CreateScope())
+		{
+			var accountManager = scope.ServiceProvider.GetRequiredService<AccountManagerDb>();
+			await accountManager.Database.MigrateAsync();
+		}
         
         app.UseRouting();
         app.MapControllers();

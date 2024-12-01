@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using atompds.AccountManager;
-using atompds.AccountManager.Db;
 using atompds.Pds.AccountManager.Db;
 using Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace atompds.Pds.Config;
 
@@ -107,6 +107,16 @@ public record ServerConfig
         {
             throw new Exception($"Invalid environment configuration: {string.Join(", ", validationResults.Select(x => x.ErrorMessage))}");
         }
+
+        if (env.PDS_DATA_DIRECTORY != null && !Directory.Exists(env.PDS_DATA_DIRECTORY))
+        {
+            Directory.CreateDirectory(env.PDS_DATA_DIRECTORY);
+        }
+        
+        if (!Directory.Exists(env.PDS_ACTOR_STORE_DIRECTORY))
+        {
+            Directory.CreateDirectory(env.PDS_ACTOR_STORE_DIRECTORY);
+        }
         
         Service = MapServiceConfig(env);
         Db = MapDatabaseConfig(env);
@@ -134,7 +144,8 @@ public record ServerConfig
 
         // AccountManager deps
         services.AddScoped<AccountManager.AccountManager>();
-        services.AddDbContext<AccountManagerDb>();
+        services.AddDbContext<AccountManagerDb>(x => x.UseSqlite($"Data Source={config.Db.AccountDbLoc}"));
+        services.AddScoped<ActorStore.Db.ActorStore>();
         services.AddScoped<AccountStore>();
         services.AddScoped<PasswordStore>();
         services.AddScoped<RepoStore>();

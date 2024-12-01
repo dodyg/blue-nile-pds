@@ -1,5 +1,4 @@
-﻿using atompds.AccountManager.Db;
-using atompds.Pds.AccountManager.Db.Schema;
+﻿using atompds.Pds.AccountManager.Db.Schema;
 using Microsoft.EntityFrameworkCore;
 using Xrpc;
 

@@ -19,9 +19,13 @@ public class ActorStore
     {
         var didHash = Crypto.Utils.Sha256Hex(did);
         // note: Sha256Hex doesn't return 0x prefix so no need to substring
+        // TODO: This is for windows compat
+        did = did.Replace(":", "_");
         var directory = Path.Join(_config.Directory, didHash, did);
         var dbLocation = Path.Join(directory, "store.sqlite");
         var keyLocation = Path.Join(directory, "key");
+        // normalize path
+        
         return (directory, dbLocation, keyLocation);
     }
 
@@ -92,13 +96,14 @@ public class ActorStore
         var options = new DbContextOptionsBuilder<ActorStoreDb>()
             .UseSqlite(connectionString)
             .Options;
-        
-        using var actorStoreDb = new ActorStoreDb(options);
-        actorStoreDb.Database.EnsureCreated();
-        // ensure WAL
-        actorStoreDb.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
-        
-        // TODO: Migration
+
+        using (var actorStoreDb = new ActorStoreDb(options))
+        {
+            actorStoreDb.Database.Migrate();
+            // ensure WAL
+            actorStoreDb.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+            actorStoreDb.Database.CloseConnection();
+        }
     }
     
     public void Destroy(string did)

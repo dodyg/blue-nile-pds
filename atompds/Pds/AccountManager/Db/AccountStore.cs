@@ -1,5 +1,4 @@
 ﻿using atompds.AccountManager;
-using atompds.AccountManager.Db;
 using atompds.Pds.AccountManager.Db.Schema;
 using atompds.Pds.Config;
 using Microsoft.EntityFrameworkCore;
@@ -45,8 +44,12 @@ public class AccountStore
         _inviteStore = inviteStore;
         _logger = logger;
     }
-    
-    private record ActorAccTuple(Actor Actor, Account? Account);
+
+    private class ActorAccTuple
+    {
+        public Actor Actor { get; set; }
+        public Account? Account { get; set; }
+    }
     private IQueryable<ActorAccTuple> SelectAccountQb(AvailabilityFlags? flags)
     {
         var actors = _db.Actors
@@ -60,11 +63,20 @@ public class AccountStore
         {
             actors = actors.Where(x => x.DeactivatedAt == null);
         }
+
+        // var coll = actors.Join(_db.Accounts,
+        //     actor => actor.Did,
+        //     account => account.Did,
+        //     (actor, account) => new Tuple<Actor, Account>(actor, account));
         
-        var coll = actors.GroupJoin(_db.Accounts,
-            actor => actor.Did,
-            account => account.Did,
-            (actor, account) => new ActorAccTuple(actor, account.FirstOrDefault()));
+        var coll = from actor in actors
+            join account in _db.Accounts on actor.Did equals account.Did into gj
+            from account in gj.DefaultIfEmpty()
+            select new ActorAccTuple
+            {
+                Actor = actor,
+                Account = account
+            };
         
         return coll;
     }

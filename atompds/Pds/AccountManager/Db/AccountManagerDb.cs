@@ -1,8 +1,7 @@
-﻿using atompds.Pds;
-using atompds.Pds.AccountManager.Db.Schema;
+﻿using atompds.Pds.AccountManager.Db.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace atompds.AccountManager.Db;
+namespace atompds.Pds.AccountManager.Db;
 
 public class AccountManagerDb : DbContext
 {
@@ -16,7 +15,7 @@ public class AccountManagerDb : DbContext
     //public DbSet<DeviceAccount> DeviceAccounts { get; set; }
     //public DbSet<AuthorizationRequest> AuthorizationRequests { get; set; }
     //public DbSet<Token> Tokens { get; set; }
-    public DbSet<Pds.AccountManager.Db.Schema.RefreshToken> RefreshTokens { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
     //public DbSet<UsedRefreshToken> UsedRefreshTokens { get; set; }
     public DbSet<AppPassword> AppPasswords { get; set; }
     public DbSet<RepoRoot> RepoRoots { get; set; }
@@ -26,5 +25,40 @@ public class AccountManagerDb : DbContext
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // app_password_pkey = {did, name}
+        modelBuilder.Entity<AppPassword>().HasKey(ap => new { ap.Did, ap.Name });
+        
+        // invite_code_pkey = {code}
+        modelBuilder.Entity<InviteCode>().HasKey(ic => ic.Code);
+        
+        // invite_code_for_account_idx = {for_account}
+        modelBuilder.Entity<InviteCode>().HasIndex(ic => ic.ForAccount);
+        
+        // invite_code_use_pkey = {code, used_by}
+        modelBuilder.Entity<InviteCodeUse>().HasKey(icu => new { icu.Code, icu.UsedBy });
+        
+        // refresh_token_pkey = {id}
+        modelBuilder.Entity<RefreshToken>().HasKey(rt => rt.Id);
+        
+        // refresh_token_did_idx = {did}
+        modelBuilder.Entity<RefreshToken>().HasIndex(rt => rt.Did);
+        
+        // repo_root_pkey = {did}
+        modelBuilder.Entity<RepoRoot>().HasKey(rr => rr.Did);
+        
+        // actor_pkey = {did}
+        modelBuilder.Entity<Actor>().HasKey(a => a.Did);
+        
+        // actor_handle_lower_idx = {handle_lower} <- cannot use this using fluent mappings
+        // modelBuilder.Entity<Actor>().HasIndex(a => a.Handle.ToLower());
+        
+        // actor_cursor_idx = {created_ad, did}
+        modelBuilder.Entity<Actor>().HasIndex(a => new { a.CreatedAt, a.Did });
+        
+        // account_pkey = {did}
+        modelBuilder.Entity<Account>().HasKey(a => a.Did);
+        
+        // account_email_lower_idx = {email_lower} <- cannot use this using fluent mappings
+        // modelBuilder.Entity<Account>().HasIndex(a => a.Email.ToLower());
     }
 }

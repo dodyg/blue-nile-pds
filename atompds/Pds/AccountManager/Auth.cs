@@ -1,7 +1,10 @@
 ﻿using System.Security.Cryptography;
-using atompds.AccountManager.Db;
+using System.Text;
+using atompds.Pds.AccountManager.Db;
 using Jose;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace atompds.AccountManager;
 
@@ -27,31 +30,36 @@ public class Auth
         return (accessToken, refreshToken);
     }
 
+    private byte[] GetKey(string jwtKey)
+    {
+        return Encoding.UTF8.GetBytes(jwtKey);
+    }
+    
     public string CreateAccessToken(string did, string jwtKey, string serviceDid, string? scope, TimeSpan? expiresIn)
     {
         var now = DateTimeOffset.UtcNow;
         
         var payload = new Dictionary<string, object>()
         {
-            ["scope"] = scope ?? ACCESS_TOKEN_SCOPE
-        };
-        
-        var headers = new Dictionary<string, object>
-        {
-            ["typ"] = "at+jwt",
+            ["scope"] = scope ?? ACCESS_TOKEN_SCOPE,
             ["sub"] = did,
             ["aud"] = serviceDid,
             ["iat"] = now.ToUnixTimeSeconds(),
             ["exp"] = now.Add(expiresIn ?? TimeSpan.FromHours(2)).ToUnixTimeSeconds()
         };
+        
+        var headers = new Dictionary<string, object>
+        {
+            ["typ"] = "at+jwt"
+        };
 
-        var encoded = JWT.Encode(payload, jwtKey, JwsAlgorithm.HS256, extraHeaders: headers);
+        var encoded = JWT.Encode(payload, GetKey(jwtKey), JwsAlgorithm.HS256, extraHeaders: headers);
         return encoded;
     }
     
     public RefreshToken DecodeRefreshToken(string token, string jwtKey)
     {
-        var decoded = JWT.Decode<Dictionary<string, object>>(token, jwtKey);
+        var decoded = JWT.Decode<Dictionary<string, object>>(token, GetKey(jwtKey));
         if (decoded["scope"].ToString() != REFRESH_TOKEN_SCOPE)
         {
             throw new Exception("Invalid refresh token scope");
@@ -70,20 +78,20 @@ public class Auth
 
         var payload = new Dictionary<string, object>()
         {
-            ["scope"] = REFRESH_TOKEN_SCOPE
-        };
-        
-        var headers = new Dictionary<string, object>
-        {
-            ["typ"] = "refresh+jwt",
+            ["scope"] = REFRESH_TOKEN_SCOPE,
             ["sub"] = did,
             ["aud"] = serviceDid,
             ["jti"] = jti,
             ["iat"] = now.ToUnixTimeSeconds(),
             ["exp"] = now.Add(expiresIn ?? TimeSpan.FromDays(90)).ToUnixTimeSeconds()
         };
+        
+        var headers = new Dictionary<string, object>
+        {
+            ["typ"] = "refresh+jwt"
+        };
 
-        var encoded = JWT.Encode(payload, jwtKey, JwsAlgorithm.HS256, extraHeaders: headers);
+        var encoded = JWT.Encode(payload, GetKey(jwtKey), JwsAlgorithm.HS256, extraHeaders: headers);
         return encoded;
     }
     
