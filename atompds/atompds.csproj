@@ -25,13 +25,16 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\CID\CID.csproj" />
       <ProjectReference Include="..\Crypto\Crypto.csproj" />
       <ProjectReference Include="..\DidLib\DidLib.csproj" />
       <ProjectReference Include="..\Identity\Identity.csproj" />
+      <ProjectReference Include="..\Repo\Repo.csproj" />
       <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Controllers\Xrpc\Com\Atproto\Sync\" />
       <Folder Include="Migrations\" />
     </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-﻿using atompds.AccountManager;
+﻿using atompds.Pds.AccountManager;
 using atompds.Pds.AccountManager.Db;
 using atompds.Pds.Config;
 using Scrypt;
@@ -47,7 +47,7 @@ public class AccountManager
         }
 
         var tokens = _auth.CreateTokens(did, _secretsConfig.JwtSecret, _serviceConfig.Did, Auth.ACCESS_TOKEN_SCOPE);
-        var refreshDecoded = _auth.DecodeRefreshToken(tokens.RefreshToken, _secretsConfig.JwtSecret);
+        var refreshDecoded = _auth.DecodeRefreshTokenUnsafe(tokens.RefreshToken, _secretsConfig.JwtSecret);
         var now = DateTime.UtcNow;
 
         if (!string.IsNullOrEmpty(inviteCode))
@@ -91,7 +91,7 @@ public class AccountManager
         // TODO: App password support.
         // scope=auth.formatScope(appPassword)
         var tokens = _auth.CreateTokens(did, _secretsConfig.JwtSecret, _serviceConfig.Did, Auth.ACCESS_TOKEN_SCOPE);
-        var refreshDecoded = _auth.DecodeRefreshToken(tokens.RefreshToken, _secretsConfig.JwtSecret);
+        var refreshDecoded = _auth.DecodeRefreshTokenUnsafe(tokens.RefreshToken, _secretsConfig.JwtSecret);
         await _auth.StoreRefreshToken(refreshDecoded, appPassword);
         return (tokens.AccessToken, tokens.RefreshToken);
     }
@@ -135,7 +135,8 @@ public class AccountManager
         finally
         {
             // mitigate timing attacks
-            await Task.Delay(350 - (DateTime.UtcNow - start).Milliseconds);
+            var delay = Math.Max(0, 350 - (DateTime.UtcNow - start).Milliseconds);
+            await Task.Delay(delay);
         }
     }
 }

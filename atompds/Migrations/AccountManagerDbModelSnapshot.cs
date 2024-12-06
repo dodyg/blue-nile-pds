@@ -203,6 +203,20 @@ namespace atompds.Migrations
 
                     b.ToTable("repo_root");
                 });
+
+            modelBuilder.Entity("atompds.Pds.AccountManager.Db.Schema.Actor", b =>
+                {
+                    b.HasOne("atompds.Pds.AccountManager.Db.Schema.Account", "Account")
+                        .WithOne("Actor")
+                        .HasForeignKey("atompds.Pds.AccountManager.Db.Schema.Actor", "Did");
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("atompds.Pds.AccountManager.Db.Schema.Account", b =>
+                {
+                    b.Navigation("Actor");
+                });
 #pragma warning restore 612, 618
         }
     }

@@ -8,16 +8,16 @@ namespace atompds.Pds.Handle;
 public partial class Handle
 {
     private readonly IdentityConfig _identityConfig;
-    private readonly HandleResolver _handleResolver;
-    public Handle(IdentityConfig identityConfig, HandleResolver handleResolver)
+    private readonly IdResolver _idResolver;
+    public Handle(IdentityConfig identityConfig, IdResolver idResolver)
     {
         _identityConfig = identityConfig;
-        _handleResolver = handleResolver;
+        _idResolver = idResolver;
     }
     
     public async Task<string> NormalizeAndValidateHandle(string inputHandle, string? did, bool? allowReserved)
     {
-        var handle = BaseNormalizeAndValidate(inputHandle);
+        var handle = NormalizeAndEnsureValidHandle(inputHandle);
         
         if (!IsValidTld(handle))
         {
@@ -40,7 +40,7 @@ public partial class Handle
                 throw new XRPCError(new InvalidHandleErrorDetail("Not a supported handle domain"));
             }
             
-            var resolvedDid = await _handleResolver.Resolve(handle, CancellationToken.None);
+            var resolvedDid = await _idResolver.HandleResolver.Resolve(handle, CancellationToken.None);
             if (resolvedDid == null || resolvedDid != did)
             {
                 throw new XRPCError(new InvalidHandleErrorDetail("External handle did not resolve to DID"));
@@ -105,7 +105,7 @@ public partial class Handle
         return Sr.Any(r => r.IsMatch(handle) || r.IsMatch(sh));
     }
     
-    private string BaseNormalizeAndValidate(string handle)
+    public string NormalizeAndEnsureValidHandle(string handle)
     {
         var normalized = NormalizeHandle(handle);
         EnsureValidHandle(normalized);

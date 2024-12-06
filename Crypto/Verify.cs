@@ -2,7 +2,7 @@
 
 public class Verify
 {
-    public static bool VerifySignature(string didKey, byte[] data, byte[] sig, Types.VerifyOptions? opts, string? jwtAlg)
+    public static bool VerifySignature(string didKey, byte[] data, byte[] sig, VerifyOptions? opts, string? jwtAlg)
     {
         var parsed = Did.ParseDidKey(didKey);
         if (jwtAlg != null && parsed.JwtAlg != jwtAlg)

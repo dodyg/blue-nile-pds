@@ -1,16 +1,11 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using atompds.Pds.AccountManager.Db;
+using atompds.Pds.AccountManager.Types;
 using Jose;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
-namespace atompds.AccountManager;
-
-public record AuthToken(string Scope, string Sub, long Exp);
-public record RefreshToken(string Sub, long Exp, string Jti) : AuthToken(Auth.REFRESH_TOKEN_SCOPE, Sub, Exp);
-public record AccessToken(string Sub, long Exp, string Jti) : AuthToken(Auth.ACCESS_TOKEN_SCOPE, Sub, Exp);
+namespace atompds.Pds.AccountManager;
 
 public class Auth
 {
@@ -57,7 +52,10 @@ public class Auth
         return encoded;
     }
     
-    public RefreshToken DecodeRefreshToken(string token, string jwtKey)
+    /// <summary>
+    /// Unsafe for verification, should only be used w/ direct output from CreateRefreshToken
+    /// </summary>
+    public RefreshToken DecodeRefreshTokenUnsafe(string token, string jwtKey)
     {
         var decoded = JWT.Decode<Dictionary<string, object>>(token, GetKey(jwtKey));
         if (decoded["scope"].ToString() != REFRESH_TOKEN_SCOPE)
@@ -103,7 +101,7 @@ public class Auth
             return false;
         }
         
-        await _accountDb.RefreshTokens.AddAsync(new Pds.AccountManager.Db.Schema.RefreshToken
+        await _accountDb.RefreshTokens.AddAsync(new Db.Schema.RefreshToken
         {
             Id = token.Jti,
             Did = token.Sub,

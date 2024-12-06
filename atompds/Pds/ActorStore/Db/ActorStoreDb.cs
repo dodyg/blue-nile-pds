@@ -1,5 +1,8 @@
 ﻿using atompds.Pds.ActorStore.Db.Schema;
+using Crypto;
 using Microsoft.EntityFrameworkCore;
+using Repo;
+using Repo.MST;
 
 namespace atompds.Pds.ActorStore.Db;
 
@@ -22,7 +25,7 @@ public class ActorStoreDb : DbContext
     public DbSet<RecordBlob> RecordBlobs { get; set; }
     public DbSet<Record> Records { get; set; }
     public DbSet<RepoBlock> RepoBlocks { get; set; }
-
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // repo_root_pkey = {did}

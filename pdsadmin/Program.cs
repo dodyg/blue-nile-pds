@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 using ConsoleAppFramework;
 using FishyFlip;
@@ -192,13 +193,27 @@ public partial class RootCommands
     /// </summary>
     /// <param name="relayHost">-r, --relay-host, Relay host, ex. bsky.network</param>
     [Command("request-crawl")]
-    public void RequestCrawl(string relayHost)
+    public async Task RequestCrawl(string relayHost)
     {
         var relayHosts = relayHost.Split(',');
+        var client  = new HttpClient();
         foreach (var host in relayHosts)
         {
-            Program.Logger.LogInformation("Requesting crawl from {Host}", host);
-            Program.Protocol.RequestCrawlAsync(host);
+            var lh = host.Trim();
+            Program.Logger.LogInformation("Requesting crawl from {Host}", lh);
+            if (!lh.StartsWith("http://") && !lh.StartsWith("https://"))
+            {
+                lh = $"https://{host}";
+            }
+            
+            var response = await client.PostAsJsonAsync($"{lh}/xrpc/com.atproto.sync.requestCrawl", new
+            {
+                hostname = Program.PdsEnv.PdsHostname
+            });
+            if (!response.IsSuccessStatusCode)
+            {
+                Program.Logger.LogError("Failed to request crawl from {Host}", lh);
+            }
         }
 
         Program.Logger.LogInformation("done");

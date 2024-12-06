@@ -58,6 +58,17 @@ public class AccountManagerDb : DbContext
         // account_pkey = {did}
         modelBuilder.Entity<Account>().HasKey(a => a.Did);
         
+        // actor <-> account 1:1 optional
+        modelBuilder.Entity<Account>()
+            .HasOne(a => a.Actor)
+            .WithOne(a => a.Account)
+            .HasForeignKey<Account>(a => a.Did)
+            .IsRequired(false);
+        modelBuilder.Entity<Actor>().HasOne(a => a.Account)
+            .WithOne(a => a.Actor)
+            .HasForeignKey<Actor>(a => a.Did)
+            .IsRequired(false);
+        
         // account_email_lower_idx = {email_lower} <- cannot use this using fluent mappings
         // modelBuilder.Entity<Account>().HasIndex(a => a.Email.ToLower());
     }

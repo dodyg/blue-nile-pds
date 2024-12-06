@@ -17,7 +17,7 @@ public class WellKnownController : ControllerBase
 	}
 	
     [HttpGet("oauth-protected-resource")]
-    public async Task<IActionResult> GetOAuthProtectedResource()
+    public IActionResult GetOAuthProtectedResource()
 	{
 		return Ok(new WellProtectedResourceResponse(
 			_serviceConfig.PublicUrl,

@@ -17,6 +17,7 @@ public class ErrorController : ControllerBase
     
     // problemdetails wrapper for error responses
     [HttpGet]
+    [HttpPost]
     public IActionResult Error()
     {
         var exceptionHandlerPathFeature = HttpContext.Features.Get<IExceptionHandlerPathFeature>();

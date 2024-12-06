@@ -16,16 +16,16 @@ public class CreateSessionController : ControllerBase
 {
     private readonly Pds.AccountManager.AccountManager _accountManager;
     private readonly IdentityConfig _identityConfig;
-    private readonly DidResolver _didResolver;
+    private readonly IdResolver _idResolver;
     private readonly ILogger<CreateSessionController> _logger;
 
     public CreateSessionController(Pds.AccountManager.AccountManager accountManager,
-        IdentityConfig identityConfig, DidResolver didResolver,
+        IdentityConfig identityConfig, IdResolver idResolver,
         ILogger<CreateSessionController> logger)
     {
         _accountManager = accountManager;
         _identityConfig = identityConfig;
-        _didResolver = didResolver;
+        _idResolver = idResolver;
         _logger = logger;
     }
     
@@ -84,7 +84,7 @@ public class CreateSessionController : ControllerBase
     {
         try
         {
-            var didDoc = await _didResolver.Resolve(did, forceRefresh);
+            var didDoc = await _idResolver.DidResolver.Resolve(did, forceRefresh);
             return didDoc;
         }
         catch (Exception e)

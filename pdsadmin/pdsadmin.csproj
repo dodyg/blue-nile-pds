@@ -25,4 +25,10 @@
       <ProjectReference Include="..\Crypto\Crypto.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="pdsenv.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

@@ -25,6 +25,12 @@ public class XRPCError : Exception
         Status = ResponseTypeNames.ReverseMap.GetValueOrDefault(detail.Error, ResponseType.Unknown);
         Error = detail.Error;
     }
+    
+    public XRPCError(ResponseType status, ErrorDetail detail, Exception? innerException = null) : base(detail.Message, innerException)
+    {
+        Status = status;
+        Error = detail.Error;
+    }
 }
 
 public record ErrorDetail

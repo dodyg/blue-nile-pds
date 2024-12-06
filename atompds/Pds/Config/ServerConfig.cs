@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using atompds.AccountManager;
+using atompds.Pds.AccountManager;
 using atompds.Pds.AccountManager.Db;
 using Identity;
 using Microsoft.EntityFrameworkCore;
@@ -153,26 +153,20 @@ public record ServerConfig
         services.AddScoped<Auth>();
         
         // Resolvers
-        services.AddSingleton<IDidCache>(
-            new MemoryCache(
-                config.Identity.CacheStaleTTL != null ? TimeSpan.FromSeconds(config.Identity.CacheStaleTTL.Value) : TimeSpan.FromHours(1),
-                config.Identity.CacheMaxTTL != null ? TimeSpan.FromSeconds(config.Identity.CacheMaxTTL.Value) : TimeSpan.FromHours(24))
-            );
-        services.AddSingleton<HandleResolver>();
-        services.AddSingleton<DidResolver>(x => new DidResolver(
-            TimeSpan.FromSeconds(config.Identity.ResolverTimeout),
-            config.Service.PublicUrl, 
-            x.GetRequiredService<IDidCache>(), 
-            x.GetRequiredService<HttpClient>()));
-        services.AddSingleton<PlcResolver>(x => new PlcResolver(
-            TimeSpan.FromSeconds(config.Identity.ResolverTimeout),
-            config.Identity.PlcUrl, 
-            x.GetRequiredService<IDidCache>(),
-            x.GetRequiredService<HttpClient>()));
-        services.AddSingleton<DidWebResolver>(x => new DidWebResolver(
-            TimeSpan.FromSeconds(config.Identity.ResolverTimeout),
-            x.GetRequiredService<IDidCache>(),
-            x.GetRequiredService<HttpClient>()));
+        services.AddSingleton<IDidCache>(new MemoryCache(
+            TimeSpan.FromMilliseconds(config.Identity.CacheStaleTTL),
+            TimeSpan.FromMilliseconds(config.Identity.CacheMaxTTL)));
+        services.AddSingleton<IdentityResolverOpts>(x => new IdentityResolverOpts
+        {
+            DidCache = x.GetRequiredService<IDidCache>(),
+            PlcUrl = config.Identity.PlcUrl,
+            TimeoutMs = config.Identity.ResolverTimeout
+        });
+        services.AddSingleton<IdResolver>();
         services.AddSingleton<Handle.Handle>();
+        
+        // AuthVerifier
+        services.AddScoped<AuthVerifier>();
+        services.AddSingleton<AuthVerifierConfig>(x => new AuthVerifierConfig(config.SecretsConfig.JwtSecret, "secret", config.Service.PublicUrl, config.Service.Did));
     }
 }

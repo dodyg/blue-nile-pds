@@ -2,7 +2,7 @@
 
 namespace Crypto.Secp256k1;
 
-public class Secp256k1Keypair : Types.IExportableKeyPair
+public class Secp256k1Keypair : IExportableKeyPair
 {
     private static readonly Secp256k1Net.Secp256k1 Secp256k1 = new();
     private readonly byte[] _publicKey;

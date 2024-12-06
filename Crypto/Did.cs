@@ -5,7 +5,7 @@ namespace Crypto;
 
 public class Did
 {
-    public static readonly Dictionary<string, Types.IDidKeyPlugin> KeyPlugins = new()
+    public static readonly Dictionary<string, IDidKeyPlugin> KeyPlugins = new()
     {
         { Const.SECP256K1_JWT_ALG, new Secp256k1Plugin() }
     };

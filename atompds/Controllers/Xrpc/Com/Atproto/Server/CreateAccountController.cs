@@ -10,7 +10,10 @@ using FishyFlip.Lexicon.Com.Atproto.Server;
 using FishyFlip.Models;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Repo;
 using Xrpc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
@@ -27,7 +30,7 @@ public class CreateAccountController : ControllerBase
     private readonly HttpClient _httpClient;
     private readonly Handle _handle;
     private readonly ActorStore _actorStore;
-    private readonly DidResolver _didResolver;
+    private readonly IdResolver _idResolver;
     private readonly SecretsConfig _secretsConfig;
 
     public CreateAccountController(ILogger<CreateAccountController> logger,
@@ -38,7 +41,7 @@ public class CreateAccountController : ControllerBase
         HttpClient httpClient,
         Handle handle,
         ActorStore actorStore,
-        DidResolver didResolver,
+        IdResolver idResolver,
         SecretsConfig secretsConfig)
     {
         _logger = logger;
@@ -49,24 +52,27 @@ public class CreateAccountController : ControllerBase
         _httpClient = httpClient;
         _handle = handle;
         _actorStore = actorStore;
-        _didResolver = didResolver;
+        _idResolver = idResolver;
         _secretsConfig = secretsConfig;
     }
     
     
-     [HttpPost("com.atproto.server.createAccount")]
+    // TODO: Optional auth used to validate DID transfer
+    [HttpPost("com.atproto.server.createAccount")]
     public async Task<IActionResult> CreateAccount([FromBody] CreateAccountInput request)
     {
         string? validatedDid = null;
+        SqliteConnection? conn = null;
         try
         {
             var validatedInputs = await ValidateInputsForLocalPds(request);
             validatedDid = validatedInputs.did;
 
-            _actorStore.Create(validatedInputs.did, validatedInputs.signingKey);
-
-            // ActorStore.Repo.CreateRepo..
-            (string cid, string rev) commit = ("TODO", "TODO");
+            await using var actorStoreDb = _actorStore.Create(validatedInputs.did, validatedInputs.signingKey);
+            conn = actorStoreDb.Database.GetDbConnection() as SqliteConnection;
+            var sqlTxr = new SqlRepoTransactor(actorStoreDb, validatedDid, null);
+            var repo = new RepoTransactor(actorStoreDb, validatedDid, validatedInputs.signingKey, sqlTxr, new RecordTransactor(actorStoreDb, validatedDid, validatedInputs.signingKey, sqlTxr));
+            var commit = await repo.CreateRepo([]);
 
             if (validatedInputs.plcOp != null)
             {
@@ -86,8 +92,8 @@ public class CreateAccountController : ControllerBase
                 validatedInputs.handle,
                 validatedInputs.Email,
                 validatedInputs.Password,
-                commit.cid,
-                commit.rev,
+                commit.Cid.ToString(),
+                commit.Rev,
                 validatedInputs.InviteCode,
                 validatedInputs.deactivated);
 
@@ -113,6 +119,10 @@ public class CreateAccountController : ControllerBase
             _logger.LogError(e, "Failed to create account");
             if (!string.IsNullOrWhiteSpace(validatedDid))
             {
+                if (conn != null)
+                {
+                    SqliteConnection.ClearPool(conn);
+                }
                 _actorStore.Destroy(validatedDid);
             }
             throw;
@@ -123,7 +133,7 @@ public class CreateAccountController : ControllerBase
     {
         try
         {
-            var didDoc = await _didResolver.Resolve(did, forceRefresh);
+            var didDoc = await _idResolver.DidResolver.Resolve(did, forceRefresh);
             return didDoc;
         }
         catch (Exception e)
@@ -181,7 +191,7 @@ public class CreateAccountController : ControllerBase
         {
             // if did != requested, throw error
             deactivated = true;
-            throw new XRPCError(new InvalidRequestErrorDetail("TEMP"));
+            throw new XRPCError(new InvalidRequestErrorDetail("This PDS does not support DID transfer"));
         }
         else
         {
@@ -191,7 +201,7 @@ public class CreateAccountController : ControllerBase
         return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, deactivated);
     }
     
-    private async Task<(string Did, AtProtoOp? PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
+    private async Task<(string Did, AtProtoOp PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
     {
         string[] rotationKeys = [_secretsConfig.PlcRotationKey.Did()];
         if (_identityConfig.RecoveryDidKey != null)
@@ -203,7 +213,6 @@ public class CreateAccountController : ControllerBase
             rotationKeys = [createAccountInput.RecoveryKey, ..rotationKeys];
         }
         
-        // plcCreate ...
         var plcCreate = await DidLib.Operations.CreateOp(signingKey.Did(), handle, _serviceConfig.PublicUrl, rotationKeys, _secretsConfig.PlcRotationKey);
         return (plcCreate.Did, plcCreate.Op);
     }

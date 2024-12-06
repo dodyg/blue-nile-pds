@@ -2,14 +2,9 @@
 
 public class DidResolver : BaseResolver
 {
-    private readonly TimeSpan _timeout;
-    private readonly string _plcUrl;
     private readonly Dictionary<string, BaseResolver> _methods;
     public DidResolver(TimeSpan timeout, string plcUrl, IDidCache didCache, HttpClient httpClient) : base(didCache)
     {
-        _timeout = timeout;
-        _plcUrl = plcUrl;
-        
         _methods = new Dictionary<string, BaseResolver>
         {
             {"plc", new PlcResolver(timeout, plcUrl, didCache, httpClient) },

@@ -2,6 +2,7 @@
 using Crypto;
 using Crypto.Secp256k1;
 using Microsoft.EntityFrameworkCore;
+using Repo;
 using Xrpc;
 
 namespace atompds.Pds.ActorStore.Db;
@@ -35,11 +36,11 @@ public class ActorStore
         return Directory.Exists(directory) && File.Exists(dbLocation);
     }
     
-    public Types.IKeyPair KeyPair(string did)
+    public IKeyPair KeyPair(string did, bool exportable = false)
     {
         var (_, _, keyLocation) = GetLocation(did);
         var privKey = File.ReadAllBytes(keyLocation);
-        var kp = Secp256k1Keypair.Import(privKey);
+        var kp = Secp256k1Keypair.Import(privKey, exportable);
         return kp;
     }
     
@@ -75,7 +76,11 @@ public class ActorStore
         return actorStoreDb;
     }
 
-    public void Create(string did, Types.IExportableKeyPair keyPair)
+    
+    /// <summary>
+    /// Create a new actor store. Remember to call Dispose on the returned object when done.
+    /// </summary>
+    public ActorStoreDb Create(string did, IExportableKeyPair keyPair)
     {
         var location = GetLocation(did);
         Directory.CreateDirectory(location.Directory);
@@ -97,13 +102,11 @@ public class ActorStore
             .UseSqlite(connectionString)
             .Options;
 
-        using (var actorStoreDb = new ActorStoreDb(options))
-        {
-            actorStoreDb.Database.Migrate();
-            // ensure WAL
-            actorStoreDb.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
-            actorStoreDb.Database.CloseConnection();
-        }
+        var actorStoreDb = new ActorStoreDb(options);
+        actorStoreDb.Database.Migrate();
+        // ensure WAL
+        actorStoreDb.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+        return actorStoreDb;
     }
     
     public void Destroy(string did)
@@ -114,6 +117,24 @@ public class ActorStore
         if (Directory.Exists(location.Directory))
         {
             Directory.Delete(location.Directory, true);
+        }
+    }
+    
+    public async Task<T> Transact<T>(string did, Func<ActorStoreDb, Task<T>> fn)
+    {
+        var keypair = KeyPair(did, true);
+        await using var db = Open(did);
+        await using var tx = await db.Database.BeginTransactionAsync();
+        try
+        {
+            var result = await fn(db);
+            await tx.CommitAsync();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            throw;
         }
     }
 }

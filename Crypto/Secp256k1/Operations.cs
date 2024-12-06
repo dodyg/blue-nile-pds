@@ -6,7 +6,7 @@ public class Operations
 {
     private static readonly Secp256k1Net.Secp256k1 Secp256K1 = new();
     
-    public static bool VerifyDidSig(string did, byte[] data, byte[] sig, Types.VerifyOptions? opts)
+    public static bool VerifyDidSig(string did, byte[] data, byte[] sig, VerifyOptions? opts)
     {
         var prefixedBytes = Utils.ExtractPrefixedBytes(Utils.ExtractMultiKey(did));
         if (!Utils.HasPrefix(prefixedBytes, Const.SECP256K1_DID_PREFIX))
@@ -18,7 +18,7 @@ public class Operations
         return VerifySig(keyBytes, data, sig, opts);
     }
 
-    public static bool VerifySig(byte[] publicKey, byte[] data, byte[] sig, Types.VerifyOptions? opts)
+    public static bool VerifySig(byte[] publicKey, byte[] data, byte[] sig, VerifyOptions? opts)
     {
         var allowMalleable = opts?.AllowMalleableSig ?? false;
         var msgHash = SHA256.HashData(data);

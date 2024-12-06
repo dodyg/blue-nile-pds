@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using atompds.Middleware;
 using atompds.Pds.AccountManager.Db;
 using atompds.Pds.Config;
 using Microsoft.AspNetCore.HttpLogging;
@@ -44,10 +45,11 @@ public class Program
 			var accountManager = scope.ServiceProvider.GetRequiredService<AccountManagerDb>();
 			await accountManager.Database.MigrateAsync();
 		}
-        
+
         app.UseRouting();
         app.MapControllers();
         app.UseExceptionHandler("/error");	
+        app.UseAuthMiddleware();
         
         app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
         

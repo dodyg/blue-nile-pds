@@ -1,18 +1,17 @@
-﻿using atompds.AccountManager;
-using atompds.Pds.AccountManager.Db.Schema;
+﻿using atompds.Pds.AccountManager.Db.Schema;
 using atompds.Pds.Config;
 using Microsoft.EntityFrameworkCore;
 using Xrpc;
 
 namespace atompds.Pds.AccountManager.Db;
 
-public record AvailabilityFlags(bool? IncludeTakenDown = null, bool? IncludeDeactivated = null);
+public record AvailabilityFlags(bool IncludeTakenDown = false, bool IncludeDeactivated = false);
 
 
 public record ActorAccount(string Did, string? Handle, DateTime CreatedAt, string? TakedownRef, 
     DateTime? DeactivatedAt, DateTime? DeleteAfter, string? Email, DateTime? EmailConfirmedAt, bool? InvitesDisabled)
 {
-    public static ActorAccount? FromActor(Actor? actor, Account? account)
+    public static ActorAccount? From(Actor? actor, Account? account)
     {
         if (actor == null)
         {
@@ -45,56 +44,39 @@ public class AccountStore
         _logger = logger;
     }
 
-    private class ActorAccTuple
+    private IQueryable<Account> SelectAccountQb(AvailabilityFlags? flags)
     {
-        public Actor Actor { get; set; }
-        public Account? Account { get; set; }
-    }
-    private IQueryable<ActorAccTuple> SelectAccountQb(AvailabilityFlags? flags)
-    {
-        var actors = _db.Actors
+        flags ??= new AvailabilityFlags();
+        var accounts = _db.Accounts
+            .Include(a => a.Actor)
             .AsQueryable();
-        if (flags?.IncludeTakenDown != true)
+        if (!flags.IncludeTakenDown)
         {
-            actors = actors.Where(x => x.TakedownRef != null);
+            accounts = accounts.Where(x => x.Actor.TakedownRef == null);
         }
         
-        if (flags?.IncludeDeactivated != true)
+        if (!flags.IncludeDeactivated)
         {
-            actors = actors.Where(x => x.DeactivatedAt == null);
+            accounts = accounts.Where(x => x.Actor.DeactivatedAt == null);
         }
 
-        // var coll = actors.Join(_db.Accounts,
-        //     actor => actor.Did,
-        //     account => account.Did,
-        //     (actor, account) => new Tuple<Actor, Account>(actor, account));
-        
-        var coll = from actor in actors
-            join account in _db.Accounts on actor.Did equals account.Did into gj
-            from account in gj.DefaultIfEmpty()
-            select new ActorAccTuple
-            {
-                Actor = actor,
-                Account = account
-            };
-        
-        return coll;
+        return accounts;
     }
 
     public async Task<ActorAccount?> GetAccount(string handleOrDid, AvailabilityFlags? flags = null)
     {
-        var actors = SelectAccountQb(flags);
+        var accounts = SelectAccountQb(flags);
         if (handleOrDid.StartsWith("did:"))
         {
-            actors = actors.Where(x => x.Actor.Did == handleOrDid);
+            accounts = accounts.Where(x => x.Actor.Did == handleOrDid);
         }
         else
         {
-            actors = actors.Where(x => x.Actor.Handle == handleOrDid);
+            accounts = accounts.Where(x => x.Actor.Handle == handleOrDid);
         }
         
-        var result = await actors.FirstOrDefaultAsync();
-        return ActorAccount.FromActor(result?.Actor, result?.Account);
+        var result = await accounts.FirstOrDefaultAsync();
+        return ActorAccount.From(result?.Actor, result);
     }
 
     public async Task<Dictionary<string, ActorAccount>> GetAccounts(string[] dids, AvailabilityFlags? flags = null)
@@ -103,19 +85,18 @@ public class AccountStore
         actors = actors.Where(x => dids.Contains(x.Actor.Did));
         var results = await actors.ToArrayAsync();
         
-        return results.ToDictionary(x => x.Actor.Did, x => ActorAccount.FromActor(x.Actor, x.Account)!);
+        return results.ToDictionary(x => x.Actor.Did, x => ActorAccount.From(x.Actor, x)!);
     }
     
     public async Task<ActorAccount?> GetAccountByEmail(string email, AvailabilityFlags? flags = null)
     {
-        var actors = SelectAccountQb(flags);
+        var accounts = SelectAccountQb(flags);
         email = email.ToLower();
-        actors = actors
-            .Where(x => x.Account != null)
-            .Where(x => x.Account!.Email == email);
+        accounts = accounts
+            .Where(x => x.Email == email);
         
-        var result = await actors.FirstOrDefaultAsync();
-        return ActorAccount.FromActor(result?.Actor, result?.Account);
+        var result = await accounts.FirstOrDefaultAsync();
+        return ActorAccount.From(result?.Actor, result);
     }
     
     public async Task<bool> IsAccountActivated(string did)

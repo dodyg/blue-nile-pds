@@ -13,6 +13,9 @@ public class Account
     [StringLength(2048)] public required string PasswordSCrypt { get; set; }
     public DateTime? EmailConfirmedAt { get; set; }
     public bool InvitesDisabled { get; set; }
+    
+    [ForeignKey("Did")]
+    public virtual Actor Actor { get; set; }
 }
 
 [Table(TableName)]
@@ -26,6 +29,9 @@ public class Actor
     [StringLength(2048)] public required string? TakedownRef { get; set; }
     public DateTime? DeactivatedAt { get; set; }
     public DateTime? DeleteAfter { get; set; }
+    
+    [ForeignKey("Did")]
+    public virtual Account? Account { get; set; }
 }
 
 // [Table(TableName)]
