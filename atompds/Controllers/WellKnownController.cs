@@ -11,10 +11,14 @@ public class WellKnownController : ControllerBase
 {
 	private readonly ServiceConfig _serviceConfig;
 	private readonly AccountManager.AccountRepository _accountRepository;
-	public WellKnownController(ServiceConfig serviceConfig, AccountManager.AccountRepository accountRepository)
+	private readonly ILogger<WellKnownController> _logger;
+	public WellKnownController(ServiceConfig serviceConfig, 
+		AccountManager.AccountRepository accountRepository,
+		ILogger<WellKnownController> logger)
 	{
 		_serviceConfig = serviceConfig;
 		_accountRepository = accountRepository;
+		_logger = logger;
 	}
 	
     [HttpGet("oauth-protected-resource")]
@@ -42,6 +46,7 @@ public class WellKnownController : ControllerBase
 	{
 		// get hostname for request
 		var host = Request.Host.Host;
+		_logger.LogInformation("Resolving handle {Handle}", host);
 		var acc = await _accountRepository.GetAccount(host);
 		if (acc?.Handle == null)
 		{

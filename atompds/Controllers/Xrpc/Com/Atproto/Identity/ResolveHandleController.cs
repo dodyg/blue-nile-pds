@@ -49,7 +49,7 @@ public class ResolveHandleController : ControllerBase
 
         if (did == null)
         {
-            // TODO: if identity is not from out server, we should direct the appview to attempt to resolve the handle
+            // TODO: if identity is not from our server, we should direct the appview to attempt to resolve the handle
             // did = await tryResolveFromAppView(ctx.appViewAgent, handle);
         }
 

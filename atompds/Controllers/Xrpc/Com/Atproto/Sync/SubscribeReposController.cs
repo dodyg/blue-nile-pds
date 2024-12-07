@@ -1,6 +1,10 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Config;
+using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;
+using PeterO.Cbor;
 using Sequencer;
 using Sequencer.Types;
 using Xrpc;
@@ -13,17 +17,30 @@ public class SubscribeReposController : ControllerBase
 {
     private readonly SubscriptionConfig _subscriptionConfig;
     private readonly SequencerRepository _sequencer;
-    public SubscribeReposController(SubscriptionConfig subscriptionConfig, SequencerRepository sequencer)
+    private readonly ILogger<SubscribeReposController> _logger;
+    public SubscribeReposController(SubscriptionConfig subscriptionConfig, SequencerRepository sequencer,
+        ILogger<SubscribeReposController> logger)
     {
         _subscriptionConfig = subscriptionConfig;
         _sequencer = sequencer;
+        _logger = logger;
     }
     
-    [HttpGet("com.atproto.sync.subscribeRepos")]
-    public async IAsyncEnumerable<object> SubscribeRepos(
+    [Route("com.atproto.sync.subscribeRepos")]
+    public async Task SubscribeRepos(
         [FromQuery] int? cursor, // The last known event seq number to backfill from.
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
+        // force cursor to zero for testing
+        cursor ??= 0;
+        
+        if (!HttpContext.WebSockets.IsWebSocketRequest)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("NotWebSocket", "Request is not a websocket."));
+        }
+
+        using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+        
         var outbox = new Outbox(_sequencer, new OutboxOpts(_subscriptionConfig.MaxSubscriptionBuffer));
         var backfillTime = DateTime.UtcNow - TimeSpan.FromMilliseconds(_subscriptionConfig.RepoBackfillLimitMs);
         int? outboxCursor = null;
@@ -37,14 +54,18 @@ public class SubscribeReposController : ControllerBase
             }
             else if (next != null && next.SequencedAt < backfillTime)
             {
-                yield return new Dictionary<string, string>
-                {
-                    {"$type", "#info"},
-                    {"name", "OutDatedCursor"},
-                    {"message", "Requested cursor exceeded limit. Possibly missing events."}
-                };
-                var startEvt = await _sequencer.EarliestAfterTime(backfillTime);
-                outboxCursor = startEvt?.Seq - 1;
+                throw new NotImplementedException();
+                // var cborArr = CBORObject.NewArray()
+                //     .Add(CBORObject.NewMap()
+                //         .Add("t", "#info")
+                //     )
+                //     .Add(CBORObject.NewMap()
+                //         .Add("name", "OutDatedCursor")
+                //         .Add("message", "Requested cursor exceeded limit. Possibly missing events."));
+                //
+                // await webSocket.SendAsync(cborArr.EncodeToBytes(), WebSocketMessageType.Binary, true, cancellationToken);
+                // var startEvt = await _sequencer.EarliestAfterTime(backfillTime);
+                // outboxCursor = startEvt?.Seq - 1;
             }
             else
             {
@@ -56,47 +77,55 @@ public class SubscribeReposController : ControllerBase
         {
             if (evt.Type == TypedCommitType.Commit && evt is TypedCommitEvt commit)
             {
-                // flatten the commit event
-                var outJson = commit.Evt.ToCborObject()
-                    .Add("$type", "#commit")
-                    .Add("seq", evt.Seq)
-                    .Add("time", evt.Time.ToString("O"))
-                    .ToJSONString();
-                
-                yield return outJson;
+                var header = CBORObject.NewMap()
+                    .Add("t", "#commit")
+                    .Add("op", FrameHeaderOperation.Frame)
+                    .EncodeToBytes();
+                var blob = commit.Evt.ToCborObject()
+                        .Add("seq", evt.Seq)
+                        .Add("time", evt.Time.ToString("O"))
+                        .EncodeToBytes();
+                byte[] buffer = [..header, ..blob];
+                await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
             }
             else if (evt.Type == TypedCommitType.Handle && evt is TypedHandleEvt handle)
             {
-                // flatten the handle event
-                var outJson = handle.Evt.ToCborObject()
-                    .Add("$type", "#handle")
+                var header = CBORObject.NewMap()
+                    .Add("t", "#handle")
+                    .Add("op", FrameHeaderOperation.Frame)
+                    .EncodeToBytes();
+                var blob = handle.Evt.ToCborObject()
                     .Add("seq", evt.Seq)
                     .Add("time", evt.Time.ToString("O"))
-                    .ToJSONString();
-                
-                yield return outJson;
+                    .EncodeToBytes();
+                byte[] buffer = [..header, ..blob];
+                await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
             }
             else if (evt.Type == TypedCommitType.Account && evt is TypedAccountEvt account)
             {
-                // flatten the account event
-                var outJson = account.Evt.ToCborObject()
-                    .Add("$type", "#account")
+                var header = CBORObject.NewMap()
+                    .Add("t", "#account")
+                    .Add("op", FrameHeaderOperation.Frame)
+                    .EncodeToBytes();
+                var blob = account.Evt.ToCborObject()
                     .Add("seq", evt.Seq)
                     .Add("time", evt.Time.ToString("O"))
-                    .ToJSONString();
-                
-                yield return outJson;
+                    .EncodeToBytes();
+                byte[] buffer = [..header, ..blob];
+                await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
             }
             else if (evt.Type == TypedCommitType.Tombstone && evt is TypedTombstoneEvt tomestoneEvt)
             {
-                // flatten the event
-                var outJson = tomestoneEvt.Evt.ToCborObject()
-                    .Add("$type", "#tombstone")
+                var header = CBORObject.NewMap()
+                    .Add("t", "#tombstone")
+                    .Add("op", FrameHeaderOperation.Frame)
+                    .EncodeToBytes();
+                var blob = tomestoneEvt.Evt.ToCborObject()
                     .Add("seq", evt.Seq)
                     .Add("time", evt.Time.ToString("O"))
-                    .ToJSONString();
-                
-                yield return outJson;
+                    .EncodeToBytes();
+                byte[] buffer = [..header, ..blob];
+                await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
             }
         }
     }
