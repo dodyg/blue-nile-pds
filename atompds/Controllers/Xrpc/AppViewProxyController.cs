@@ -52,47 +52,6 @@ public class AppViewProxyController : ControllerBase
         return Ok();
     }
     
-    /*
-     * web.get("/xrpc/app.bsky.actor.getProfile", static_appview_proxy),
-			web.get("/xrpc/app.bsky.actor.getProfiles", static_appview_proxy),
-			web.get("/xrpc/app.bsky.actor.getSuggestions", static_appview_proxy),
-			web.get("/xrpc/app.bsky.actor.searchActorsTypeahead", static_appview_proxy),
-			web.get("/xrpc/app.bsky.labeler.getServices", static_appview_proxy),
-			web.get(
-				"/xrpc/app.bsky.notification.listNotifications", static_appview_proxy
-			),
-			web.post("/xrpc/app.bsky.notification.updateSeen", static_appview_proxy),
-			web.get("/xrpc/app.bsky.graph.getList", static_appview_proxy),
-			web.get("/xrpc/app.bsky.graph.getLists", static_appview_proxy),
-			web.get("/xrpc/app.bsky.graph.getFollows", static_appview_proxy),
-			web.get("/xrpc/app.bsky.graph.getFollowers", static_appview_proxy),
-			web.get("/xrpc/app.bsky.graph.getStarterPack", static_appview_proxy),
-			web.get(
-				"/xrpc/app.bsky.graph.getSuggestedFollowsByActor", static_appview_proxy
-			),
-			web.get("/xrpc/app.bsky.graph.getActorStarterPacks", static_appview_proxy),
-			web.post("/xrpc/app.bsky.graph.muteActor", static_appview_proxy),
-			web.post("/xrpc/app.bsky.graph.unmuteActor", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getTimeline", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getAuthorFeed", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getActorFeeds", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getFeed", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getListFeed", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getFeedGenerator", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getFeedGenerators", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getPostThread", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getPosts", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getLikes", static_appview_proxy),
-			web.get("/xrpc/app.bsky.feed.getActorLikes", static_appview_proxy),
-			web.get(
-				"/xrpc/app.bsky.unspecced.getPopularFeedGenerators",
-				static_appview_proxy,
-			),
-
-			web.get("/xrpc/chat.bsky.convo.listConvos", static_appview_proxy)
-		
-     */
-    
     // static appview proxy
     [HttpGet("app.bsky.actor.getProfile")]
     [HttpGet("app.bsky.actor.getProfiles")]

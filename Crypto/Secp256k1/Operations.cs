@@ -4,8 +4,6 @@ namespace Crypto.Secp256k1;
 
 public class Operations
 {
-    private static readonly Secp256k1Net.Secp256k1 Secp256K1 = new();
-    
     public static bool VerifyDidSig(string did, byte[] data, byte[] sig, VerifyOptions? opts)
     {
         var prefixedBytes = Utils.ExtractPrefixedBytes(Utils.ExtractMultiKey(did));
@@ -31,7 +29,7 @@ public class Operations
         if (publicKey.Length == 33)
         {
             var buf = new byte[64];
-            if (!Secp256K1.PublicKeyParse(buf, publicKey))
+            if (!Secp256k1Wrapper.PublicKeyParse(buf, publicKey))
             {
                 return false;
             }
@@ -42,7 +40,7 @@ public class Operations
         if (IsCompactFormat(sig))
         {
             var outBuf = new byte[64];
-            if (!Secp256K1.SignatureParseCompact(outBuf, sig))
+            if (!Secp256k1Wrapper.SignatureParseCompact(outBuf, sig))
             {
                 return false;
             }
@@ -50,19 +48,19 @@ public class Operations
             sig = outBuf;
         }
         
-        return Secp256K1.Verify(sig, msgHash, publicKey);
+        return Secp256k1Wrapper.Verify(sig, msgHash, publicKey);
     }
 
     public static bool IsCompactFormat(byte[] sig)
     {
         var outBuf = new byte[64];
-        if (!Secp256K1.SignatureParseCompact(outBuf, sig))
+        if (!Secp256k1Wrapper.SignatureParseCompact(outBuf, sig))
         {
             return false;
         }
             
         var compactBuf = new byte[64];
-        if (!Secp256K1.SignatureSerializeCompact(compactBuf, outBuf))
+        if (!Secp256k1Wrapper.SignatureSerializeCompact(compactBuf, outBuf))
         {
             return false;
         }
