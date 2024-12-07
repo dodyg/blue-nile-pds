@@ -9,3 +9,5 @@ riderModule.iml
 *.db-wal
 *.DotSettings.user
 atompds/appsettings.Development.json
+
+atompds/data/*
