@@ -1,7 +1,7 @@
-﻿using atompds.Pds.AccountManager.Db;
-using atompds.Pds.Config;
+﻿using AccountManager.Db;
 using atompds.Utils;
 using CommonWeb;
+using Config;
 using FishyFlip.Lexicon.Com.Atproto.Server;
 using FishyFlip.Models;
 using Identity;
@@ -14,16 +14,16 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 [Route("xrpc")]
 public class CreateSessionController : ControllerBase
 {
-    private readonly Pds.AccountManager.AccountManager _accountManager;
+    private readonly AccountManager.AccountRepository _accountRepository;
     private readonly IdentityConfig _identityConfig;
     private readonly IdResolver _idResolver;
     private readonly ILogger<CreateSessionController> _logger;
 
-    public CreateSessionController(Pds.AccountManager.AccountManager accountManager,
+    public CreateSessionController(AccountManager.AccountRepository accountRepository,
         IdentityConfig identityConfig, IdResolver idResolver,
         ILogger<CreateSessionController> logger)
     {
-        _accountManager = accountManager;
+        _accountRepository = accountRepository;
         _identityConfig = identityConfig;
         _idResolver = idResolver;
         _logger = logger;
@@ -37,8 +37,8 @@ public class CreateSessionController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("Identifier and password are required"));
         }
         
-        var login = await _accountManager.Login(request.Identifier, request.Password);
-        var creds = await _accountManager.CreateSession(login.Did);
+        var login = await _accountRepository.Login(request.Identifier, request.Password);
+        var creds = await _accountRepository.CreateSession(login.Did);
         var didDoc = await DidDocForSession(login.Did);
         var (active, status) = FormatAccountStatus(login);
         

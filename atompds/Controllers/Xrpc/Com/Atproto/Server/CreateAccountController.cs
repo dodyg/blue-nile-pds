@@ -1,19 +1,22 @@
 ﻿using System.Net.Mail;
-using atompds.Pds.ActorStore.Db;
-using atompds.Pds.Config;
-using atompds.Pds.Handle;
+using AccountManager.Db;
+using ActorStore;
+using ActorStore.Repo;
+using atompds.Pds;
 using atompds.Utils;
 using CommonWeb;
+using Config;
 using Crypto.Secp256k1;
 using DidLib;
 using FishyFlip.Lexicon.Com.Atproto.Server;
 using FishyFlip.Models;
+using Handle;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using Repo;
+using Sequencer;
 using Xrpc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
@@ -23,37 +26,43 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 public class CreateAccountController : ControllerBase
 {
     private readonly ILogger<CreateAccountController> _logger;
-    private readonly Pds.AccountManager.AccountManager _accountManager;
+    private readonly AccountManager.AccountRepository _accountRepository;
     private readonly IdentityConfig _identityConfig;
     private readonly ServiceConfig _serviceConfig;
     private readonly InvitesConfig _invitesConfig;
     private readonly HttpClient _httpClient;
-    private readonly Handle _handle;
-    private readonly ActorStore _actorStore;
+    private readonly HandleManager _handle;
+    private readonly ActorRepository _actorRepository;
     private readonly IdResolver _idResolver;
     private readonly SecretsConfig _secretsConfig;
+    private readonly SequencerRepository _sequencer;
+    private readonly PlcClient _plcClient;
 
     public CreateAccountController(ILogger<CreateAccountController> logger,
-        Pds.AccountManager.AccountManager accountManager,
+        AccountManager.AccountRepository accountRepository,
         IdentityConfig identityConfig,
         ServiceConfig serviceConfig,
         InvitesConfig invitesConfig,
         HttpClient httpClient,
-        Handle handle,
-        ActorStore actorStore,
+        HandleManager handle,
+        ActorRepository actorRepository,
         IdResolver idResolver,
-        SecretsConfig secretsConfig)
+        SecretsConfig secretsConfig,
+        SequencerRepository sequencer,
+        PlcClient plcClient)
     {
         _logger = logger;
-        _accountManager = accountManager;
+        _accountRepository = accountRepository;
         _identityConfig = identityConfig;
         _serviceConfig = serviceConfig;
         _invitesConfig = invitesConfig;
         _httpClient = httpClient;
         _handle = handle;
-        _actorStore = actorStore;
+        _actorRepository = actorRepository;
         _idResolver = idResolver;
         _secretsConfig = secretsConfig;
+        _sequencer = sequencer;
+        _plcClient = plcClient;
     }
     
     
@@ -68,27 +77,27 @@ public class CreateAccountController : ControllerBase
             var validatedInputs = await ValidateInputsForLocalPds(request);
             validatedDid = validatedInputs.did;
 
-            await using var actorStoreDb = _actorStore.Create(validatedInputs.did, validatedInputs.signingKey);
+            await using var actorStoreDb = _actorRepository.Create(validatedInputs.did, validatedInputs.signingKey);
             conn = actorStoreDb.Database.GetDbConnection() as SqliteConnection;
             var sqlTxr = new SqlRepoTransactor(actorStoreDb, validatedDid, null);
-            var repo = new RepoTransactor(actorStoreDb, validatedDid, validatedInputs.signingKey, sqlTxr, new RecordTransactor(actorStoreDb, validatedDid, validatedInputs.signingKey, sqlTxr));
+            var repo = new RepoRepository(actorStoreDb, validatedDid, validatedInputs.signingKey, sqlTxr, new RecordRepository(actorStoreDb, validatedDid, validatedInputs.signingKey, sqlTxr));
             var commit = await repo.CreateRepo([]);
 
             if (validatedInputs.plcOp != null)
             {
                 try
                 {
-                    // await plcClient.SendOperation(did, plcOp);
+                    await _plcClient.SendOperation(validatedDid, validatedInputs.plcOp);
                 }
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Failed to create did:plc for {didKey}, {handle}", validatedInputs.did, validatedInputs.handle);
-                    throw new XRPCError(new InvalidRequestErrorDetail("Failed to create did:plc"));
+                    throw new XRPCError(new InvalidRequestErrorDetail("Failed to create did:plc"), e);
                 }
             }
 
             var didDoc = await SafeResolveDidDoc(validatedInputs.did, true);
-            var creds = await _accountManager.CreateAccount(validatedInputs.did,
+            var creds = await _accountRepository.CreateAccount(validatedInputs.did,
                 validatedInputs.handle,
                 validatedInputs.Email,
                 validatedInputs.Password,
@@ -99,10 +108,13 @@ public class CreateAccountController : ControllerBase
 
             if (!validatedInputs.deactivated)
             {
-                // sequencing stuff
+                await _sequencer.SequenceIdentityEvent(validatedInputs.did, validatedInputs.handle);
+                await _sequencer.SequenceAccountEvent(validatedInputs.did, AccountStore.AccountStatus.Active);
+                await _sequencer.SequenceCommit(validatedInputs.did, commit, []);
             }
-            // update repo root
-            // clear reserved keypair
+            
+            await _accountRepository.UpdateRepoRoot(validatedInputs.did, commit.Cid, commit.Rev);
+            // TODO: clear reserved keypair
             
             return Ok(new CreateAccountOutput
             {
@@ -123,7 +135,7 @@ public class CreateAccountController : ControllerBase
                 {
                     SqliteConnection.ClearPool(conn);
                 }
-                _actorStore.Destroy(validatedDid);
+                _actorRepository.Destroy(validatedDid);
             }
             throw;
         }
@@ -143,7 +155,7 @@ public class CreateAccountController : ControllerBase
         }
     }
 
-    private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, AtProtoOp? plcOp, bool deactivated)> ValidateInputsForLocalPds(CreateAccountInput createAccountInput)
+    private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, SignedAtProtoOp? plcOp, bool deactivated)> ValidateInputsForLocalPds(CreateAccountInput createAccountInput)
     {
         if (createAccountInput.PlcOp != null)
         {
@@ -168,11 +180,11 @@ public class CreateAccountController : ControllerBase
 
         if (_invitesConfig.Required && createAccountInput.InviteCode != null)
         {
-            await _accountManager.EnsureInviteIsAvailable(createAccountInput.InviteCode);
+            await _accountRepository.EnsureInviteIsAvailable(createAccountInput.InviteCode);
         }
         
-        var handleAcct = await _accountManager.GetAccount(handle);
-        var emailAcct = await _accountManager.GetAccount(createAccountInput.Email);
+        var handleAcct = await _accountRepository.GetAccount(handle);
+        var emailAcct = await _accountRepository.GetAccount(createAccountInput.Email);
         if (handleAcct != null)
         {
             throw new XRPCError(new HandleNotAvailableErrorDetail($"Handle already taken: {handle}"));
@@ -185,7 +197,7 @@ public class CreateAccountController : ControllerBase
         var signingKey = Secp256k1Keypair.Create(true);
 
         string did;
-        AtProtoOp plcOp;
+        SignedAtProtoOp plcOp;
         bool deactivated = false;
         if (createAccountInput.Did != null)
         {
@@ -201,7 +213,7 @@ public class CreateAccountController : ControllerBase
         return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, deactivated);
     }
     
-    private async Task<(string Did, AtProtoOp PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
+    private async Task<(string Did, SignedAtProtoOp PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
     {
         string[] rotationKeys = [_secretsConfig.PlcRotationKey.Did()];
         if (_identityConfig.RecoveryDidKey != null)

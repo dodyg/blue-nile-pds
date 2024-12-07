@@ -1,14 +1,21 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using atompds.Pds.AccountManager;
-using atompds.Pds.AccountManager.Db;
+using AccountManager;
+using AccountManager.Db;
+using ActorStore;
+using Config;
+using Handle;
 using Identity;
 using Microsoft.EntityFrameworkCore;
+using Sequencer;
+using Sequencer.Db;
 
 namespace atompds.Pds.Config;
 
 public record ServerConfig
 {
     public ServiceConfig Service { get; init; }
+    public string[] Crawlers { get; init; }
+    public SubscriptionConfig Subscription { get; init; }
     public DatabaseConfig Db { get; init; }
     public ActorStoreConfig ActorStore { get; init; }
     public DiskBlobstoreConfig Blobstore { get; init; }
@@ -27,6 +34,12 @@ public record ServerConfig
         Version = env.PDS_VERSION,
         BlobUploadLimit = env.PDS_BLOB_UPLOAD_LIMIT,
         DevMode = env.PDS_DEV_MODE
+    };
+    
+    public SubscriptionConfig MapSubscriptionConfig(ServerEnvironment env) => new()
+    {
+        MaxSubscriptionBuffer = env.PDS_MAX_SUBSCRIPTION_BUFFER,
+        RepoBackfillLimitMs = env.PDS_REPO_BACKFILL_LIMIT_MS
     };
     
     private string MapDbLoc(ServerEnvironment env, string name) =>
@@ -119,6 +132,7 @@ public record ServerConfig
         }
         
         Service = MapServiceConfig(env);
+        Subscription = MapSubscriptionConfig(env);
         Db = MapDatabaseConfig(env);
         ActorStore = MapActorStoreConfig(env);
         Blobstore = MapDiskBlobstoreConfig(env);
@@ -127,6 +141,7 @@ public record ServerConfig
         BskyAppView = MapBskyAppViewConfig(env);
         Proxy = MapProxyConfig(env);
         SecretsConfig = MapSecretsConfig(env);
+        Crawlers = env.PDS_CRAWLERS.ToArray();
     }
     
     public static void RegisterServices(IServiceCollection services, ServerConfig config)
@@ -141,16 +156,19 @@ public record ServerConfig
         services.AddSingleton(config.BskyAppView);
         services.AddSingleton(config.Proxy);
         services.AddSingleton(config.SecretsConfig);
+        services.AddSingleton(config.Subscription);
 
         // AccountManager deps
-        services.AddScoped<AccountManager.AccountManager>();
+        services.AddScoped<AccountRepository>();
         services.AddDbContext<AccountManagerDb>(x => x.UseSqlite($"Data Source={config.Db.AccountDbLoc}"));
-        services.AddScoped<ActorStore.Db.ActorStore>();
         services.AddScoped<AccountStore>();
         services.AddScoped<PasswordStore>();
         services.AddScoped<RepoStore>();
         services.AddScoped<InviteStore>();
         services.AddScoped<Auth>();
+        
+        // Actor store
+        services.AddScoped<ActorRepository>();
         
         // Resolvers
         services.AddSingleton<IDidCache>(new MemoryCache(
@@ -163,10 +181,20 @@ public record ServerConfig
             TimeoutMs = config.Identity.ResolverTimeout
         });
         services.AddSingleton<IdResolver>();
-        services.AddSingleton<Handle.Handle>();
+        services.AddSingleton<HandleManager>();
         
         // AuthVerifier
         services.AddScoped<AuthVerifier>();
         services.AddSingleton<AuthVerifierConfig>(x => new AuthVerifierConfig(config.SecretsConfig.JwtSecret, "secret", config.Service.PublicUrl, config.Service.Did));
+        
+        // Sequencer
+        services.AddDbContext<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
+        services.AddScoped<SequencerRepository>();
+        services.AddSingleton<Crawlers>();
+        services.AddSingleton(x => new CrawlersConfig(config.Service.Hostname, config.Crawlers));
+        
+        // Plc
+        services.AddSingleton(new PlcClientConfig(config.Identity.PlcUrl));
+        services.AddSingleton<PlcClient>();
     }
 }

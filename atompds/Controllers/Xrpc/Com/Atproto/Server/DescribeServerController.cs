@@ -1,4 +1,4 @@
-﻿using atompds.Pds.Config;
+﻿using Config;
 using FishyFlip.Lexicon.Com.Atproto.Server;
 using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;

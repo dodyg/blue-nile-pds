@@ -27,6 +27,29 @@ public class Operations
             return false;
         }
         
+        // fix pkey length
+        if (publicKey.Length == 33)
+        {
+            var buf = new byte[64];
+            if (!Secp256K1.PublicKeyParse(buf, publicKey))
+            {
+                return false;
+            }
+            
+            publicKey = buf;
+        }
+        
+        if (IsCompactFormat(sig))
+        {
+            var outBuf = new byte[64];
+            if (!Secp256K1.SignatureParseCompact(outBuf, sig))
+            {
+                return false;
+            }
+            
+            sig = outBuf;
+        }
+        
         return Secp256K1.Verify(sig, msgHash, publicKey);
     }
 

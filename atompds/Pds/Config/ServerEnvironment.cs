@@ -17,7 +17,6 @@ public class ServerEnvironment
     public bool PDS_DEV_MODE { get; set; } = false;
 
     // Data Directories
-
     public string? PDS_DATA_DIRECTORY { get; set; }
     public string PDS_ACCOUNT_DB_LOCATION { get; set; } = "account.sqlite";
     public string PDS_SEQUENCER_DB_LOCATION { get; set; } = "sequencer.sqlite";
@@ -52,8 +51,8 @@ public class ServerEnvironment
     public int InviteEpoch { get; set; } = 0;
     
     // Subscription
-    public long PDS_MAX_SUBSCRIPTION_BUFFER { get; set; } = 500;
-    public long PDS_REPO_BACKFILL_LIMIT_MS { get; set; } = DAY;
+    public int PDS_MAX_SUBSCRIPTION_BUFFER { get; set; } = 500;
+    public int PDS_REPO_BACKFILL_LIMIT_MS { get; set; } = DAY;
 
     // Bsky App View
     public string? PDS_BSKY_APP_VIEW_URL { get; set; }

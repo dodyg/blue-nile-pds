@@ -38,15 +38,35 @@ public record ErrorDetail
     public string Error { get; }
     public string Message { get; }
     
+    public ResponseType Status { get; }
+    
     public ErrorDetail(string error, string message)
     {
         Error = error;
         Message = message;
+        Status = ResponseTypeNames.ReverseMap.GetValueOrDefault(error, ResponseType.Unknown);
+    }
+
+    public ErrorDetail(ResponseType status, string error, string message)
+    {
+        Error = error;
+        Message = message;
+        Status = status;
     }
     
     public ErrorDetail(ResponseType status, string message) : this(ResponseTypeNames.Map.GetValueOrDefault(status, "Unknown"), message) { }
 }
-public record InvalidRequestErrorDetail(string Message) : ErrorDetail(ResponseType.InvalidRequest, Message);
+public record InvalidRequestErrorDetail : ErrorDetail
+{
+    public InvalidRequestErrorDetail(string Message) : base(ResponseType.InvalidRequest, Message)
+    {
+    }
+    
+    public InvalidRequestErrorDetail(string Error, string Message) : base(ResponseType.InvalidRequest, Error, Message)
+    {
+    }
+}
+
 public record ExpiredTokenErrorDetail(string Message) : ErrorDetail("ExpiredToken", Message);
 public record InvalidTokenErrorDetail(string Message) : ErrorDetail("InvalidToken", Message);
 public record InvalidInviteCodeErrorDetail(string Message) : ErrorDetail("InvalidInviteCode", Message);

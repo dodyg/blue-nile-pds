@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using System.Text;
 using SimpleBase;
 
 namespace Crypto;
@@ -10,6 +11,13 @@ public static class Utils
         var bytes = System.Text.Encoding.UTF8.GetBytes(input);
         var hash = SHA256.HashData(bytes);
         return hash.ToHex();
+    }
+    public static string RandomHexString(int length)
+    {
+        var bytes = new byte[length];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(bytes);
+        return bytes.ToHex();
     }
     
     public static string ToHex(this byte[] bytes)

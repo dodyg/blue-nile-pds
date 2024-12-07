@@ -30,7 +30,7 @@ public class Did
     
     public static string FormatDidKey(string jwtAlg, byte[] keyBytes)
     {
-        return $"{Const.DID_KEY_PREFIX}:{FormatMultiKey(jwtAlg, keyBytes)}";
+        return $"{Const.DID_KEY_PREFIX}{FormatMultiKey(jwtAlg, keyBytes)}";
     }
     
     public static string FormatMultiKey(string jwtAlg, byte[] keyBytes)

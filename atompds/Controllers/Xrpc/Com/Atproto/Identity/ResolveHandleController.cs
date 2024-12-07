@@ -1,7 +1,7 @@
-﻿using atompds.Pds.Config;
-using atompds.Pds.Handle;
+﻿using Config;
 using FishyFlip.Lexicon.Com.Atproto.Identity;
 using FishyFlip.Models;
+using Handle;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
 
@@ -11,17 +11,17 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Identity;
 [Route("xrpc")]
 public class ResolveHandleController : ControllerBase
 {
-    private readonly Pds.AccountManager.AccountManager _accountManager;
+    private readonly AccountManager.AccountRepository _accountRepository;
     private readonly ILogger<ResolveHandleController> _logger;
-    private readonly Handle _handle;
+    private readonly HandleManager _handle;
     private readonly IdentityConfig _identityConfig;
     public ResolveHandleController(
-        Pds.AccountManager.AccountManager accountManager,
-        Handle handle, 
+        AccountManager.AccountRepository accountRepository,
+        HandleManager handle, 
         IdentityConfig identityConfig,
         ILogger<ResolveHandleController> logger)
     {
-        _accountManager = accountManager;
+        _accountRepository = accountRepository;
         _logger = logger;
         _handle = handle;
         _identityConfig = identityConfig;
@@ -34,7 +34,7 @@ public class ResolveHandleController : ControllerBase
         handle = _handle.NormalizeAndEnsureValidHandle(handle);
 
         string? did = null;
-        var user = await _accountManager.GetAccount(handle);
+        var user = await _accountRepository.GetAccount(handle);
         if (user != null)
         {
             did = user.Did;

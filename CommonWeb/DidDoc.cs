@@ -81,7 +81,7 @@ public class DidDoc
 
     public static string? GetPdsEndpoint(DidDocument doc)
     {
-        return GetServiceEndpoint(doc, "#atproto_pds", "AtprotoPersonalDataServer");
+        return GetServiceEndpoint(doc, "atproto_pds", "AtprotoPersonalDataServer");
     }
 
     public static string? GetServiceEndpoint(DidDocument doc, string id, string? type)
@@ -102,7 +102,7 @@ public class DidDoc
     
     public static string? ValidateUrl(string url)
     {
-        if (!url.StartsWith("http://") || !url.StartsWith("https://"))
+        if (!url.StartsWith("http://") && !url.StartsWith("https://"))
         {
             return null;
         }

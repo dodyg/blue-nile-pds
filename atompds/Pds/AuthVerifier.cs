@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
-using atompds.Pds.AccountManager;
-using atompds.Pds.AccountManager.Db;
+using AccountManager;
+using AccountManager.Db;
 using Identity;
 using Jose;
 using Xrpc;
@@ -12,12 +12,12 @@ public record AuthVerifierConfig(string JwtKey, string AdminPass, string PublicU
 
 public class AuthVerifier
 {
-    private readonly AccountManager.AccountManager _accountManager;
+    private readonly AccountRepository _accountRepository;
     private readonly IdResolver _idResolver;
     private readonly AuthVerifierConfig _config;
-    public AuthVerifier(AccountManager.AccountManager accountManager, IdResolver idResolver, AuthVerifierConfig config)
+    public AuthVerifier(AccountRepository accountRepository, IdResolver idResolver, AuthVerifierConfig config)
     {
-        _accountManager = accountManager;
+        _accountRepository = accountRepository;
         _idResolver = idResolver;
         _config = config;
     }
@@ -143,7 +143,7 @@ public class AuthVerifier
 
         if (checkTakenDown || checkDeactivated)
         {
-            var found = await _accountManager.GetAccount(accessOutput.Credentials.Did, new AvailabilityFlags(IncludeTakenDown: checkTakenDown, IncludeDeactivated: checkDeactivated));
+            var found = await _accountRepository.GetAccount(accessOutput.Credentials.Did, new AvailabilityFlags(IncludeTakenDown: checkTakenDown, IncludeDeactivated: checkDeactivated));
             if (found == null)
             {
                 throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountNotFound", "Account not found"));

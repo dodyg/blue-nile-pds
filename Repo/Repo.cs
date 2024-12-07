@@ -154,12 +154,19 @@ public enum ValidationStatus
 public interface IPreparedWrite
 {
     public WriteOpAction Action { get; }
+    public ATUri Uri { get; }
+}
+
+public interface IPreparedDataWrite : IPreparedWrite
+{
+    public Cid Cid { get; }
+    public PreparedBlobRef[] Blobs { get; }
 }
 
 public record BlobConstraint(string[]? Accept, int? MaxSize);
 public record PreparedBlobRef(Cid Cid, string MimeType, BlobConstraint Constraints);
 
-public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedWrite
+public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
 {
     public WriteOpAction Action => WriteOpAction.Create;
 
@@ -169,7 +176,7 @@ public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record
     }
 }
 
-public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedWrite
+public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
 {
     public WriteOpAction Action => WriteOpAction.Update;
     

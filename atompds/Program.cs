@@ -1,10 +1,11 @@
 using System.Text.Json.Serialization;
-using System.Threading.RateLimiting;
+using AccountManager.Db;
 using atompds.Middleware;
-using atompds.Pds.AccountManager.Db;
 using atompds.Pds.Config;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
+using Sequencer;
+using Sequencer.Db;
 
 namespace atompds;
 
@@ -44,6 +45,11 @@ public class Program
 		{
 			var accountManager = scope.ServiceProvider.GetRequiredService<AccountManagerDb>();
 			await accountManager.Database.MigrateAsync();
+			
+			var seqDb = scope.ServiceProvider.GetRequiredService<SequencerDb>();
+			await seqDb.Database.MigrateAsync();
+			
+			var sequencerRepo = scope.ServiceProvider.GetRequiredService<SequencerRepository>();
 		}
 
         app.UseRouting();

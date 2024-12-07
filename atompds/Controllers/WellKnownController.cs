@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using atompds.Pds.Config;
+using Config;
 using Microsoft.AspNetCore.Mvc;
 
 namespace atompds.Controllers;
@@ -9,11 +10,11 @@ namespace atompds.Controllers;
 public class WellKnownController : ControllerBase
 {
 	private readonly ServiceConfig _serviceConfig;
-	private readonly Pds.AccountManager.AccountManager _accountManager;
-	public WellKnownController(ServiceConfig serviceConfig, Pds.AccountManager.AccountManager accountManager)
+	private readonly AccountManager.AccountRepository _accountRepository;
+	public WellKnownController(ServiceConfig serviceConfig, AccountManager.AccountRepository accountRepository)
 	{
 		_serviceConfig = serviceConfig;
-		_accountManager = accountManager;
+		_accountRepository = accountRepository;
 	}
 	
     [HttpGet("oauth-protected-resource")]
@@ -41,7 +42,7 @@ public class WellKnownController : ControllerBase
 	{
 		// get hostname for request
 		var host = Request.Host.Host;
-		var acc = await _accountManager.GetAccount(host);
+		var acc = await _accountRepository.GetAccount(host);
 		if (acc?.Handle == null)
 		{
 			return NotFound("no user by that handle exists on this PDS");

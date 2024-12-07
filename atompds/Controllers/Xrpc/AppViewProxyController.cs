@@ -1,9 +1,12 @@
 ﻿using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using ActorStore;
 using atompds.Middleware;
-using atompds.Pds.ActorStore.Db;
-using atompds.Pds.Config;
+using Config;
 using Crypto;
 using FishyFlip.Lexicon.App.Bsky.Actor;
+using Identity;
 using Jose;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -17,16 +20,19 @@ public class AppViewProxyController : ControllerBase
     private readonly IBskyAppViewConfig _config;
     private readonly ILogger<AppViewProxyController> _logger;
     private readonly HttpClient _client;
-    private readonly ActorStore _actorStore;
+    private readonly ActorRepository _actorRepository;
+    private readonly IdResolver _idResolver;
     public AppViewProxyController(IBskyAppViewConfig config, 
         ILogger<AppViewProxyController> logger, 
         HttpClient client,
-        ActorStore actorStore)
+        ActorRepository actorRepository,
+        IdResolver idResolver)
     {
         _config = config;
         _logger = logger;
         _client = client;
-        _actorStore = actorStore;
+        _actorRepository = actorRepository;
+        _idResolver = idResolver;
     }
     
     [HttpGet("app.bsky.actor.getPreferences")]
@@ -46,10 +52,92 @@ public class AppViewProxyController : ControllerBase
         return Ok();
     }
     
+    /*
+     * web.get("/xrpc/app.bsky.actor.getProfile", static_appview_proxy),
+			web.get("/xrpc/app.bsky.actor.getProfiles", static_appview_proxy),
+			web.get("/xrpc/app.bsky.actor.getSuggestions", static_appview_proxy),
+			web.get("/xrpc/app.bsky.actor.searchActorsTypeahead", static_appview_proxy),
+			web.get("/xrpc/app.bsky.labeler.getServices", static_appview_proxy),
+			web.get(
+				"/xrpc/app.bsky.notification.listNotifications", static_appview_proxy
+			),
+			web.post("/xrpc/app.bsky.notification.updateSeen", static_appview_proxy),
+			web.get("/xrpc/app.bsky.graph.getList", static_appview_proxy),
+			web.get("/xrpc/app.bsky.graph.getLists", static_appview_proxy),
+			web.get("/xrpc/app.bsky.graph.getFollows", static_appview_proxy),
+			web.get("/xrpc/app.bsky.graph.getFollowers", static_appview_proxy),
+			web.get("/xrpc/app.bsky.graph.getStarterPack", static_appview_proxy),
+			web.get(
+				"/xrpc/app.bsky.graph.getSuggestedFollowsByActor", static_appview_proxy
+			),
+			web.get("/xrpc/app.bsky.graph.getActorStarterPacks", static_appview_proxy),
+			web.post("/xrpc/app.bsky.graph.muteActor", static_appview_proxy),
+			web.post("/xrpc/app.bsky.graph.unmuteActor", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getTimeline", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getAuthorFeed", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getActorFeeds", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getFeed", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getListFeed", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getFeedGenerator", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getFeedGenerators", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getPostThread", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getPosts", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getLikes", static_appview_proxy),
+			web.get("/xrpc/app.bsky.feed.getActorLikes", static_appview_proxy),
+			web.get(
+				"/xrpc/app.bsky.unspecced.getPopularFeedGenerators",
+				static_appview_proxy,
+			),
+
+			web.get("/xrpc/chat.bsky.convo.listConvos", static_appview_proxy)
+		
+     */
+    
     // static appview proxy
     [HttpGet("app.bsky.actor.getProfile")]
+    [HttpGet("app.bsky.actor.getProfiles")]
+    [HttpGet("app.bsky.actor.getSuggestions")]
+    [HttpGet("app.bsky.actor.searchActorsTypeahead")]
+    [HttpGet("app.bsky.labeler.getServices")]
+    [HttpGet("app.bsky.notification.listNotifications")]
+    [HttpPost("app.bsky.notification.updateSeen")]
+    [HttpGet("app.bsky.graph.getList")]
+    [HttpGet("app.bsky.graph.getLists")]
+    [HttpGet("app.bsky.graph.getFollows")]
+    [HttpGet("app.bsky.graph.getFollowers")]
+    [HttpGet("app.bsky.graph.getStarterPack")]
+    [HttpGet("app.bsky.graph.getSuggestedFollowsByActor")]
+    [HttpGet("app.bsky.graph.getActorStarterPacks")]
+    [HttpPost("app.bsky.graph.muteActor")]
+    [HttpPost("app.bsky.graph.unmuteActor")]
+    [HttpGet("app.bsky.feed.getTimeline")]
+    [HttpGet("app.bsky.feed.getAuthorFeed")]
+    [HttpGet("app.bsky.feed.getActorFeeds")]
+    [HttpGet("app.bsky.feed.getFeed")]
+    [HttpGet("app.bsky.feed.getListFeed")]
+    [HttpGet("app.bsky.feed.getFeedGenerator")]
+    [HttpGet("app.bsky.feed.getFeedGenerators")]
+    [HttpGet("app.bsky.feed.getPostThread")]
+    [HttpGet("app.bsky.feed.getPosts")]
+    [HttpGet("app.bsky.feed.getLikes")]
+    [HttpGet("app.bsky.feed.getActorLikes")]
+    [HttpGet("app.bsky.unspecced.getPopularFeedGenerators")]
+    [HttpGet("chat.bsky.convo.listConvos")]
     [AccessStandard]
-    public async Task<IActionResult> GetProfile()
+    public async Task<IActionResult> Method()
+    {
+        try
+        {
+            return await Inner();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in AppViewProxyController");
+            return StatusCode(500);
+        }
+    }
+    
+    private async Task<IActionResult> Inner()
     {
         if (_config is not BskyAppViewConfig config)
         {
@@ -62,19 +150,21 @@ public class AppViewProxyController : ControllerBase
         var url = $"{config.Url}/xrpc/{reqNsid}";
         
 
-        var signingKeyPair = _actorStore.KeyPair(auth.Credentials.Did, true);
+        var signingKeyPair = _actorRepository.KeyPair(auth.Credentials.Did, true);
         if (signingKeyPair is not IExportableKeyPair exportable)
         {
             throw new XRPCError(500);
         }
         
-        var jwt = JWT.Encode(new Dictionary<string, object>()
-        {
-            ["iss"] = auth.Credentials.Did,
-            ["aud"] = config.Did,
-            ["lxm"] = reqNsid,
-            ["exp"] = (int)DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds()
-        }, exportable.Export(), JwsAlgorithm.HS256);
+        var jwt = CreateServiceJwt(new ServiceJwtPayload(
+            auth.Credentials.Did,
+            config.Did,
+            null,
+            null,
+            reqNsid,
+            exportable
+        ));
+        await AssertValidJwt(jwt, config.Did, reqNsid);
         
         // if get
         if (HttpContext.Request.Method == "GET")
@@ -93,11 +183,125 @@ public class AppViewProxyController : ControllerBase
             
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
-            return StatusCode((int)response.StatusCode, content);
+            
+            return new ContentResult
+            {
+                Content = content,
+                StatusCode = (int) response.StatusCode,
+                ContentType = response.Content.Headers.ContentType?.ToString()
+            };
         }
         else
         {
             throw new XRPCError(405);
+        }
+    }
+    
+    private record ServiceJwtPayload(string iss, string? aud, long? iat, long? exp, string? lxm, IKeyPair KeyPair);
+    private string CreateServiceJwt(ServiceJwtPayload payload)
+    {
+        var iat = payload.iat ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var exp = payload.exp ?? DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeSeconds();
+        var jti = Crypto.Utils.RandomHexString(16);
+        var header = new
+        {
+            typ = "JWT",
+            alg = payload.KeyPair.JwtAlg
+        };
+        var values = new Dictionary<string, object?>
+        {
+            ["iat"] = iat,
+            ["iss"] = payload.iss,
+            ["aud"] = payload.aud,
+            ["exp"] = exp,
+            ["lxm"] = payload.lxm,
+            ["jti"] = jti
+        };
+        var pl = values
+            .Where(kv => kv.Value != null)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+        var toSignStr = $"{Base64Url.Encode(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(header)))}." +
+                        $"{Base64Url.Encode(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(pl)))}";
+        var toSign = Encoding.UTF8.GetBytes(toSignStr);
+        var sig = payload.KeyPair.Sign(toSign);
+        return $"{toSignStr}.{Base64Url.Encode(sig)}";
+    }
+
+    private async Task AssertValidJwt(string jwtStr, string? ownDid, string? lxm)
+    {
+        Dictionary<string, string> parseHeader(string b64)
+        {
+            var header = Encoding.UTF8.GetString(Base64Url.Decode(b64));
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(header)!;
+        }
+        
+        Dictionary<string, string?> parsePayload(string b64)
+        {
+            var blob = Base64Url.Decode(b64);
+            var payload = Encoding.UTF8.GetString(blob);
+            var obj = JsonSerializer.Deserialize<Dictionary<string, object?>>(payload)!;
+            if (!obj.TryGetValue("iss", out var iss) ||
+                !obj.TryGetValue("aud", out var aud) ||
+                !obj.TryGetValue("exp", out var exp))
+            {
+                throw new XRPCError(new AuthRequiredErrorDetail("missing required fields"));
+            }
+            
+            return obj.ToDictionary(kv => kv.Key, kv => kv.Value?.ToString());
+        }
+        
+        var parts = jwtStr.Split('.');
+        if (parts.Length != 3)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("poorly formatted jwt"));
+        }
+        
+        var header = parseHeader(parts[0]);
+        if (header.TryGetValue("typ", out var typ) && typ is "at+jwt" or "refresh+jwt" or "dpop+jwt")
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail($"invalid jwt type: {typ}"));
+        }
+        
+        var payload = parsePayload(parts[1]);
+        var sig = parts[2];
+        
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var exp = long.Parse(payload["exp"]!);
+        if (exp < now)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("jwt expired"));
+        }
+        
+        if (ownDid != null && payload["aud"] != ownDid)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("invalid audience"));
+        }
+
+        if (lxm != null)
+        {
+            if (!payload.TryGetValue("lxm", out var payloadLxm))
+            {
+                throw new XRPCError(new AuthRequiredErrorDetail("missing lxm"));
+            }
+            else
+            {
+                if (payloadLxm != lxm)
+                {
+                    throw new XRPCError(new AuthRequiredErrorDetail("invalid lxm"));
+                }
+            }
+        }
+        
+        var msgBytes = Encoding.UTF8.GetBytes(parts[0] + "." + parts[1]);
+        var sigBytes = Base64Url.Decode(sig);
+        var signingKey = await _idResolver.DidResolver.ResolveAtproto(payload["iss"], true);
+
+        var alg = header["alg"];
+
+        var valid = Verify.VerifySignature(signingKey.SigningKey, msgBytes, sigBytes, null, alg);
+        if (!valid)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("invalid signature"));
         }
     }
 
