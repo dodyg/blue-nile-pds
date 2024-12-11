@@ -3,7 +3,7 @@ using PeterO.Cbor;
 
 namespace Sequencer.Types;
 
-public record IdentityEvt : ICborEncodable
+public record IdentityEvt : ICborEncodable<IdentityEvt>
 {
     public required string Did { get; init; }
     public required string? Handle { get; init; }

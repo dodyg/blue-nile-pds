@@ -31,12 +31,12 @@ public class Program
 	        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
 		});
 
-        /*builder.Services.AddHttpLogging(logging =>
+        builder.Services.AddHttpLogging(logging =>
         {
 	        logging.LoggingFields = HttpLoggingFields.RequestPath | HttpLoggingFields.ResponseStatusCode |
 	                                HttpLoggingFields.RequestMethod;
 			logging.CombineLogs = true;
-		});*/
+		});
         
 
         var app = builder.Build();
@@ -63,7 +63,7 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
 	        app.MapOpenApi();
-	        //app.UseHttpLogging();
+	        app.UseHttpLogging();
         }
 
         var version = typeof(Program).Assembly.GetName().Version!.ToString(3);

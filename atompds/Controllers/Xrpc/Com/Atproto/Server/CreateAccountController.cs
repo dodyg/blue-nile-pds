@@ -155,7 +155,7 @@ public class CreateAccountController : ControllerBase
         }
     }
 
-    private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, SignedAtProtoOp? plcOp, bool deactivated)> ValidateInputsForLocalPds(CreateAccountInput createAccountInput)
+    private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, SignedOp<AtProtoOp>? plcOp, bool deactivated)> ValidateInputsForLocalPds(CreateAccountInput createAccountInput)
     {
         if (createAccountInput.PlcOp != null)
         {
@@ -197,7 +197,7 @@ public class CreateAccountController : ControllerBase
         var signingKey = Secp256k1Keypair.Create(true);
 
         string did;
-        SignedAtProtoOp plcOp;
+        SignedOp<AtProtoOp> plcOp;
         bool deactivated = false;
         if (createAccountInput.Did != null)
         {
@@ -213,7 +213,7 @@ public class CreateAccountController : ControllerBase
         return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, deactivated);
     }
     
-    private async Task<(string Did, SignedAtProtoOp PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
+    private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
     {
         string[] rotationKeys = [_secretsConfig.PlcRotationKey.Did()];
         if (_identityConfig.RecoveryDidKey != null)

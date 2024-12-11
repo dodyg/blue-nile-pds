@@ -18,7 +18,7 @@ public class CborBlock(CBORObject value, byte[] bytes, Cid cid)
         return new CborBlock(obj, buffer, cid);
     }
     
-    public static CborBlock Encode(ICborEncodable obj)
+    public static CborBlock Encode<T>(ICborEncodable<T> obj)
     {
         return Encode(obj.ToCborObject());
     }
@@ -34,7 +34,9 @@ public class CborBlock(CBORObject value, byte[] bytes, Cid cid)
     public CBORObject Value { get; set; } = value;
 }
 
-public interface ICborEncodable
+public interface ICborEncodable<out T>
 {
     CBORObject ToCborObject();
+    
+    static abstract T FromCborObject(CBORObject obj);
 }

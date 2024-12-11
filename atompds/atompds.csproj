@@ -32,6 +32,7 @@
       <ProjectReference Include="..\DidLib\DidLib.csproj" />
       <ProjectReference Include="..\Handle\Handle.csproj" />
       <ProjectReference Include="..\Identity\Identity.csproj" />
+      <ProjectReference Include="..\Mailer\Mailer.csproj" />
       <ProjectReference Include="..\Repo\Repo.csproj" />
       <ProjectReference Include="..\Sequencer\Sequencer.csproj" />
       <ProjectReference Include="..\Xrpc\Xrpc.csproj" />

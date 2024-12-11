@@ -4,7 +4,7 @@ using PeterO.Cbor;
 
 namespace Sequencer.Types;
 
-public record CommitEvt : ICborEncodable
+public record CommitEvt : ICborEncodable<CommitEvt>
 {
     public required bool Rebase { get; init; }
     public required bool TooBig { get; init; }
@@ -28,6 +28,10 @@ public record CommitEvt : ICborEncodable
         if (Prev != null)
         {
             cbor.Add("prev", Prev.ToString());
+        }
+        else
+        {
+            cbor.Add("prev", CBORObject.Null);
         }
         cbor.Add("rev", Rev);
         if (Since != null)
@@ -59,7 +63,15 @@ public record CommitEvt : ICborEncodable
         Cid? prev = null;
         if (cbor.ContainsKey("prev"))
         {
-            prev = Cid.FromString(cbor["prev"].AsString());
+            var prevCbor = cbor["prev"];
+            if (prevCbor == null || prevCbor.IsNull)
+            {
+                prev = null;
+            }
+            else
+            {
+                prev = Cid.FromString(prevCbor.AsString());
+            }
         }
         var rev = cbor["rev"].AsString();
         string? since = null;

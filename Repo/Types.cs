@@ -1,6 +1,5 @@
 ﻿using CID;
 using Common;
-using Crypto;
 using PeterO.Cbor;
 using Repo.MST;
 
@@ -11,7 +10,7 @@ public record CommitData(Cid Cid, string Rev, string? Since, Cid? Prev, BlockMap
     public int Version => 3;
 }
 
-public record Commit(string Did, Cid Data, string Rev, Cid? Prev, byte[] Sig) : ICborEncodable
+public record Commit(string Did, Cid Data, string Rev, Cid? Prev, byte[] Sig) : ICborEncodable<Commit>
 {
     public int Version => 3;
     
@@ -41,7 +40,7 @@ public record Commit(string Did, Cid Data, string Rev, Cid? Prev, byte[] Sig) : 
     }
 }
 
-public record UnsignedCommit(string Did, Cid Data, string Rev, Cid? Prev) : ICborEncodable
+public record UnsignedCommit(string Did, Cid Data, string Rev, Cid? Prev) : ICborEncodable<UnsignedCommit>
 {
     public int Version => 3;
     
@@ -58,15 +57,14 @@ public record UnsignedCommit(string Did, Cid Data, string Rev, Cid? Prev) : ICbo
         obj.Add("Version", Version);
         return obj;
     }
-}
-public record Entry(Cid Cid, byte[] Block);
-
-public static class Util
-{
-    public static Commit SignCommit(UnsignedCommit unsigned, IKeyPair keypair)
+    
+    public static UnsignedCommit FromCborObject(CBORObject obj)
     {
-        var encoded = CborBlock.Encode(unsigned);
-        var sig = keypair.Sign(encoded.Bytes);
-        return new Commit(unsigned.Did, unsigned.Data, unsigned.Rev, unsigned.Prev, sig);
+        var did = obj["Did"].AsString();
+        var data = Cid.FromString(obj["Data"].AsString());
+        var rev = obj["Rev"].AsString();
+        Cid? prev = obj.ContainsKey("Prev") ? Cid.FromString(obj["Prev"].AsString()) : null;
+        return new UnsignedCommit(did, data, rev, prev);
     }
 }
+public record Entry(Cid Cid, byte[] Block);

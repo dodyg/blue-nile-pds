@@ -26,14 +26,12 @@ public class SubscribeReposController : ControllerBase
         _logger = logger;
     }
     
-    [Route("com.atproto.sync.subscribeRepos")]
+    [HttpGet("com.atproto.sync.subscribeRepos")]
     public async Task SubscribeRepos(
         [FromQuery] int? cursor, // The last known event seq number to backfill from.
         CancellationToken cancellationToken)
     {
-        // force cursor to zero for testing
         cursor ??= 0;
-        
         if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("NotWebSocket", "Request is not a websocket."));
@@ -52,20 +50,21 @@ public class SubscribeReposController : ControllerBase
             {
                 throw new XRPCError(new InvalidRequestErrorDetail("FutureCursor", "Cursor in the future."));
             }
-            else if (next != null && next.SequencedAt < backfillTime)
-            {
-                throw new NotImplementedException();
-                // var cborArr = CBORObject.NewArray()
-                //     .Add(CBORObject.NewMap()
-                //         .Add("t", "#info")
-                //     )
-                //     .Add(CBORObject.NewMap()
-                //         .Add("name", "OutDatedCursor")
-                //         .Add("message", "Requested cursor exceeded limit. Possibly missing events."));
-                //
-                // await webSocket.SendAsync(cborArr.EncodeToBytes(), WebSocketMessageType.Binary, true, cancellationToken);
-                // var startEvt = await _sequencer.EarliestAfterTime(backfillTime);
-                // outboxCursor = startEvt?.Seq - 1;
+            // Disable this for now
+            else if (next != null && next.SequencedAt < backfillTime && false)
+            { 
+                var header = CBORObject.NewMap()
+                    .Add("t", "#info")
+                    .EncodeToBytes();
+                var blob = CBORObject.NewMap()
+                    .Add("name", "OutDatedCursor")
+                    .Add("message", "Requested cursor exceeded limit. Possibly missing events.")
+                    .EncodeToBytes();
+                byte[] buffer = [..header, ..blob];
+                
+                await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
+                var startEvt = await _sequencer.EarliestAfterTime(backfillTime);
+                outboxCursor = startEvt?.Seq - 1;
             }
             else
             {
@@ -75,6 +74,7 @@ public class SubscribeReposController : ControllerBase
         
         await foreach (var evt in outbox.Events(outboxCursor, cancellationToken))
         {
+            _logger.LogInformation("Sending event {Seq} to client", evt.Seq);
             if (evt.Type == TypedCommitType.Commit && evt is TypedCommitEvt commit)
             {
                 var header = CBORObject.NewMap()

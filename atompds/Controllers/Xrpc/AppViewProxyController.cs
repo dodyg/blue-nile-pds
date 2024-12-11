@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Buffers;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using ActorStore;
@@ -47,6 +48,14 @@ public class AppViewProxyController : ControllerBase
     [HttpPost("app.bsky.actor.putPreferences")]
     [AccessStandard]
     public IActionResult PutPreferences([FromBody] PutPreferencesInput request)
+    {
+        var auth = HttpContext.GetAuthOutput();
+        return Ok();
+    }
+    
+    [HttpPost("chat.bsky.actor.deleteAccount")]
+    [AccessStandard]
+    public IActionResult StubChatDeleteAccount()
     {
         var auth = HttpContext.GetAuthOutput();
         return Ok();
@@ -109,14 +118,14 @@ public class AppViewProxyController : ControllerBase
         var url = $"{config.Url}/xrpc/{reqNsid}";
         
 
-        var signingKeyPair = _actorRepository.KeyPair(auth.Credentials.Did, true);
+        var signingKeyPair = _actorRepository.KeyPair(auth.AccessCredentials.Did, true);
         if (signingKeyPair is not IExportableKeyPair exportable)
         {
             throw new XRPCError(500);
         }
         
         var jwt = CreateServiceJwt(new ServiceJwtPayload(
-            auth.Credentials.Did,
+            auth.AccessCredentials.Did,
             config.Did,
             null,
             null,
@@ -139,6 +148,36 @@ public class AppViewProxyController : ControllerBase
                 request.Headers.Add("Accept-Language", acceptLanguage.ToArray());
             }
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            
+            var response = await _client.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+            
+            return new ContentResult
+            {
+                Content = content,
+                StatusCode = (int) response.StatusCode,
+                ContentType = response.Content.Headers.ContentType?.ToString()
+            };
+        }
+        else if (HttpContext.Request.Method == "POST")
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Headers.Add("x-bsky-topics",  HttpContext.Request.Headers["x-bsky-topics"].ToArray());
+            request.Headers.Add("atproto-accept-labelers", HttpContext.Request.Headers["atproto-accept-labelers"].ToArray());
+            var acceptLanguage = HttpContext.Request.Headers["Accept-Language"];
+            if (acceptLanguage.Count > 0)
+            {
+                request.Headers.Add("Accept-Language", acceptLanguage.ToArray());
+            }
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            
+            // add body if any
+            if (HttpContext.Request.ContentLength > 0)
+            {
+                var body = await HttpContext.Request.BodyReader.ReadAsync();
+                request.Content = new ByteArrayContent(body.Buffer.ToArray());
+                request.Content.Headers.ContentType = new MediaTypeHeaderValue(HttpContext.Request.ContentType);
+            }
             
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();

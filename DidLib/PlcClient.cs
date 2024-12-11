@@ -1,8 +1,6 @@
 ﻿using System.Text;
-using System.Text.Json;
-using DidLib;
 
-namespace atompds.Pds;
+namespace DidLib;
 
 public record PlcClientConfig(string Host);
 
@@ -17,10 +15,10 @@ public class PlcClient
         _config = config;
     }
 
-    public async Task SendOperation(string did, SignedAtProtoOp op)
+    public async Task SendOperation(string did, SignedOp<AtProtoOp> op)
     {
         using var postReq = new HttpRequestMessage(HttpMethod.Post, $"{_config.Host}/{did}");
-        postReq.Content = new StringContent(JsonSerializer.Serialize(op), Encoding.UTF8, "application/json");
+        postReq.Content = new StringContent(op.ToCborObject().ToJSONString(), Encoding.UTF8, "application/json");
         var resp = await _client.SendAsync(postReq);
         var respStr = await resp.Content.ReadAsStringAsync();
         if (!resp.IsSuccessStatusCode)
@@ -29,10 +27,10 @@ public class PlcClient
         }
     }
 
-    public async Task SendTomestone(string did, SignedTomestone op)
+    public async Task SendTomestone(string did, SignedOp<Tombstone> op)
     {
         using var postReq = new HttpRequestMessage(HttpMethod.Post, $"{_config.Host}/{did}");
-        postReq.Content = new StringContent(JsonSerializer.Serialize(op), Encoding.UTF8, "application/json");
+        postReq.Content = new StringContent(op.ToCborObject().ToJSONString(), Encoding.UTF8, "application/json");
         var resp = await _client.SendAsync(postReq);
         var respStr = await resp.Content.ReadAsStringAsync();
         if (!resp.IsSuccessStatusCode)

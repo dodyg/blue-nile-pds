@@ -9,39 +9,34 @@ namespace DidLib;
 
 public static class Operations
 {
-    public static async Task<string> GetSignature(CBORObject obj, IKeyPair keyPair)
+    public static Task<string> GetSignature(CBORObject obj, IKeyPair keyPair)
     {
         var memBuf = obj.EncodeToBytes();
         var sig = keyPair.Sign(memBuf);
         var b64Url = Base64Url.EncodeToString(sig);
-        return b64Url;
+        return Task.FromResult(b64Url);
     }
     
-    public static async Task<SignedAtProtoOp> AtProtoOp(string signingKey, string handle, string pds, string[] rotationKeys, string? cid, IKeyPair keyPair)
+    public static async Task<SignedOp<AtProtoOp>> AtProtoOp(string signingKey, string handle, string pds, string[] rotationKeys, string? cid, IKeyPair keyPair)
     {
         var op = FormatAtProtoOp(signingKey, handle, pds, rotationKeys, cid);
         var sig = await GetSignature(op.ToCborObject(), keyPair);
         
-        return new SignedAtProtoOp
+        return new SignedOp<AtProtoOp>
         {
-            Type = op.Type,
-            VerificationMethods = op.VerificationMethods,
-            RotationKeys = op.RotationKeys,
-            AlsoKnownAs = op.AlsoKnownAs,
-            Services = op.Services,
-            Prev = op.Prev,
-            Signature = sig
+            Sig = sig,
+            Op = op
         };
     }
 
-    public static async Task<(string Did, SignedAtProtoOp Op)> CreateOp(string signingKey, string handle, string pds, string[] rotationKeys, IKeyPair keyPair)
+    public static async Task<(string Did, SignedOp<AtProtoOp> Op)> CreateOp(string signingKey, string handle, string pds, string[] rotationKeys, IKeyPair keyPair)
     {
         var op = await AtProtoOp(signingKey, handle, pds, rotationKeys, null, keyPair);
         var did = await DidForCreateOp(op);
         return (did, op);
     }
 
-    public static Task<string> DidForCreateOp(SignedAtProtoOp op)
+    public static Task<string> DidForCreateOp(SignedOp<AtProtoOp> op)
     {
         var memBuf = op.ToCborObject().EncodeToBytes();
         var hashOfGenesis = SHA256.HashData(memBuf);

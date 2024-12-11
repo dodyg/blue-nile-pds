@@ -159,4 +159,12 @@ public class AccountStore
         Deleted,
         Deactivated
     }
+
+    public async Task DeleteAccount(string did)
+    {
+        await _db.RepoRoots.Where(x => x.Did == did).ExecuteDeleteAsync();
+        await _db.RefreshTokens.Where(x => x.Did == did).ExecuteDeleteAsync();
+        await _db.Accounts.Where(x => x.Did == did).ExecuteDeleteAsync();
+        await _db.Actors.Where(x => x.Did == did).ExecuteDeleteAsync();
+    }
 }

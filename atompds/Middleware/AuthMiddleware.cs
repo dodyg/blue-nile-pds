@@ -94,6 +94,13 @@ public static class AuthMiddlewareExtensions
     }
 }
 
+public class AdminTokenAttribute : Attribute
+{
+    public Task<AuthVerifier.AdminOutput> Handle(AuthVerifier verifier, HttpContext context)
+    {
+        return verifier.AdminToken(context);
+    }
+}
 
 public class AccessStandardAttribute : Attribute
 {

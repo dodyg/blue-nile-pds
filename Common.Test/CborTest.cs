@@ -3,7 +3,7 @@ using PeterO.Cbor;
 
 namespace Common.Test;
 
-public class IpldTest
+public class CborTest
 {
     public class TestObject
     {
@@ -21,7 +21,7 @@ public class IpldTest
     }
     
     [Fact]
-    public void TestIpld()
+    public void TestCbor()
     {
         var obj = new TestObject("Alice", 30, Cid.Create("hello world"));
         var cbor = CBORObject.NewMap()

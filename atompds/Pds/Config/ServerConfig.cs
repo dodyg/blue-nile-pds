@@ -3,8 +3,10 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using Config;
+using DidLib;
 using Handle;
 using Identity;
+using Mailer;
 using Microsoft.EntityFrameworkCore;
 using Sequencer;
 using Sequencer.Db;
@@ -196,5 +198,8 @@ public record ServerConfig
         // Plc
         services.AddSingleton(new PlcClientConfig(config.Identity.PlcUrl));
         services.AddSingleton<PlcClient>();
+        
+        // Mailer
+        services.AddSingleton<IMailer, StubMailer>();
     }
 }

@@ -3,7 +3,7 @@ using PeterO.Cbor;
 
 namespace Sequencer.Types;
 
-public record TomestoneEvt : ICborEncodable
+public record TombstoneEvt : ICborEncodable<TombstoneEvt>
 {
     public required string Did { get; init; }
     
@@ -14,10 +14,10 @@ public record TomestoneEvt : ICborEncodable
         return cbor;
     }
     
-    public static TomestoneEvt FromCborObject(CBORObject cbor)
+    public static TombstoneEvt FromCborObject(CBORObject cbor)
     {
         var did = cbor["did"].AsString();
-        return new TomestoneEvt
+        return new TombstoneEvt
         {
             Did = did
         };

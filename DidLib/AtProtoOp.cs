@@ -1,26 +1,41 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using Common;
 using PeterO.Cbor;
 
 namespace DidLib;
 
-public class SignedTomestone : Tomestone
+public class SignedOp<T> : ICborEncodable<SignedOp<T>> where T : ICborEncodable<T>
 {
     [JsonPropertyName("sig")]
     public required string Sig { get; init; }
     
-    public new CBORObject ToCborObject()
+    [JsonPropertyName("op")]
+    public required T Op { get; init; }
+    
+    public CBORObject ToCborObject()
     {
-        var cbor = base.ToCborObject();
+        var cbor = Op.ToCborObject();
         cbor.Add("sig", Sig);
         return cbor;
     }
+    
+    public static SignedOp<T> FromCborObject(CBORObject obj)
+    {
+        var op = T.FromCborObject(obj);
+        var sig = obj["sig"].AsString();
+        return new SignedOp<T>
+        {
+            Op = op,
+            Sig = sig
+        };
+    }
 }
 
-public class Tomestone : ICborEncodable
+public class Tombstone : ICborEncodable<Tombstone>
 {
     [JsonPropertyName("type")]
-    public string Type => "plc_tomestone";    
+    public string Type => "plc_tombstone";    
     
     [JsonPropertyName("prev")]
     public required string Prev { get; init; }
@@ -32,9 +47,23 @@ public class Tomestone : ICborEncodable
         cbor.Add("prev", Prev);
         return cbor;
     }
+    
+    public static Tombstone FromCborObject(CBORObject cbor)
+    {
+        var prev = cbor["prev"].AsString();
+        var type = cbor["type"].AsString();
+        if (type != "plc_tombstone")
+        {
+            throw new Exception("Invalid type");
+        }
+        return new Tombstone
+        {
+            Prev = prev
+        };
+    }
 }
 
-public class AtProtoOp : ICborEncodable
+public class AtProtoOp : ICborEncodable<AtProtoOp>
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }
@@ -51,6 +80,9 @@ public class AtProtoOp : ICborEncodable
     [JsonPropertyName("services")]
     public required Dictionary<string, Service> Services { get; init; }
         
+    // a CID hash pointer to a previous operation if an update, or null for a creation.
+    // If null, the key should actually be part of the object, with value null, not simply omitted.
+    // In DAG-CBOR encoding, the CID is string-encoded
     [JsonPropertyName("prev")]
     public required string? Prev { get; init; }
     
@@ -64,5 +96,36 @@ public class AtProtoOp : ICborEncodable
         cbor.Add("services", Services);
         cbor.Add("prev", Prev);
         return cbor;
+    }
+    
+    public static AtProtoOp FromCborObject(CBORObject cbor)
+    {
+        var type = cbor["type"].AsString();
+        var verificationMethods = JsonSerializer.Deserialize<Dictionary<string, string>>(cbor["verificationMethods"].ToJSONString());
+        var rotationKeys = cbor["rotationKeys"].Values.Select(x => x.AsString()).ToArray();
+        var alsoKnownAs = cbor["alsoKnownAs"].Values.Select(x => x.AsString()).ToArray();
+        var services = JsonSerializer.Deserialize<Dictionary<string, Service>>(cbor["services"].ToJSONString());
+        string? prev = null;
+        if (cbor.ContainsKey("prev"))
+        {
+            var prevCbor = cbor["prev"];
+            if (prevCbor == null || prevCbor.IsNull)
+            {
+                prev = null;
+            }
+            else
+            {
+                prev = prevCbor.AsString();
+            }
+        }
+        return new AtProtoOp
+        {
+            Type = type,
+            VerificationMethods = verificationMethods ?? throw new Exception("Invalid verificationMethods"),
+            RotationKeys = rotationKeys,
+            AlsoKnownAs = alsoKnownAs,
+            Services = services ?? throw new Exception("Invalid services"),
+            Prev = prev
+        };
     }
 }

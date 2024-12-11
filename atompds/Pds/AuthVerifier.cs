@@ -93,11 +93,32 @@ public class AuthVerifier
             IsPrivileged = false
         }, result.Token);
     }
-    
-    public record AccessOutput(AccessCredentials Credentials, string Artifacts);
-    public record RefreshOutput(RefreshCredentials Credentials, string Artifacts);
 
-    public record AccessCredentials
+    public abstract record AuthOutput
+    {
+        public AuthOutput(IAuthCredentials credentials, string artifacts)
+        {
+            Credentials = credentials;
+            Artifacts = artifacts;
+        }
+        
+        public IAuthCredentials Credentials { get; }
+        public string Artifacts { get; }
+    }
+    public interface IAuthCredentials
+    {
+        public string Type { get; }
+    }
+    public record AccessOutput(AccessCredentials AccessCredentials, string Artifacts) : AuthOutput(AccessCredentials, Artifacts);
+    public record RefreshOutput(RefreshCredentials RefreshCredentials, string Artifacts) : AuthOutput(RefreshCredentials, Artifacts);
+    public record AdminOutput(AdminCredentials AdminCredentials, string Artifacts) : AuthOutput(AdminCredentials, Artifacts);
+
+    public record AdminCredentials : IAuthCredentials
+    {
+        public string Type => "admin_token";
+    }
+    
+    public record AccessCredentials : IAuthCredentials
     {
         public string Type => "access";
         public required string Did { get; init; }
@@ -106,7 +127,7 @@ public class AuthVerifier
         public required bool IsPrivileged { get; init; }
     }
     
-    public record RefreshCredentials
+    public record RefreshCredentials : IAuthCredentials
     {
         public string Type => "refresh";
         public required string Did { get; init; }
@@ -143,7 +164,7 @@ public class AuthVerifier
 
         if (checkTakenDown || checkDeactivated)
         {
-            var found = await _accountRepository.GetAccount(accessOutput.Credentials.Did, new AvailabilityFlags(IncludeTakenDown: checkTakenDown, IncludeDeactivated: checkDeactivated));
+            var found = await _accountRepository.GetAccount(accessOutput.AccessCredentials.Did, new AvailabilityFlags(IncludeTakenDown: checkTakenDown, IncludeDeactivated: checkDeactivated));
             if (found == null)
             {
                 throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountNotFound", "Account not found"));
@@ -299,6 +320,36 @@ public class AuthVerifier
         
         return new ParsedAuthHeader(type, result[1]);
     }
+    
+    private record ParsedBasicAuth(string Username, string Password);
+    private ParsedBasicAuth? ParseBasicAuthorization(string? authorization)
+    {
+        if (authorization == null)
+        {
+            return null;
+        }
+        
+        var result = authorization.Split(' ');
+        if (result.Length != 2)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Malformed authorization header"));
+        }
+
+        var authType = result[0].ToUpper();
+        if (authType != "BASIC")
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail($"Unsupported authorization type: {authType}"));
+        }
+        
+        var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(result[1]));
+        var parts = decoded.Split(':');
+        if (parts.Length != 2)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Malformed basic auth header"));
+        }
+        
+        return new ParsedBasicAuth(parts[0], parts[1]);
+    }
 
     private void SetAuthHeaders(HttpContext ctx)
     {
@@ -318,5 +369,15 @@ public class AuthVerifier
                 res.Headers.Append("Vary", authorization);
             }
         }
+    }
+    public Task<AdminOutput> AdminToken(HttpContext context)
+    {
+        var auth = ParseBasicAuthorization(context.Request.Headers.Authorization);
+        if (auth == null || auth.Username != "admin" || auth.Password != _config.AdminPass)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("Invalid admin credentials"));
+        }
+        
+        return Task.FromResult(new AdminOutput(new AdminCredentials(), ""));
     }
 }

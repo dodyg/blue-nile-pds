@@ -60,6 +60,15 @@ public class CidTests
     }
 
     [Fact]
+    public void FromStringTest2()
+    {
+        var input = "zUFKqwZsvwnjhQeVttU28NEx8z4mfJJN7U4KfG8rFVAoXHKF2";
+        var cid = Cid.FromString(input);
+        
+        Assert.Equal(Version.V1, cid.Version);
+    }
+
+    [Fact]
     public void V0Handling()
     {
         var old = "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n";

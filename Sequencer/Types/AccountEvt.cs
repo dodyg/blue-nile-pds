@@ -4,7 +4,7 @@ using PeterO.Cbor;
 
 namespace Sequencer.Types;
 
-public record AccountEvt : ICborEncodable
+public record AccountEvt : ICborEncodable<AccountEvt>
 {
     public required string Did { get; init; }
     public required bool Active { get; init; }

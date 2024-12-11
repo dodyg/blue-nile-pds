@@ -26,7 +26,7 @@ public class AccountManagerDb : DbContext
     public DbSet<RepoRoot> RepoRoots { get; set; }
     public DbSet<InviteCode> InviteCodes { get; set; }
     public DbSet<InviteCodeUse> InviteCodeUses { get; set; }
-    //public DbSet<EmailToken> EmailTokens { get; set; }
+    public DbSet<EmailToken> EmailTokens { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -71,5 +71,10 @@ public class AccountManagerDb : DbContext
         
         // account_email_lower_idx = {email_lower} <- cannot use this using fluent mappings
         // modelBuilder.Entity<Account>().HasIndex(a => a.Email.ToLower());
+        
+        // email_token_pkey = {purpose, did}
+        modelBuilder.Entity<EmailToken>().HasKey(et => new { et.Purpose, et.Did });
+        // unique constraint, {purpose, token}
+        modelBuilder.Entity<EmailToken>().HasIndex(et => new { et.Purpose, et.Token }).IsUnique();
     }
 }

@@ -491,7 +491,7 @@ public class Leaf : INodeEntry
 
 public interface INodeEntry;
 
-public struct NodeData : ICborEncodable
+public struct NodeData : ICborEncodable<NodeData>
 {
     /// <summary>
     /// Left-most subtree
@@ -522,7 +522,7 @@ public struct NodeData : ICborEncodable
 
     public static NodeData FromCborObject(CBORObject obj)
     {
-        var left = obj["left"]?.AsString();
+        var left = obj.ContainsKey("left") ? obj["left"].AsString() : null;
         var entries = obj["entries"].Values.Select(TreeEntry.FromCborObject).ToList();
         return new NodeData
         {
@@ -532,7 +532,7 @@ public struct NodeData : ICborEncodable
     }
 }
 
-public struct TreeEntry : ICborEncodable
+public struct TreeEntry : ICborEncodable<TreeEntry>
 {
     /// <summary>
     /// Prefix count of ascii chars that this key shares with the prev key
@@ -569,7 +569,7 @@ public struct TreeEntry : ICborEncodable
         var prefixCount = obj["prefixCount"].AsInt32();
         var key = obj["key"].GetByteString();
         var value = Cid.FromString(obj["value"].AsString());
-        var tree = obj["tree"]?.AsString();
+        var tree = obj.ContainsKey("tree") ? obj["tree"].AsString() : null;
         return new TreeEntry
         {
             PrefixCount = prefixCount,

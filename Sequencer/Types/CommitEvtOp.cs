@@ -4,7 +4,7 @@ using PeterO.Cbor;
 
 namespace Sequencer.Types;
 
-public record CommitEvtOp : ICborEncodable
+public record CommitEvtOp : ICborEncodable<CommitEvtOp>
 {
     public required CommitEvtAction Action { get; init; }
     public required string Path { get; init; }

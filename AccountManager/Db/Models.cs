@@ -158,22 +158,22 @@ public class InviteCodeUse
     public required DateTime UsedAt { get; set; }
 }
 
-// [Table(TableName)]
-// public class EmailToken
-// {
-//     public const string TableName = "email_token";
-//
-//     public enum EmailTokenPurpose
-//     {
-//         confirm_email,
-//         update_email,
-//         reset_password,
-//         delete_account,
-//         plc_operation
-//     }
-//
-//     public EmailTokenPurpose Purpose { get; set; }
-//     [StringLength(2048)] public required string Did { get; set; }
-//     [StringLength(2048)] public required string Token { get; set; }
-//     public DateTime RequestedAt { get; set; }
-// }
+[Table(TableName)]
+public class EmailToken
+{
+    public const string TableName = "email_token";
+
+    public enum EmailTokenPurpose
+    {
+        confirm_email,
+        update_email,
+        reset_password,
+        delete_account,
+        plc_operation
+    }
+
+    public EmailTokenPurpose Purpose { get; set; }
+    [StringLength(2048)] public required string Did { get; set; }
+    [StringLength(2048)] public required string Token { get; set; }
+    public DateTime RequestedAt { get; set; }
+}

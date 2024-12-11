@@ -46,21 +46,6 @@ public class SequencerRepository : IDisposable
             }
         }
     }
-    
-    public async Task Start()
-    {
-        var current = await Current();
-        if (current != null)
-        {
-            LastSeen = current.Value;
-        }
-        else
-        {
-            LastSeen = 0;
-        }
-        
-        _pollTask = Task.Run(PollTask);
-    }
 
     private async Task PollDb()
     {
@@ -197,7 +182,7 @@ public class SequencerRepository : IDisposable
                     });
                     break;
                 case RepoSeqEventType.Tombstone:
-                    var tombstoneEvt = TomestoneEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
+                    var tombstoneEvt = TombstoneEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
                     seqEvents.Add(new TypedTombstoneEvt
                     {
                         Seq = row.Seq,
@@ -221,7 +206,7 @@ public class SequencerRepository : IDisposable
 
     public async Task<int> SequenceCommit(string did, CommitData commitData, IPreparedWrite[] writes)
     {
-        var evt = FormatSeqCommit(did, commitData, writes);
+        var evt = await FormatSeqCommit(did, commitData, writes);
         return await SequenceEvent(evt);
     }
     
@@ -248,8 +233,8 @@ public class SequencerRepository : IDisposable
         var evt = FormatSeqTombstoneEvent(did);
         return await SequenceEvent(evt);
     }
-
-    private RepoSeq FormatSeqCommit(string did, CommitData commitData, IPreparedWrite[] writes)
+    
+    private async Task<RepoSeq> FormatSeqCommit(string did, CommitData commitData, IPreparedWrite[] writes)
     {
         var ops = new List<CommitEvtOp>();
         var blobs = new CidSet();
@@ -266,8 +251,7 @@ public class SequencerRepository : IDisposable
                 justRoot.Set(commitData.Cid, rootBlock);
             }
 
-            // TODO: BlocksToCarFile
-            carSlice = [];
+            carSlice = await Repo.Util.BlocksToCarFile(commitData.Cid, justRoot);
         }
         else
         {
@@ -304,8 +288,7 @@ public class SequencerRepository : IDisposable
                 });
             }
 
-            // TODO: BlocksToCarFile
-            carSlice = [];
+            carSlice = await Repo.Util.BlocksToCarFile(commitData.Cid, commitData.NewBlocks);
         }
 
         return new RepoSeq
@@ -383,7 +366,7 @@ public class SequencerRepository : IDisposable
     
     private RepoSeq FormatSeqTombstoneEvent(string did)
     {
-        var tombstoneEvt = new TomestoneEvt
+        var tombstoneEvt = new TombstoneEvt
         {
             Did = did
         };
@@ -403,5 +386,12 @@ public class SequencerRepository : IDisposable
         _pollTask?.Wait();
         OnClose?.Invoke(this, new CloseEvt());
         _db.Dispose();
+    }
+    
+    public async Task DeleteAllForUser(string did, int[] excludingSeq)
+    {
+        await _db.RepoSeqs
+            .Where(x => x.Did == did && !excludingSeq.Contains(x.Seq))
+            .ExecuteDeleteAsync();
     }
 }

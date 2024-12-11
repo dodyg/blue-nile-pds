@@ -15,6 +15,7 @@ public class AccountRepository
     private readonly PasswordStore _passwordStore;
     private readonly Auth _auth;
     private readonly InviteStore _inviteStore;
+    private readonly EmailTokenStore _emailTokenStore;
     private readonly AccountManagerDb _db;
     public AccountRepository(
         ServiceConfig serviceConfig, 
@@ -24,6 +25,7 @@ public class AccountRepository
         PasswordStore passwordStore,
         Auth auth, 
         InviteStore inviteStore, 
+        EmailTokenStore emailTokenStore,
         AccountManagerDb db)
     {
         _serviceConfig = serviceConfig;
@@ -33,6 +35,7 @@ public class AccountRepository
         _passwordStore = passwordStore;
         _auth = auth;
         _inviteStore = inviteStore;
+        _emailTokenStore = emailTokenStore;
         _db = db;
     }
     
@@ -71,6 +74,11 @@ public class AccountRepository
         return (tokens.AccessToken, tokens.RefreshToken);
     }
     
+    public async Task DeleteAccount(string did)
+    {
+        await _accountStore.DeleteAccount(did);
+    }
+    
     public async Task EnsureInviteIsAvailable(string code)
     {
         await _inviteStore.EnsureInviteIsAvailable(code);
@@ -96,9 +104,24 @@ public class AccountRepository
         return (tokens.AccessToken, tokens.RefreshToken);
     }
 
+    public Task<string> CreateEmailToken(string did, EmailToken.EmailTokenPurpose purpose)
+    {
+        return _emailTokenStore.CreateEmailToken(did, purpose);
+    }
+    
+    public Task AssertValidEmailToken(string did, string token, EmailToken.EmailTokenPurpose purpose)
+    {
+        return _emailTokenStore.AssertValidToken(did, token, purpose);
+    }
+    
     public async Task UpdateRepoRoot(string did, Cid cid, string rev)
     {
         await _repoStore.UpdateRoot(did, cid.ToString(), rev);
+    }
+    
+    public Task<bool> VerifyAccountPassword(string did, string appPassword)
+    {
+        return _passwordStore.VerifyAccountPassword(did, appPassword);
     }
     
     public async Task<ActorAccount> Login(string identifier, string password)
