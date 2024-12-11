@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Repo;
 using Sequencer;
 using Xrpc;
 
@@ -79,9 +80,13 @@ public class CreateAccountController : ControllerBase
 
             await using var actorStoreDb = _actorRepository.Create(validatedInputs.did, validatedInputs.signingKey);
             conn = actorStoreDb.Database.GetDbConnection() as SqliteConnection;
-            var sqlTxr = new SqlRepoTransactor(actorStoreDb, validatedDid, null);
-            var repo = new RepoRepository(actorStoreDb, validatedDid, validatedInputs.signingKey, sqlTxr, new RecordRepository(actorStoreDb, validatedDid, validatedInputs.signingKey, sqlTxr));
-            var commit = await repo.CreateRepo([]);
+            var repo = _actorRepository.GetRepo(validatedDid, actorStoreDb);
+            CommitData commit;
+            await using (var tx = await actorStoreDb.Database.BeginTransactionAsync())
+            {
+                commit = await repo.CreateRepo([]);
+                await tx.CommitAsync();
+            }
 
             if (validatedInputs.plcOp != null)
             {

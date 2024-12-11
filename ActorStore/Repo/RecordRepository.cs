@@ -20,6 +20,31 @@ public class RecordRepository
         _keyPair = keyPair;
         _storage = storage;
     }
+    
+    
+    public record GetRecordResult(string Uri, string Cid, CBORObject Value, DateTime IndexedAt, string? TakedownRef);
+    public async Task<GetRecordResult?> GetRecord(ATUri uri, string? cid, bool includeSoftDeleted = false)
+    {
+        var uriStr = uri.ToString();
+        var query = _db.Records
+            .Where(x => x.Uri == uriStr);
+        if (!includeSoftDeleted)
+        {
+            query = query.Where(x => x.TakedownRef == null);
+        }
+        if (cid != null)
+        {
+            query = query.Where(x => x.Cid == cid);
+        }
+        
+        // TODO: Innerjoin repoBlock table
+        
+        var record = await query.FirstOrDefaultAsync();
+        if (record == null) return null;
+        var block = await _db.RepoBlocks.FirstOrDefaultAsync(x => x.Cid == record.Cid);
+        if (block == null) return null;
+        return new GetRecordResult(record.Uri, record.Cid, CBORObject.DecodeFromBytes(block.Content), record.IndexedAt, record.TakedownRef);
+    }
 
     public async Task IndexRecord(ATUri uri, CID.Cid cid, CBORObject? record, WriteOpAction action, string rev, DateTime? timestamp)
     {

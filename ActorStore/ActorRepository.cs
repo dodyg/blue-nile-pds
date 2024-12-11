@@ -1,4 +1,5 @@
 ﻿using ActorStore.Db;
+using ActorStore.Repo;
 using Config;
 using Crypto;
 using Crypto.Secp256k1;
@@ -34,6 +35,15 @@ public class ActorRepository
     {
         var (directory, dbLocation, _) = GetLocation(did);
         return Directory.Exists(directory) && File.Exists(dbLocation);
+    }
+
+    public RepoRepository GetRepo(string did, ActorStoreDb db)
+    {
+        // TODO: This assumes the provided did is the same did as the actorstore
+        var keypair = KeyPair(did);
+        var sqlTxr = new SqlRepoTransactor(db, did);
+        var recordRepo = new RecordRepository(db, did, keypair, sqlTxr);
+        return new RepoRepository(db, did, keypair, sqlTxr, recordRepo);
     }
     
     public IKeyPair KeyPair(string did, bool exportable = false)

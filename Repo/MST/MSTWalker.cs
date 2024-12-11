@@ -73,7 +73,7 @@ public class MSTWalker
             var entries = await progress.Walking.GetEntries();
             progress.Index++;
             var next = entries.Length > progress.Index ? entries[progress.Index] : null;
-            if (next != null)
+            if (next == null)
             {
                 if (!_stack.TryPop(out var popped))
                 {
@@ -87,7 +87,7 @@ public class MSTWalker
             }
             else
             {
-                progress.Current = next!;
+                progress.Current = next;
             }
             break;
         }

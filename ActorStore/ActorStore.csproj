@@ -11,6 +11,7 @@
         <ProjectReference Include="..\CommonDb\CommonDb.csproj" />
         <ProjectReference Include="..\Config\Config.csproj" />
         <ProjectReference Include="..\DidLib\DidLib.csproj"/>
+        <ProjectReference Include="..\Handle\Handle.csproj" />
         <ProjectReference Include="..\Repo\Repo.csproj"/>
         <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
     </ItemGroup>

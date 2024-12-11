@@ -456,7 +456,7 @@ public record MST : INodeEntry
     public async Task<INodeEntry?> AtIndex(int index)
     {
         var entries = await GetEntries();
-        return index < entries.Length ? entries[index] : null;
+        return index < entries.Length && index >= 0 ? entries[index] : null;
     }
     
     public async Task<INodeEntry[]> Slice(int? start, int? end)

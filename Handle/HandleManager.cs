@@ -99,7 +99,7 @@ public partial class HandleManager
         ES7()
     ];
     
-    private bool HasExplicitSlur(string handle)
+    public static bool HasExplicitSlur(string handle)
     {
         var sh = handle.Replace(".", "").Replace("-", "").Replace("_", "");
         return Sr.Any(r => r.IsMatch(handle) || r.IsMatch(sh));

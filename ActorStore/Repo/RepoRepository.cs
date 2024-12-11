@@ -1,10 +1,9 @@
 ﻿using ActorStore.Db;
 using CID;
 using Crypto;
+using FishyFlip.Models;
 using Microsoft.EntityFrameworkCore;
-using PeterO.Cbor;
 using Repo;
-using Repo.MST;
 
 namespace ActorStore.Repo;
 
@@ -28,7 +27,6 @@ public class RepoRepository
 
     public async Task<CommitData> CreateRepo(PreparedCreate[] writes)
     {
-        await using var tx = await _db.Database.BeginTransactionAsync();
         var writeOpts = writes.Select(x => x.CreateWriteToOp()).ToArray();
         var commit = await global::Repo.Repo.FormatInitCommit(_storage, _did, _keyPair, writeOpts);
         
@@ -57,187 +55,111 @@ public class RepoRepository
             }
         }
     }
-}
 
-public class SqlRepoTransactor : IRepoStorage
-{
-    private readonly ActorStoreDb _db;
-    private readonly string _did;
-    private BlockMap _cache = new();
-    private string now;
-
-    public SqlRepoTransactor(ActorStoreDb db, string did, string? now)
+    public async Task<CommitData> ProcessWrites(IPreparedWrite[] writes, Cid? swapCommitCid)
     {
-        _db = db;
-        _did = did;
-        this.now = now ?? DateTime.UtcNow.ToString("O");
-    }
-    
-    public async Task<CID.Cid?> GetRoot()
-    {
-        var detailedRoot = await GetRootDetailed();
-        return detailedRoot.Cid;
+        var commit = await FormatCommit(writes, swapCommitCid);
+        await _storage.ApplyCommit(commit);
+        await IndexWrites(writes, commit.Rev);
+        // TODO: blob.processWriteBlobs.
+        return commit;
     }
 
-    public async Task<(CID.Cid Cid, string Rev)> GetRootDetailed()
+    public async Task<CommitData> FormatCommit(IPreparedWrite[] writes, Cid? swapCommit)
     {
-        var res = await _db.RepoRoots.SingleAsync();
-        return (Cid.FromString(res.Cid), res.Rev);
-    }
-    
-    public async Task PutBlock(Cid cid, byte[] block, string rev)
-    {
-        var newBlock = new RepoBlock
+        var currRoot = await _storage.GetRootDetailed();
+        if (swapCommit != null && !currRoot.Cid.Equals(swapCommit))
         {
-            Cid = cid.ToString(),
-            Content = block,
-            RepoRev = rev,
-            Size = block.Length
-        };
-        
-        // TODO: should find a way to do "ON CONFLICT DO NOTHING" here
-        if (_db.RepoBlocks.Any(x => x.Cid == cid.ToString()))
-        {
-            _db.RepoBlocks.Update(newBlock);
-        }
-        else
-        {
-            _db.RepoBlocks.Add(newBlock);
+            throw new Exception("Bad commit swap");
         }
         
-        await _db.SaveChangesAsync();
-        _cache.Set(cid, block);
-    }
-    public Task PutMany(BlockMap toPut, string rev)
-    {
-        var blocks = new List<RepoBlock>();
-        foreach (var (cid, block) in toPut.Iterator)
+        await _storage.CacheRev(currRoot.Rev);
+        var newRecordsCids = new List<Cid>();
+        var delAndUpdateUris = new List<ATUri>();
+        foreach (var write in writes)
         {
-            blocks.Add(new RepoBlock
+            Cid? swapCid = null;
+            if (write is PreparedCreate create)
             {
-                Cid = cid.ToString(),
-                Content = block,
-                RepoRev = rev,
-                Size = block.Length
-            });
-        }
-        
-        // TODO: should find a way to do "ON CONFLICT DO NOTHING" here
-        foreach (var block in blocks)
-        {
-            if (_db.RepoBlocks.Any(x => x.Cid == block.Cid))
-            {
-                _db.RepoBlocks.Update(block);
+                newRecordsCids.Add(create.Cid);
+                swapCid = create.SwapCid;
             }
-            else
+            else if (write is PreparedUpdate update)
             {
-                _db.RepoBlocks.Add(block);
+                newRecordsCids.Add(update.Cid);
+                swapCid = update.SwapCid;
+            }
+            else if (write is PreparedDelete delete)
+            {
+                delAndUpdateUris.Add(delete.Uri);
+                swapCid = delete.SwapCid;
+            }
+            
+            if (swapCid == null) continue;
+
+            var record = await _record.GetRecord(write.Uri, null, true);
+            Cid? currRecord = record != null ? Cid.FromString(record.Cid) : null;
+            if (write.Action == WriteOpAction.Create && swapCid != null)
+            {
+                throw new Exception("Cannot swap on create");
+            }
+            if (write.Action == WriteOpAction.Update && swapCid == null)
+            {
+                throw new Exception("Must swap on update");
+            }
+            if (write.Action == WriteOpAction.Delete && swapCid == null)
+            {
+                throw new Exception("Must swap on delete");
+            }
+            if ((currRecord != null || swapCid != null) && !currRecord?.Equals(swapCid) == true)
+            {
+                throw new Exception("Bad swap");
             }
         }
         
-        return _db.SaveChangesAsync();
-    }
-    public Task UpdateRoot(Cid cid, string rev)
-    {
-        var newRoot = new RepoRoot
+        var repo = await global::Repo.Repo.Load(_storage, currRoot.Cid);
+        var writeOps = writes.Select(WriteToOp).ToArray();
+        var commit = await repo.FormatCommit(writeOps, _keyPair);
+        
+        // find blocks that would be deleted but are referenced by another record
+        var dupeRecordCids = await GetDuplicateRecordCids(commit.RemovedCids.ToArray(), delAndUpdateUris.ToArray());
+        foreach (var dupeCid in dupeRecordCids)
         {
-            Cid = cid.ToString(),
-            Rev = rev,
-            Did = _did,
-            IndexedAt = DateTime.UtcNow
+            commit.RemovedCids.Delete(dupeCid);
+        }
+
+        var newRecordBlocks = commit.NewBlocks.GetMany(newRecordsCids.ToArray());
+        if (newRecordBlocks.missing.Length > 0)
+        {
+            var missingBlocks = await _storage.GetBlocks(newRecordBlocks.missing);
+            commit.NewBlocks.AddMap(missingBlocks.blocks);
+        }
+
+        return commit;
+    }
+
+    private async Task<Cid[]> GetDuplicateRecordCids(Cid[] cids, ATUri[] touchedUris)
+    {
+        if (cids.Length == 0 || touchedUris.Length == 0) return [];
+        var cidStrs = cids.Select(x => x.ToString()).ToArray();
+        var uriStrs = touchedUris.Select(x => x.ToString()).ToArray();
+        
+        var res = await _db.Records
+            .Where(x => cidStrs.Contains(x.Cid) && !uriStrs.Contains(x.Uri))
+            .Select(x => x.Cid)
+            .ToArrayAsync();
+        
+        return res.Select(Cid.FromString).ToArray();
+    }
+
+    private static IRecordWriteOp WriteToOp(IPreparedWrite preparedWrite)
+    {
+        return preparedWrite switch
+        {
+            PreparedCreate create => create.CreateWriteToOp(),
+            PreparedUpdate update => update.UpdateWriteToOp(),
+            PreparedDelete delete => delete.DeleteWriteToOp(),
+            _ => throw new Exception("Invalid write type")
         };
-        
-        if (_db.RepoRoots.Any(x => x.Did == _did))
-        {
-            _db.RepoRoots.Update(newRoot);
-        }
-        else
-        {
-            _db.RepoRoots.Add(newRoot);
-        }
-        
-        return _db.SaveChangesAsync();
-    }
-    public async Task ApplyCommit(CommitData commit)
-    {
-        await UpdateRoot(commit.Cid, commit.Rev);
-        await PutMany(commit.NewBlocks, commit.Rev);
-        await DeleteMany(commit.RemovedCids.ToArray());
-    }
-    
-    public async Task DeleteMany(Cid[] cids)
-    {
-        foreach (var cid in cids)
-        {
-            var cidStr = cid.ToString();
-            var block = await _db.RepoBlocks.Where(x => x.Cid == cidStr)
-                .FirstOrDefaultAsync();
-            if (block == null) continue;
-            _db.RepoBlocks.Remove(block);
-        }
-        
-        await _db.SaveChangesAsync();
-    }
-    
-    public async Task<byte[]?> GetBytes(Cid cid)
-    {
-        var cached = _cache.Get(cid);
-        if (cached != null)
-        {
-            return cached;
-        }
-        
-        var cidStr = cid.ToString();
-        var res = await _db.RepoBlocks.Where(x => x.Cid == cidStr)
-            .Select(x => x.Content)
-            .FirstOrDefaultAsync();
-        
-        if (res == null) return null;
-        _cache.Set(cid, res);
-        return res;
-    }
-    public async Task<bool> Has(Cid cid)
-    {
-        return (await GetBytes(cid)) != null;
-    }
-    public async Task<(BlockMap blocks, Cid[] missing)> GetBlocks(Cid[] cids)
-    {
-        var cached = _cache.GetMany(cids);
-        if (cached.missing.Length < 1) return cached;
-        var missing = new CidSet(cached.missing);
-        var missingStr = cached.missing.Select(x => x.ToString()).ToArray();
-        var blocks = new BlockMap();
-        // TODO: This should be chunked
-        foreach (var missingCid in missingStr)
-        {
-            var res = await _db.RepoBlocks.Where(x => x.Cid == missingCid)
-                .Select(x => new {x.Cid, x.Content})
-                .FirstOrDefaultAsync();
-            if (res == null) continue;
-            blocks.Set(Cid.FromString(res.Cid), res.Content);
-            missing.Delete(Cid.FromString(res.Cid));
-        }
-        
-        _cache.AddMap(blocks);
-        blocks.AddMap(cached.blocks);
-        return (blocks, missing.ToArray());
-    }
-    public async Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytes(Cid cid)
-    {
-        var bytes = await GetBytes(cid);
-        if (bytes == null) throw new Exception("Block not found");
-        var obj = CBORObject.DecodeFromBytes(bytes);
-        return (obj, bytes);
-    }
-    public async Task<(CBORObject obj, byte[] bytes)?> AttemptRead(Cid cid)
-    {
-        try
-        {
-            return await ReadObjAndBytes(cid);
-        }
-        catch (Exception)
-        {
-            return null;
-        }
     }
 }
