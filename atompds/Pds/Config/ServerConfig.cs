@@ -167,6 +167,7 @@ public record ServerConfig
         services.AddScoped<PasswordStore>();
         services.AddScoped<RepoStore>();
         services.AddScoped<InviteStore>();
+        services.AddScoped<EmailTokenStore>();
         services.AddScoped<Auth>();
         
         // Actor store
