@@ -24,7 +24,7 @@ public class Outbox
     {
         if (backfillCursor != null)
         {
-            await foreach (var evt in GetBackfill(backfillCursor.Value).WithCancellation(token))
+            await foreach (var evt in GetBackfill(backfillCursor.Value, token))
             {
                 if (token.IsCancellationRequested) yield break;
                 LastSeen = evt.Seq;
@@ -43,6 +43,7 @@ public class Outbox
 
         while (true)
         {
+            if (token.IsCancellationRequested) yield break;
             while (OutBuffer.TryDequeue(out var evt))
             {
                 if (token.IsCancellationRequested) yield break;
@@ -57,6 +58,7 @@ public class Outbox
                     throw new XRPCError(new ErrorDetail("ConsumerTooSlow", "Stream consumer too slow"));
                 }
             }
+            await Task.Delay(100, token);
         }
     }
 
@@ -75,14 +77,22 @@ public class Outbox
             {
                 OutBuffer.Enqueue(evt);
             }
+            _caughtUp = true;
+            CutoverBuffer.Clear();
+        }
+        else
+        {
+            _caughtUp = true;
         }
     }
 
-    public async IAsyncEnumerable<ISeqEvt> GetBackfill(int backfillCursor)
+    public async IAsyncEnumerable<ISeqEvt> GetBackfill(int backfillCursor, [EnumeratorCancellation] CancellationToken token)
     {
         const int PAGE_SIZE = 500;
         while (true)
         {
+            if (token.IsCancellationRequested) yield break;
+            
             var evts = await _sequencer.GetRange(LastSeen > -1 ? LastSeen : backfillCursor, null, null, PAGE_SIZE);
             foreach (var t in evts)
             {

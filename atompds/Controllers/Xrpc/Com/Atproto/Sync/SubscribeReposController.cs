@@ -1,6 +1,4 @@
 ﻿using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
 using Config;
 using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -31,7 +29,6 @@ public class SubscribeReposController : ControllerBase
         [FromQuery] int? cursor, // The last known event seq number to backfill from.
         CancellationToken cancellationToken)
     {
-        cursor ??= 0;
         if (!HttpContext.WebSockets.IsWebSocketRequest)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("NotWebSocket", "Request is not a websocket."));
@@ -48,10 +45,12 @@ public class SubscribeReposController : ControllerBase
             var curr = await _sequencer.Current();
             if (cursor.Value > (curr ?? 0))
             {
-                throw new XRPCError(new InvalidRequestErrorDetail("FutureCursor", "Cursor in the future."));
+                await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Cursor in the future.", cancellationToken);
+                //throw new XRPCError(new InvalidRequestErrorDetail("FutureCursor", "Cursor in the future."));
+                return;
             }
-            // Disable this for now
-            else if (next != null && next.SequencedAt < backfillTime && false)
+            
+            if (next != null && next.SequencedAt < backfillTime && false)
             { 
                 var header = CBORObject.NewMap()
                     .Add("t", "#info")
@@ -74,7 +73,6 @@ public class SubscribeReposController : ControllerBase
         
         await foreach (var evt in outbox.Events(outboxCursor, cancellationToken))
         {
-            _logger.LogInformation("Sending event {Seq} to client", evt.Seq);
             if (evt.Type == TypedCommitType.Commit && evt is TypedCommitEvt commit)
             {
                 var header = CBORObject.NewMap()
@@ -128,5 +126,7 @@ public class SubscribeReposController : ControllerBase
                 await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
             }
         }
+        
+        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Done", cancellationToken);
     }
 }

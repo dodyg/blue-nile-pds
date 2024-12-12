@@ -64,6 +64,7 @@ public class CidTests
     {
         var input = "zUFKqwZsvwnjhQeVttU28NEx8z4mfJJN7U4KfG8rFVAoXHKF2";
         var cid = Cid.FromString(input);
+        var cid2 = Ipfs.Cid.Decode(input);
         
         Assert.Equal(Version.V1, cid.Version);
     }

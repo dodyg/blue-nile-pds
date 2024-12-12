@@ -63,11 +63,17 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
 	        app.MapOpenApi();
-	        app.UseHttpLogging();
+	        //app.UseHttpLogging();
         }
 
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
         var version = typeof(Program).Assembly.GetName().Version!.ToString(3);
         app.MapGet("/", () => $"Hello! This is an ATProto PDS instance, running atompds v{version}.");
+        app.MapFallback(context =>
+		{
+			logger.LogWarning("Unhandled request: {Path}", context.Request.Path);
+			return Task.CompletedTask;
+		});
         await app.RunAsync();
     }
 }

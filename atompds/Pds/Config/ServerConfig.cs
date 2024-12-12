@@ -191,7 +191,7 @@ public record ServerConfig
         services.AddSingleton<AuthVerifierConfig>(x => new AuthVerifierConfig(config.SecretsConfig.JwtSecret, "secret", config.Service.PublicUrl, config.Service.Did));
         
         // Sequencer
-        services.AddDbContext<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
+        services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
         services.AddScoped<SequencerRepository>();
         services.AddSingleton<Crawlers>();
         services.AddSingleton(x => new CrawlersConfig(config.Service.Hostname, config.Crawlers));

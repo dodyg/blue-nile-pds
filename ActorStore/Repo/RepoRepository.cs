@@ -24,6 +24,14 @@ public class RepoRepository
         _storage = storage;
         _record = record;
     }
+    
+    public async Task<string[]> GetCollections()
+    {
+        return await _db.Records
+            .Select(x => x.Collection)
+            .Distinct()
+            .ToArrayAsync();
+    }
 
     public async Task<CommitData> CreateRepo(PreparedCreate[] writes)
     {

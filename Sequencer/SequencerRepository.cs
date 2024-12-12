@@ -18,18 +18,21 @@ public class SequencerRepository : IDisposable
     public event EventHandler<CloseEvt>? OnClose;
     
     private readonly SequencerDb _db;
+    private readonly SequencerDb _pollDb;
     private readonly Crawlers _crawlers;
     private readonly ILogger<SequencerRepository> _logger;
     private readonly CancellationTokenSource _cts = new();
     public int? LastSeen { get; private set; }
     private int TriesWithNoResults { get; set; }
-    private Task _pollTask = null!;
+    private readonly Task _pollTask;
     
-    public SequencerRepository(SequencerDb db, Crawlers crawlers, ILogger<SequencerRepository> logger)
+    public SequencerRepository(IDbContextFactory<SequencerDb> seqDbFactory, Crawlers crawlers, ILogger<SequencerRepository> logger)
     {
-        _db = db;
+        _db = seqDbFactory.CreateDbContext();
+        _pollDb = seqDbFactory.CreateDbContext();
         _crawlers = crawlers;
         _logger = logger;
+        _pollTask = Task.Run(PollTask, _cts.Token);
     }
 
     private async Task PollTask()
@@ -51,7 +54,7 @@ public class SequencerRepository : IDisposable
     {
         try
         {
-            var evts = await GetRange(LastSeen, null, null, 1000);
+            var evts = await GetRange(LastSeen, null, null, 1000, _pollDb);
             if (evts.Length > 0)
             {
                 TriesWithNoResults = 0;
@@ -74,7 +77,7 @@ public class SequencerRepository : IDisposable
         TriesWithNoResults++;
         var delay = Math.Pow(2, TriesWithNoResults);
         var delayLength = Math.Min(1000, (int)delay);
-        await Task.Delay(delayLength, _cts.Token);
+        await Task.Delay(delayLength);
     }
 
     public async Task<int?> Current()
@@ -105,16 +108,17 @@ public class SequencerRepository : IDisposable
         
         return seq;
     }
-
-    public async Task<ISeqEvt[]> GetRange(int? earliestSeq, int? latestSeq, DateTime? earliestTime, int? limit)
+    
+    // TODO: This should be private, dboverride is here just so we're using a separate dbcontext for the poll task as it runs on a separate thread
+    public async Task<ISeqEvt[]> GetRange(int? earliestSeq, int? latestSeq, DateTime? earliestTime, int? limit, SequencerDb? dbOverride = null)
     {
-        var seqs = _db.RepoSeqs.AsQueryable()
+        var seqs = (dbOverride ?? _db).RepoSeqs.AsQueryable()
             .OrderBy(x => x.Seq)
             .Where(x => x.Invalidated == false);
 
         if (earliestSeq != null)
         {
-            seqs = seqs.Where(x => x.Seq >= earliestSeq);
+            seqs = seqs.Where(x => x.Seq > earliestSeq);
         }
         
         if (latestSeq != null)
@@ -194,6 +198,13 @@ public class SequencerRepository : IDisposable
         }
         
         return seqEvents.ToArray();
+    }
+    
+    public async Task DeleteAllForUser(string did, int[] excludingSeq)
+    {
+        await _db.RepoSeqs
+            .Where(x => x.Did == did && !excludingSeq.Contains(x.Seq))
+            .ExecuteDeleteAsync();
     }
 
     public async Task<int> SequenceEvent(RepoSeq evt)
@@ -386,12 +397,6 @@ public class SequencerRepository : IDisposable
         _pollTask?.Wait();
         OnClose?.Invoke(this, new CloseEvt());
         _db.Dispose();
-    }
-    
-    public async Task DeleteAllForUser(string did, int[] excludingSeq)
-    {
-        await _db.RepoSeqs
-            .Where(x => x.Did == did && !excludingSeq.Contains(x.Seq))
-            .ExecuteDeleteAsync();
+        _pollDb.Dispose();
     }
 }

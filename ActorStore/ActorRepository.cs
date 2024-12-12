@@ -37,6 +37,15 @@ public class ActorRepository
         return Directory.Exists(directory) && File.Exists(dbLocation);
     }
 
+    public string[] ListCollections(string did, ActorStoreDb db)
+    {
+        return db.Records
+            .Where(r => r.RepoRev == did)
+            .Select(r => r.Collection)
+            .Distinct()
+            .ToArray();
+    }
+    
     public RepoRepository GetRepo(string did, ActorStoreDb db)
     {
         // TODO: This assumes the provided did is the same did as the actorstore

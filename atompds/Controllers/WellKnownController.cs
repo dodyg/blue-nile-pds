@@ -53,7 +53,8 @@ public class WellKnownController : ControllerBase
 			return NotFound("no user by that handle exists on this PDS");
 		}
 		
-		return Content($"did:web:{acc.Handle}");
+		//return Content($"did:web:{acc.Handle}");
+		return Content(acc.Did);
 	}
 	
 	public record WellProtectedResourceResponse(

@@ -426,11 +426,11 @@ public record MST : INodeEntry
         var left = NewTree(leftData);
         var right = NewTree(rightData);
         
-        var lastInLeft = leftData[^1];
-        if (lastInLeft is not Leaf)
+        INodeEntry? lastInLeft = leftData.Length > 0 ? leftData[^1] : null;
+        if (lastInLeft is MST mst)
         {
             left = await left.RemoveEntry(leftData.Length - 1);
-            var split = await (lastInLeft as MST)!.SplitAround(key);
+            var split = await mst.SplitAround(key);
             if (split.left != null)
             {
                 left = await left.Append(split.left);
@@ -543,6 +543,8 @@ public struct TreeEntry : ICborEncodable<TreeEntry>
     /// The rest of the key outside the shared prefix
     /// </summary>
     public byte[] Key;
+    
+    public string KeyString => Encoding.ASCII.GetString(Key);
 
     public Cid Value;
     

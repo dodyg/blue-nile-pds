@@ -62,7 +62,8 @@ public static partial class Util
         var lastKey = "";
         foreach (var entry in data.Entries)
         {
-            var key = lastKey + Encoding.ASCII.GetString(entry.Key);
+            var keyStr = entry.KeyString;
+            var key = lastKey[..entry.PrefixCount] + keyStr;
             EnsureValidMstKey(key);
             entries.Add(new Leaf(key, entry.Value));
             lastKey = key;
@@ -146,12 +147,13 @@ public static partial class Util
         var validCharsRegex = ValidCharsRegex();
         
         var split = str.Split('/');
-        return (str.Length <= 256 &&
-                split.Length == 2 &&
-                split[0].Length > 0 &&
-                split[1].Length > 0 &&
-                IsValidChars(split[0]) &&
-                IsValidChars(split[1]));
+        if (str.Length > 256) return false;
+        if (split.Length != 2) return false;
+        if (split[0].Length == 0) return false;
+        if (split[1].Length == 0) return false;
+        if (!validCharsRegex.IsMatch(split[0])) return false;
+        if (!validCharsRegex.IsMatch(split[1])) return false;
+        return true;
     }
     
     public static bool IsValidChars(string str)

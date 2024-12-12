@@ -1,4 +1,5 @@
-﻿using AccountManager.Db;
+﻿using System.Text.Json;
+using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
 using atompds.Middleware;
@@ -60,15 +61,31 @@ public class ApplyWritesController : ControllerBase
         _sequencer = sequencer;
         _plcClient = plcClient;
     }
+
+
+    [HttpPost("com.atproto.repo.createRecord")]
+    [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
+    public async Task<IActionResult> ApplyWrites(JsonDocument json)
+    {
+        var tx = JsonSerializer.Deserialize<CreateRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
+        {
+            AllowOutOfOrderMetadataProperties = true
+        });
+        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, [new Create(tx.Collection, tx.Rkey, tx.Record)]); 
+        var write = (PreparedCreate)writeArr[0];
+        return Ok(new CreateRecordOutput(write.Uri, commit.Cid.ToString(), new CommitMeta(commit.Cid.ToString(), commit.Rev), write.ValidationStatus.ToString()));
+    }
     
     [HttpPost("com.atproto.repo.applyWrites")]
     [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
     public async Task<IActionResult> ApplyWrites([FromBody] ApplyWritesInput tx)
     {
-        var repo = tx.Repo;
-        var validate = tx.Validate;
-        var swapCommit = tx.SwapCommit;
+        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, tx.Writes);
+        return Ok(new ApplyWritesOutput(new CommitMeta(commit.Cid.ToString(), commit.Rev), writeArr.Select(WriteToOutputResult).ToList()));
+    }
 
+    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(ATIdentifier? repo, bool? validate, string? swapCommit, List<ATObject>? writeOps)
+    {
         string handleOrDid;
         if (repo is ATHandle atHandle)
         {
@@ -100,13 +117,13 @@ public class ApplyWritesController : ControllerBase
             throw new XRPCError(new AuthRequiredErrorDetail("Invalid did."));
         }
 
-        if (tx.Writes == null || tx.Writes.Count > 200)
+        if (writeOps == null || writeOps.Count > 200)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Invalid writes."));
         }
 
         var writes = new List<IPreparedWrite>();
-        foreach (var write in tx.Writes)
+        foreach (var write in writeOps)
         {
             switch (write.Type)
             {
@@ -154,7 +171,7 @@ public class ApplyWritesController : ControllerBase
         await _sequencer.SequenceCommit(did, commit, writeArr);
         await _accountRepository.UpdateRepoRoot(did, commit.Cid, commit.Rev);
         
-        return Ok(new ApplyWritesOutput(new CommitMeta(commit.Cid.ToString(), commit.Rev), writeArr.Select(WriteToOutputResult).ToList()));
+        return (commit, writeArr);
     }
 
     public ATObject WriteToOutputResult(IPreparedWrite write)

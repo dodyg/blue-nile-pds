@@ -36,7 +36,7 @@ public record AccountEvt : ICborEncodable<AccountEvt>
         {
             Did = did,
             Active = active,
-            Status = status != null ? Enum.Parse<AccountStore.AccountStatus>(status) : null
+            Status = status != null ? Enum.Parse<AccountStore.AccountStatus>(status, true) : null
         };
     }
 }
