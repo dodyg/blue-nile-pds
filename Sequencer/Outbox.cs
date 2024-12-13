@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using Sequencer.Types;
 using Xrpc;
 
@@ -20,14 +21,16 @@ public class Outbox
         _opts = opts;
     }
 
-    public async IAsyncEnumerable<ISeqEvt> Events(int? backfillCursor, [EnumeratorCancellation] CancellationToken token)
+    public async IAsyncEnumerable<ISeqEvt> Events(int? backfillCursor, [EnumeratorCancellation] CancellationToken token, WebSocket webSocket)
     {
+        var returned = new List<ISeqEvt>();
         if (backfillCursor != null)
         {
             await foreach (var evt in GetBackfill(backfillCursor.Value, token))
             {
                 if (token.IsCancellationRequested) yield break;
                 LastSeen = evt.Seq;
+                returned.Add(evt);
                 yield return evt;
             }
         }
@@ -44,12 +47,14 @@ public class Outbox
         while (true)
         {
             if (token.IsCancellationRequested) yield break;
+            if (webSocket.State != WebSocketState.Open) yield break;
             while (OutBuffer.TryDequeue(out var evt))
             {
                 if (token.IsCancellationRequested) yield break;
                 if (evt.Seq > LastSeen)
                 {
                     LastSeen = evt.Seq;
+                    returned.Add(evt);
                     yield return evt;
                 }
                 
@@ -58,7 +63,7 @@ public class Outbox
                     throw new XRPCError(new ErrorDetail("ConsumerTooSlow", "Stream consumer too slow"));
                 }
             }
-            await Task.Delay(100, token);
+            await Task.Delay(100);
         }
     }
 

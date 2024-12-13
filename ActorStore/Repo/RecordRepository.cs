@@ -74,10 +74,12 @@ public class RecordRepository
 
         if (record != null)
         {
-            // TODO: Maintain backlinks
-            // getBacklinks 
-            // if (update){ remove by uri }
-            // then addBacklinks
+            var backlinks = GetBacklinks(uri, record);
+            if (action == WriteOpAction.Update)
+            {
+                await RemoveBacklinksByUri(uri.ToString());
+            }
+            await AddBacklinks(backlinks);
         }
         
         await _db.SaveChangesAsync();
@@ -97,7 +99,76 @@ public class RecordRepository
     public async Task AddBacklinks(Backlink[] backlinks)
     {
         if (backlinks.Length == 0) return;
-        _db.Backlinks.AddRange(backlinks);
+        foreach (var backlink in backlinks)
+        {
+            var conflict = await _db.Backlinks.FirstOrDefaultAsync(x => x.Uri == backlink.Uri && x.Path == backlink.Path);
+            if (conflict != null) continue;
+            _db.Backlinks.Add(backlink);
+        }
+
         await _db.SaveChangesAsync();
+    }
+    
+    // Not really a fan of including lexicon specific parsing here
+    public Backlink[] GetBacklinks(ATUri uri, CBORObject? record)
+    {
+        if (record == null) return [];
+        var recordType = record.ContainsKey("$type") ? record["$type"].AsString() : null;
+        if (recordType == "app.bsky.graph.follow" || recordType == "app.bsky.graph.block")
+        {
+            var subject = record["subject"].Type == CBORType.TextString ? record["subject"].AsString() : null;
+            if (subject == null)
+            {
+                return [];
+            }
+
+            try
+            {
+                CommonWeb.Util.EnsureValidDid(subject);
+            }
+            catch (Exception)
+            {
+                return [];
+            }
+            
+            return [
+                new Backlink
+                {
+                    Uri = uri.ToString(),
+                    Path = "subject",
+                    LinkTo = subject
+                }
+            ];
+        }
+
+        if (recordType == "app.bsky.feed.like" || recordType == "app.bsky.feed.repost")
+        {
+            var subject = record["subject"];
+            if (subject != null && subject["uri"].Type != CBORType.TextString)
+            {
+                return [];
+            }
+            
+            var subjectUri = subject["uri"].AsString();
+            try
+            {
+                CommonWeb.Util.EnsureValidAtUri(subjectUri);
+            }
+            catch (Exception)
+            {
+                return [];
+            }
+            
+            return [
+                new Backlink
+                {
+                    Uri = uri.ToString(),
+                    Path = "subject.uri",
+                    LinkTo = subjectUri
+                }
+            ];
+        }
+        
+        return [];
     }
 }

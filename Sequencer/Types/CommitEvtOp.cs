@@ -17,7 +17,7 @@ public record CommitEvtOp : ICborEncodable<CommitEvtOp>
         cbor.Add("path", Path);
         if (Cid != null)
         {
-            cbor.Add("cid", Cid.ToString());
+            cbor.Add("cid", Cid.Value.ToCBORObject());
         }
         return cbor;
     }
@@ -30,7 +30,7 @@ public record CommitEvtOp : ICborEncodable<CommitEvtOp>
         Cid? cid = null;
         if (cbor.ContainsKey("cid"))
         {
-            cid = CID.Cid.FromString(cbor["cid"].AsString());
+            cid = CID.Cid.FromCBOR(cbor["cid"]);
         }
         return new CommitEvtOp
         {

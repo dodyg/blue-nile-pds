@@ -62,6 +62,20 @@ public class ApplyWritesController : ControllerBase
         _plcClient = plcClient;
     }
 
+    [HttpPost("com.atproto.repo.deleteRecord")]
+    [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
+    public async Task<IActionResult> DeleteRecord(JsonDocument json)
+    {
+        var tx = JsonSerializer.Deserialize<DeleteRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
+        {
+            AllowOutOfOrderMetadataProperties = true
+        });
+        
+        _logger.LogInformation("DeleteRecord: {tx}", tx);
+        var (commit, writeArr) = await Handle(tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new Delete(tx.Collection, tx.Rkey)]);
+        return Ok(new DeleteRecordOutput(new CommitMeta(commit.Cid.ToString(), commit.Rev)));
+    }
+
 
     [HttpPost("com.atproto.repo.createRecord")]
     [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
@@ -71,7 +85,8 @@ public class ApplyWritesController : ControllerBase
         {
             AllowOutOfOrderMetadataProperties = true
         });
-        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, [new Create(tx.Collection, tx.Rkey, tx.Record)]); 
+        _logger.LogInformation("CreateRecord: {tx}", tx);
+        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, [new Create(tx.Collection, tx.Rkey, tx.Record)]); 
         var write = (PreparedCreate)writeArr[0];
         return Ok(new CreateRecordOutput(write.Uri, commit.Cid.ToString(), new CommitMeta(commit.Cid.ToString(), commit.Rev), write.ValidationStatus.ToString()));
     }
@@ -80,11 +95,16 @@ public class ApplyWritesController : ControllerBase
     [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
     public async Task<IActionResult> ApplyWrites([FromBody] ApplyWritesInput tx)
     {
-        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, tx.Writes);
+        _logger.LogInformation("ApplyWrites: {tx}", tx);
+        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, tx.Writes);
         return Ok(new ApplyWritesOutput(new CommitMeta(commit.Cid.ToString(), commit.Rev), writeArr.Select(WriteToOutputResult).ToList()));
     }
 
-    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(ATIdentifier? repo, bool? validate, string? swapCommit, List<ATObject>? writeOps)
+    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(ATIdentifier? repo, 
+        bool? validate, 
+        string? swapCommit, 
+        string? swapRecord,
+        List<ATObject>? writeOps)
     {
         string handleOrDid;
         if (repo is ATHandle atHandle)
@@ -147,7 +167,7 @@ public class ApplyWritesController : ControllerBase
                 {
                     var delete = (Delete)write;
                     if (delete.Collection == null || delete.Rkey == null) throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete."));
-                    var preparedDelete = Prepare.PrepareDelete(did, delete.Collection, delete.Rkey, null);
+                    var preparedDelete = Prepare.PrepareDelete(did, delete.Collection, delete.Rkey, swapRecord != null ? Cid.FromString(swapRecord) : null);
                     writes.Add(preparedDelete);
                     break;
                 }

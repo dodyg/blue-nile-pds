@@ -132,7 +132,7 @@ public class AppViewProxyController : ControllerBase
             reqNsid,
             exportable
         ));
-        await AssertValidJwt(jwt, config.Did, reqNsid);
+        //await AssertValidJwt(jwt, config.Did, reqNsid);
         
         // if get
         if (HttpContext.Request.Method == "GET")
@@ -151,6 +151,8 @@ public class AppViewProxyController : ControllerBase
             
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
+            
+            _logger.LogInformation("Response from proxy: " + content);
             
             return new ContentResult
             {
@@ -181,6 +183,8 @@ public class AppViewProxyController : ControllerBase
             
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
+            
+            _logger.LogInformation("Response from proxy: " + content);
             
             return new ContentResult
             {

@@ -1,6 +1,8 @@
 ﻿using Multiformats.Base;
 using Multiformats.Codec;
 using Multiformats.Hash;
+using PeterO.Cbor;
+using Exception = System.Exception;
 
 namespace CID;
 
@@ -197,5 +199,31 @@ public readonly record struct Cid
     {
         var digest = Util.Sha2_256Digest(data);
         return NewV1((ulong)MulticodecCode.Raw, digest);
+    }
+    
+    public static CBORObject ToCBORObject(Cid obj)
+    {
+        byte[] bytes = [0x00, ..obj.ToBytes()];
+        return CBORObject.FromObjectAndTag(bytes, 42);
+    }
+    
+    public CBORObject ToCBORObject()
+    {
+        return ToCBORObject(this);
+    }
+    
+    public static Cid FromCBOR(CBORObject obj)
+    {
+        if (obj.Type != CBORType.ByteString)
+        {
+            throw new Exception("Invalid CBOR type for CID");
+        }
+
+        var bytes = obj.GetByteString();
+        if (bytes[0] != 0x00)
+        {
+            throw new Exception("Invalid CBOR tag for CID");
+        }
+        return ReadBytes(bytes[1..]);
     }
 }

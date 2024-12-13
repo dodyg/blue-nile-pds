@@ -449,8 +449,11 @@ public record MST : INodeEntry
     public async Task<int> FindGtOrEqualLeafIndex(string key)
     {
         var entries = await GetEntries();
-        var maybeIndex = entries.Select((entry, i) => (entry, i)).FirstOrDefault(x => x.entry is Leaf leaf && string.CompareOrdinal(leaf.Key, key) >= 0);
-        return maybeIndex == default ? entries.Length : maybeIndex.i;
+        var maybeIndex = entries.Select((entry, i) => (entry, i))
+            .Where(x => x.entry is Leaf leaf && string.CompareOrdinal(leaf.Key, key) >= 0)
+            .Select(x => x.i)
+            .FirstOrDefault(-1);
+        return maybeIndex >= 0 ? maybeIndex : entries.Length;
     }
 
     public async Task<INodeEntry?> AtIndex(int index)
@@ -506,27 +509,24 @@ public struct NodeData : ICborEncodable<NodeData>
     public CBORObject ToCborObject()
     {
         var obj = CBORObject.NewMap();
-        if (Left != null)
-        {
-            obj.Add("left", Left.ToString());
-        }
-        
+
+        obj.Add("l", Left?.ToCBORObject());
         var entries = CBORObject.NewArray();
         foreach (var entry in Entries)
         {
             entries.Add(entry.ToCborObject());
         }
-        obj.Add("entries", entries);
+        obj.Add("e", entries);
         return obj;
     }
 
     public static NodeData FromCborObject(CBORObject obj)
     {
-        var left = obj.ContainsKey("left") ? obj["left"].AsString() : null;
-        var entries = obj["entries"].Values.Select(TreeEntry.FromCborObject).ToList();
+        Cid? left = obj.ContainsKey("l") && !obj["l"].IsNull ? Cid.FromCBOR(obj["l"]) : null;
+        var entries = obj["e"].Values.Select(TreeEntry.FromCborObject).ToList();
         return new NodeData
         {
-            Left = left != null ? Cid.FromString(left) : null,
+            Left = left,
             Entries = entries
         };
     }
@@ -556,28 +556,25 @@ public struct TreeEntry : ICborEncodable<TreeEntry>
     public CBORObject ToCborObject()
     {
         var obj = CBORObject.NewMap();
-        obj.Add("prefixCount", PrefixCount);
-        obj.Add("key", Key);
-        obj.Add("value", Value.ToString());
-        if (Tree != null)
-        {
-            obj.Add("tree", Tree.ToString());
-        }
+        obj.Add("p", PrefixCount);
+        obj.Add("k", Key);
+        obj.Add("v", Value.ToCBORObject());
+        obj.Add("t", Tree?.ToCBORObject());
         return obj;
     }
     
     public static TreeEntry FromCborObject(CBORObject obj)
     {
-        var prefixCount = obj["prefixCount"].AsInt32();
-        var key = obj["key"].GetByteString();
-        var value = Cid.FromString(obj["value"].AsString());
-        var tree = obj.ContainsKey("tree") ? obj["tree"].AsString() : null;
+        var prefixCount = obj["p"].AsInt32();
+        var key = obj["k"].GetByteString();
+        var value = Cid.FromCBOR(obj["v"]);
+        Cid? tree = obj.ContainsKey("t") ? Cid.FromCBOR(obj["t"]) : null;
         return new TreeEntry
         {
             PrefixCount = prefixCount,
             Key = key,
             Value = value,
-            Tree = tree != null ? Cid.FromString(tree) : null
+            Tree = tree
         };
     }
 }

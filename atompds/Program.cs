@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using AccountManager.Db;
+using atompds.Config;
 using atompds.Middleware;
-using atompds.Pds.Config;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Sequencer;
@@ -14,8 +14,7 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateSlimBuilder(args);
-
-        builder.Services.AddOpenApi();
+        
         builder.Services.AddCors();
         builder.Services.AddHttpClient();
         
@@ -48,32 +47,25 @@ public class Program
 			
 			var seqDb = scope.ServiceProvider.GetRequiredService<SequencerDb>();
 			await seqDb.Database.MigrateAsync();
-			
-			var sequencerRepo = scope.ServiceProvider.GetRequiredService<SequencerRepository>();
 		}
 
         app.UseRouting();
         app.MapControllers();
         app.UseExceptionHandler("/error");	
         app.UseAuthMiddleware();
+        app.UseNotFoundMiddleware();
         app.UseWebSockets();
         
         app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
         
         if (app.Environment.IsDevelopment())
         {
-	        app.MapOpenApi();
 	        //app.UseHttpLogging();
         }
 
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
         var version = typeof(Program).Assembly.GetName().Version!.ToString(3);
         app.MapGet("/", () => $"Hello! This is an ATProto PDS instance, running atompds v{version}.");
-        app.MapFallback(context =>
-		{
-			logger.LogWarning("Unhandled request: {Path}", context.Request.Path);
-			return Task.CompletedTask;
-		});
         await app.RunAsync();
     }
 }

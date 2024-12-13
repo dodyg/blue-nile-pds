@@ -29,7 +29,7 @@ public class Prepare
         }
 
         // TODO: need to properly validate the record
-        ValidationStatus validationStatus = ValidationStatus.Valid;
+        ValidationStatus validationStatus = ValidationStatus.Unknown;
         if (maybeValidate)
         {
             // TODO:
@@ -62,7 +62,7 @@ public class Prepare
             throw new Exception($"Invalid type, expected {collection}, got {record.Type}");
         }
         
-        ValidationStatus validationStatus = ValidationStatus.Valid;
+        ValidationStatus validationStatus = ValidationStatus.Unknown;
         if (maybeValidate)
         {
             //

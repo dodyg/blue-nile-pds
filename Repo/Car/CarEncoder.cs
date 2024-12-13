@@ -19,7 +19,7 @@ public class CarEncoder : IDisposable, IAsyncDisposable
     private byte[] CreateHeader(Cid root)
     {
         var headerObj = CBORObject.NewMap();
-        headerObj.Add("roots", root);
+        headerObj.Add("roots", new[] { root.ToCBORObject() });
         headerObj.Add("version", 1);
         var headerBytes = headerObj.EncodeToBytes()!;
         var varIntBytes = Varint.Encode(headerBytes.Length);

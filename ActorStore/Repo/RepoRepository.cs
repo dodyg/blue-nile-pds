@@ -67,6 +67,24 @@ public class RepoRepository
     public async Task<CommitData> ProcessWrites(IPreparedWrite[] writes, Cid? swapCommitCid)
     {
         var commit = await FormatCommit(writes, swapCommitCid);
+        // until blob write allowed, throw if any blobs
+        foreach (var write in writes)
+        {
+            if (write is PreparedCreate create)
+            {
+                if (create.Blobs.Any())
+                {
+                    throw new Exception("Blob writes not allowed");
+                }
+            }
+            else if (write is PreparedUpdate update)
+            {
+                if (update.Blobs.Any())
+                {
+                    throw new Exception("Blob writes not allowed");
+                }
+            }
+        }
         await _storage.ApplyCommit(commit);
         await IndexWrites(writes, commit.Rev);
         // TODO: blob.processWriteBlobs.

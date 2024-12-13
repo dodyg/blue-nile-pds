@@ -2,6 +2,7 @@
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
+using atompds.Middleware;
 using Config;
 using DidLib;
 using Handle;
@@ -11,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Sequencer;
 using Sequencer.Db;
 
-namespace atompds.Pds.Config;
+namespace atompds.Config;
 
 public record ServerConfig
 {

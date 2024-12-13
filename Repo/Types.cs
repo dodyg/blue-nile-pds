@@ -17,25 +17,22 @@ public record Commit(string Did, Cid Data, string Rev, Cid? Prev, byte[] Sig) : 
     public CBORObject ToCborObject()
     {
         var obj = CBORObject.NewMap();
-        obj.Add("Did", Did);
-        obj.Add("Data", Data.ToString());
-        obj.Add("Rev", Rev);
-        if (Prev != null)
-        {
-            obj.Add("Prev", Prev.ToString());
-        }
-        obj.Add("Sig", CBORObject.FromObject(Sig));
-        obj.Add("Version", Version);
+        obj.Add("did", Did);
+        obj.Add("data", Data.ToCBORObject());
+        obj.Add("rev", Rev);
+        obj.Add("prev", Prev?.ToCBORObject());
+        obj.Add("sig", Sig);
+        obj.Add("version", Version);
         return obj;
     }
     
     public static Commit FromCborObject(CBORObject obj)
     {
-        var did = obj["Did"].AsString();
-        var data = Cid.FromString(obj["Data"].AsString());
-        var rev = obj["Rev"].AsString();
-        Cid? prev = obj.ContainsKey("Prev") ? Cid.FromString(obj["Prev"].AsString()) : null;
-        var sig = obj["Sig"].GetByteString();
+        var did = obj["did"].AsString();
+        var data = Cid.FromCBOR(obj["data"]);
+        var rev = obj["rev"].AsString();
+        Cid? prev = obj.ContainsKey("prev") && !obj["prev"].IsNull ? Cid.FromCBOR(obj["prev"]) : null;
+        var sig = obj["sig"].GetByteString();
         return new Commit(did, data, rev, prev, sig);
     }
 }
@@ -47,23 +44,20 @@ public record UnsignedCommit(string Did, Cid Data, string Rev, Cid? Prev) : ICbo
     public CBORObject ToCborObject()
     {
         var obj = CBORObject.NewMap();
-        obj.Add("Did", Did);
-        obj.Add("Data", Data.ToString());
-        obj.Add("Rev", Rev);
-        if (Prev != null)
-        {
-            obj.Add("Prev", Prev.ToString());
-        }
-        obj.Add("Version", Version);
+        obj.Add("did", Did);
+        obj.Add("data", Data.ToCBORObject());
+        obj.Add("rev", Rev);
+        obj.Add("prev", Prev?.ToCBORObject());
+        obj.Add("version", Version);
         return obj;
     }
     
     public static UnsignedCommit FromCborObject(CBORObject obj)
     {
-        var did = obj["Did"].AsString();
-        var data = Cid.FromString(obj["Data"].AsString());
-        var rev = obj["Rev"].AsString();
-        Cid? prev = obj.ContainsKey("Prev") ? Cid.FromString(obj["Prev"].AsString()) : null;
+        var did = obj["did"].AsString();
+        var data = Cid.FromCBOR(obj["data"]);
+        var rev = obj["rev"].AsString();
+        Cid? prev = obj.ContainsKey("prev") && !obj["prev"].IsNull ? Cid.FromCBOR(obj["prev"]) : null;
         return new UnsignedCommit(did, data, rev, prev);
     }
 }

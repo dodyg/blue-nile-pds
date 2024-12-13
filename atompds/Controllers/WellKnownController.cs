@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using atompds.Pds.Config;
 using Config;
 using Microsoft.AspNetCore.Mvc;
 
@@ -46,7 +45,7 @@ public class WellKnownController : ControllerBase
 	{
 		// get hostname for request
 		var host = Request.Host.Host;
-		_logger.LogInformation("Resolving handle {Handle}", host);
+		// _logger.LogInformation("Resolving handle {Handle}", host);
 		var acc = await _accountRepository.GetAccount(host);
 		if (acc?.Handle == null)
 		{

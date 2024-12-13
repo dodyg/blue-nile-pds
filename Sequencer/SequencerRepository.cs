@@ -145,55 +145,62 @@ public class SequencerRepository : IDisposable
         var seqEvents = new List<ISeqEvt>();
         foreach (var row in rows)
         {
-            switch (row.EventType)
+            try
             {
+                switch (row.EventType)
+                {
 
-                case RepoSeqEventType.Append:
-                case RepoSeqEventType.Rebase:
-                    var commitEvt = CommitEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                    seqEvents.Add(new TypedCommitEvt
-                    {
-                        Seq = row.Seq,
-                        Time = row.SequencedAt,
-                        Evt = commitEvt
-                    });
-                    break;
-                case RepoSeqEventType.Handle:
-                    var handleEvt = HandleEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                    seqEvents.Add(new TypedHandleEvt
-                    {
-                        Seq = row.Seq,
-                        Time = row.SequencedAt,
-                        Evt = handleEvt
-                    });
-                    break;
-                case RepoSeqEventType.Identity:
-                    var identityEvt = IdentityEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                    seqEvents.Add(new TypedIdentityEvt
-                    {
-                        Seq = row.Seq,
-                        Time = row.SequencedAt,
-                        Evt = identityEvt
-                    });
-                    break;
-                case RepoSeqEventType.Account:
-                    var accountEvt = AccountEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                    seqEvents.Add(new TypedAccountEvt
-                    {
-                        Seq = row.Seq,
-                        Time = row.SequencedAt,
-                        Evt = accountEvt
-                    });
-                    break;
-                case RepoSeqEventType.Tombstone:
-                    var tombstoneEvt = TombstoneEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                    seqEvents.Add(new TypedTombstoneEvt
-                    {
-                        Seq = row.Seq,
-                        Time = row.SequencedAt,
-                        Evt = tombstoneEvt
-                    });
-                    break;
+                    case RepoSeqEventType.Append:
+                    case RepoSeqEventType.Rebase:
+                        var commitEvt = CommitEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
+                        seqEvents.Add(new TypedCommitEvt
+                        {
+                            Seq = row.Seq,
+                            Time = row.SequencedAt,
+                            Evt = commitEvt
+                        });
+                        break;
+                    case RepoSeqEventType.Handle:
+                        var handleEvt = HandleEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
+                        seqEvents.Add(new TypedHandleEvt
+                        {
+                            Seq = row.Seq,
+                            Time = row.SequencedAt,
+                            Evt = handleEvt
+                        });
+                        break;
+                    case RepoSeqEventType.Identity:
+                        var identityEvt = IdentityEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
+                        seqEvents.Add(new TypedIdentityEvt
+                        {
+                            Seq = row.Seq,
+                            Time = row.SequencedAt,
+                            Evt = identityEvt
+                        });
+                        break;
+                    case RepoSeqEventType.Account:
+                        var accountEvt = AccountEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
+                        seqEvents.Add(new TypedAccountEvt
+                        {
+                            Seq = row.Seq,
+                            Time = row.SequencedAt,
+                            Evt = accountEvt
+                        });
+                        break;
+                    case RepoSeqEventType.Tombstone:
+                        var tombstoneEvt = TombstoneEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
+                        seqEvents.Add(new TypedTombstoneEvt
+                        {
+                            Seq = row.Seq,
+                            Time = row.SequencedAt,
+                            Evt = tombstoneEvt
+                        });
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error decoding event");
             }
         }
         

@@ -6,7 +6,7 @@ using Identity;
 using Jose;
 using Xrpc;
 
-namespace atompds.Pds;
+namespace atompds.Middleware;
 
 public record AuthVerifierConfig(string JwtKey, string AdminPass, string PublicUrl, string PdsDid);
 

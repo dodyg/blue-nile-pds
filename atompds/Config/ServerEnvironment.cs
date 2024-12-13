@@ -3,7 +3,7 @@
 
 using System.ComponentModel.DataAnnotations;
 
-namespace atompds.Pds.Config;
+namespace atompds.Config;
 
 public class ServerEnvironment
 {
