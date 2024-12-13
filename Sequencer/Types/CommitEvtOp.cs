@@ -27,11 +27,7 @@ public record CommitEvtOp : ICborEncodable<CommitEvtOp>
         var actionTxt = cbor["action"].AsString().ToUpper();
         var action = Enum.Parse<CommitEvtAction>(actionTxt, true);
         var path = cbor["path"].AsString();
-        Cid? cid = null;
-        if (cbor.ContainsKey("cid"))
-        {
-            cid = CID.Cid.FromCBOR(cbor["cid"]);
-        }
+        Cid? cid = cbor.ContainsKey("cid") && !cbor["cid"].IsNull ? CID.Cid.FromCBOR(cbor["cid"]) : null;
         return new CommitEvtOp
         {
             Action = action,

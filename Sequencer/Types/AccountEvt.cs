@@ -26,12 +26,7 @@ public record AccountEvt : ICborEncodable<AccountEvt>
     {
         var did = cbor["did"].AsString();
         var active = cbor["active"].AsBoolean();
-        string? status = null;
-        if (cbor.ContainsKey("status"))
-        {
-            status = cbor["status"].AsString();
-        }
-            
+        string? status = cbor.ContainsKey("status") && !cbor["status"].IsNull ? cbor["status"].AsString() : null;
         return new AccountEvt
         {
             Did = did,

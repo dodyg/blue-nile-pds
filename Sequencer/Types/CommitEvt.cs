@@ -25,7 +25,7 @@ public record CommitEvt : ICborEncodable<CommitEvt>
         cbor.Add("tooBig", TooBig);
         cbor.Add("repo", Repo);
         cbor.Add("commit", Commit.ToCBORObject());
-        cbor.Add("prev", Prev != null ? Prev?.ToCBORObject() : CBORObject.Null);
+        cbor.Add("prev", Prev?.ToCBORObject());
         cbor.Add("rev", Rev);
         cbor.Add("since", Since);
         cbor.Add("blocks", Blocks);
@@ -50,11 +50,7 @@ public record CommitEvt : ICborEncodable<CommitEvt>
         var tooBig = cbor["tooBig"].AsBoolean();
         var repo = cbor["repo"].AsString();
         var rev = cbor["rev"].AsString();
-        string? since = null;
-        if (cbor.ContainsKey("since"))
-        {
-            since = cbor["since"].IsNull ? null : cbor["since"].AsString();
-        }
+        string? since = cbor.ContainsKey("since") && !cbor["since"].IsNull ? cbor["since"].AsString() : null;
         var blocks = cbor["blocks"].GetByteString();
         var ops = cbor["ops"].Values.Select(CommitEvtOp.FromCborObject).ToArray();
         var blobs = cbor["blobs"].Values.Select(Cid.FromCBOR).ToArray();

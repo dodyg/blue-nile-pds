@@ -113,7 +113,7 @@ public class RecordRepository
     public Backlink[] GetBacklinks(ATUri uri, CBORObject? record)
     {
         if (record == null) return [];
-        var recordType = record.ContainsKey("$type") ? record["$type"].AsString() : null;
+        var recordType = record.ContainsKey("$type") && !record["$type"].IsNull ? record["$type"].AsString() : null;
         if (recordType == "app.bsky.graph.follow" || recordType == "app.bsky.graph.block")
         {
             var subject = record["subject"].Type == CBORType.TextString ? record["subject"].AsString() : null;

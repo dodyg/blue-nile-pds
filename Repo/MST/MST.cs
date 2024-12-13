@@ -568,7 +568,7 @@ public struct TreeEntry : ICborEncodable<TreeEntry>
         var prefixCount = obj["p"].AsInt32();
         var key = obj["k"].GetByteString();
         var value = Cid.FromCBOR(obj["v"]);
-        Cid? tree = obj.ContainsKey("t") ? Cid.FromCBOR(obj["t"]) : null;
+        Cid? tree = obj.ContainsKey("t") && !obj["t"].IsNull ? Cid.FromCBOR(obj["t"]) : null;
         return new TreeEntry
         {
             PrefixCount = prefixCount,

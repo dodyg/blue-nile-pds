@@ -105,19 +105,7 @@ public class AtProtoOp : ICborEncodable<AtProtoOp>
         var rotationKeys = cbor["rotationKeys"].Values.Select(x => x.AsString()).ToArray();
         var alsoKnownAs = cbor["alsoKnownAs"].Values.Select(x => x.AsString()).ToArray();
         var services = JsonSerializer.Deserialize<Dictionary<string, Service>>(cbor["services"].ToJSONString());
-        string? prev = null;
-        if (cbor.ContainsKey("prev"))
-        {
-            var prevCbor = cbor["prev"];
-            if (prevCbor == null || prevCbor.IsNull)
-            {
-                prev = null;
-            }
-            else
-            {
-                prev = prevCbor.AsString();
-            }
-        }
+        string? prev = cbor.ContainsKey("prev") && !cbor["prev"].IsNull ? cbor["prev"].AsString() : null;
         return new AtProtoOp
         {
             Type = type,
