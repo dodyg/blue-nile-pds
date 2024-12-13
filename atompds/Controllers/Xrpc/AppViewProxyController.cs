@@ -152,7 +152,7 @@ public class AppViewProxyController : ControllerBase
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
             
-            _logger.LogInformation("Response from proxy: " + content);
+            //_logger.LogInformation("Response from proxy: " + content);
             
             return new ContentResult
             {
@@ -184,7 +184,7 @@ public class AppViewProxyController : ControllerBase
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
             
-            _logger.LogInformation("Response from proxy: " + content);
+            //_logger.LogInformation("Response from proxy: " + content);
             
             return new ContentResult
             {
