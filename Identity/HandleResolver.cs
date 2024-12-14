@@ -7,7 +7,7 @@ public class HandleResolver
 {
     private readonly HttpClient _httpClient;
     public const string SUBDOMAIN = "_atproto";
-    public const string PREFIX = "did:;";
+    public const string PREFIX = "did=";
     
     public HandleResolver(HttpClient httpClient)
     {
