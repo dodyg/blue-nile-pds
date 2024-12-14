@@ -7,7 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Crypto\Crypto.csproj" />
+      <ProjectReference Include="..\..\pds_projects\Config\Config.csproj" />
+      <ProjectReference Include="..\..\pds_projects\Xrpc\Xrpc.csproj" />
+      <ProjectReference Include="..\Identity\Identity.csproj" />
     </ItemGroup>
 
 </Project>

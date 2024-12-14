@@ -7,12 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CID\CID.csproj"/>
-        <ProjectReference Include="..\CommonDb\CommonDb.csproj" />
+        <ProjectReference Include="..\..\projects\CID\CID.csproj" />
+        <ProjectReference Include="..\..\projects\CommonDb\CommonDb.csproj" />
+        <ProjectReference Include="..\..\projects\DidLib\DidLib.csproj" />
+        <ProjectReference Include="..\..\projects\Handle\Handle.csproj" />
+        <ProjectReference Include="..\..\projects\Repo\Repo.csproj" />
         <ProjectReference Include="..\Config\Config.csproj" />
-        <ProjectReference Include="..\DidLib\DidLib.csproj"/>
-        <ProjectReference Include="..\Handle\Handle.csproj" />
-        <ProjectReference Include="..\Repo\Repo.csproj"/>
         <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
     </ItemGroup>
 

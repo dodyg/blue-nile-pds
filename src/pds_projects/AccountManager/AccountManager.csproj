@@ -16,8 +16,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CID\CID.csproj" />
-      <ProjectReference Include="..\CommonDb\CommonDb.csproj" />
+      <ProjectReference Include="..\..\projects\CID\CID.csproj" />
+      <ProjectReference Include="..\..\projects\CommonDb\CommonDb.csproj" />
       <ProjectReference Include="..\Config\Config.csproj" />
       <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
     </ItemGroup>

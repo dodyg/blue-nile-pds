@@ -7,9 +7,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Config\Config.csproj" />
-      <ProjectReference Include="..\Identity\Identity.csproj" />
-      <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
+      <PackageReference Include="FishyFlip" Version="3.1.0-alpha.12" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\pds_projects\Xrpc\Xrpc.csproj" />
     </ItemGroup>
 
 </Project>

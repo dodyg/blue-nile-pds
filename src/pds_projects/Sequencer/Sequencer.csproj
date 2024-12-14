@@ -9,8 +9,6 @@
     <ItemGroup>
       <ProjectReference Include="..\AccountManager\AccountManager.csproj" />
       <ProjectReference Include="..\ActorStore\ActorStore.csproj" />
-      <ProjectReference Include="..\CID\CID.csproj" />
-      <ProjectReference Include="..\CommonDb\CommonDb.csproj" />
     </ItemGroup>
 
     <ItemGroup>

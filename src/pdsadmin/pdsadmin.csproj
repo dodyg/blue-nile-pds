@@ -20,11 +20,7 @@
         <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\9.0.0\Microsoft.Extensions.Logging.Debug.dll</HintPath>
       </Reference>
     </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Crypto\Crypto.csproj" />
-    </ItemGroup>
-
+    
     <ItemGroup>
       <None Update="pdsenv.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>

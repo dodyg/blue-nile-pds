@@ -6,6 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
         <LangVersion>default</LangVersion>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,16 +26,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\AccountManager\AccountManager.csproj" />
-      <ProjectReference Include="..\ActorStore\ActorStore.csproj" />
-      <ProjectReference Include="..\CID\CID.csproj" />
-      <ProjectReference Include="..\Crypto\Crypto.csproj" />
-      <ProjectReference Include="..\DidLib\DidLib.csproj" />
-      <ProjectReference Include="..\Handle\Handle.csproj" />
-      <ProjectReference Include="..\Identity\Identity.csproj" />
-      <ProjectReference Include="..\Mailer\Mailer.csproj" />
-      <ProjectReference Include="..\Repo\Repo.csproj" />
-      <ProjectReference Include="..\Sequencer\Sequencer.csproj" />
-      <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
+      <ProjectReference Include="..\pds_projects\AccountManager\AccountManager.csproj" />
+      <ProjectReference Include="..\pds_projects\ActorStore\ActorStore.csproj" />
+      <ProjectReference Include="..\pds_projects\Config\Config.csproj" />
+      <ProjectReference Include="..\pds_projects\Mailer\Mailer.csproj" />
+      <ProjectReference Include="..\pds_projects\Sequencer\Sequencer.csproj" />
+      <ProjectReference Include="..\pds_projects\Xrpc\Xrpc.csproj" />
     </ItemGroup>
 </Project>

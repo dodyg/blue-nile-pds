@@ -3,15 +3,12 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using ConsoleAppFramework;
 using FishyFlip;
-using FishyFlip.Lexicon;
 using FishyFlip.Lexicon.Com.Atproto.Admin;
 using FishyFlip.Lexicon.Com.Atproto.Server;
 using FishyFlip.Lexicon.Com.Atproto.Sync;
 using FishyFlip.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Debug;
-using Org.BouncyCastle.Security;
-using Secp256k1Net;
 
 namespace pdsadmin;
 

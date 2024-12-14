@@ -20,7 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CID\CID.csproj" />
+      <ProjectReference Include="..\..\src\projects\CID\CID.csproj" />
     </ItemGroup>
 
 </Project>

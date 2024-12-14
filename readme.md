@@ -21,8 +21,6 @@ and should follow the same general structure.
 - PutRecord currently fails to check if records exist (due to cid mismatches agains the repo_block table) and thus fails to update the mst due to collisions since it will always use a create operation.
 - Better appview fallback support for other routes
   - Currently, it's a manual process to pipe certain routes to an appview (i.e. resolvehandle) it would be nicer to have a more general approach, perhaps using FishyFlip. 
-- Repo structure cleanup
-  - The flat structure here really isn't doing me any favors, I would like to move everything to a ./src directory and move tests to a ./tests directory. Plus reorganize the project directories within that a bit.
 - Docker and docker compose setup
   - Fortunately the project runs as a single instance so this shouldn't be too difficult.
 

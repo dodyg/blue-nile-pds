@@ -99,24 +99,3 @@ async Task HandleMessageAsync(SubscribeRepoMessage message)
         }
     }
 }
-
-public static class TaskExtensions
-{
-    public static void FireAndForget(this Task task, Action<Exception> errorHandler = null)
-    {
-        if (task == null)
-            throw new ArgumentNullException(nameof(task));
-
-        task.ContinueWith(t =>
-        {
-            if (errorHandler != null && t.IsFaulted)
-                errorHandler(t.Exception);
-        }, TaskContinuationOptions.OnlyOnFaulted);
-
-        // Avoiding warning about not awaiting the fire-and-forget task.
-        // However, since the method is intended to fire and forget, we don't actually await it.
-#pragma warning disable CS4014
-        task.ConfigureAwait(false);
-#pragma warning restore CS4014
-    }
-}
