@@ -36,7 +36,6 @@ atWebProtocol.OnSubscribedRepoMessage += (sender, args) =>
 await atWebProtocol.StartSubscribeReposAsync();
 
 while (true)
-{
     if (messageQueue.TryDequeue(out var message))
     {
         await HandleMessageAsync(message);
@@ -45,7 +44,6 @@ while (true)
     {
         await Task.Delay(1000);
     }
-}
 
 async Task HandleMessageAsync(SubscribeRepoMessage message)
 {
@@ -53,7 +51,7 @@ async Task HandleMessageAsync(SubscribeRepoMessage message)
     {
         return;
     }
-    
+
     var orgId = message.Commit.Repo;
 
     if (orgId is null)
@@ -64,13 +62,13 @@ async Task HandleMessageAsync(SubscribeRepoMessage message)
     if (message.Record is not null)
     {
         log.LogInformation("Record: {Record}", message.Record.ToJson());
-        
-        
+
+
         if (message.Record is Follow follow)
         {
             log.LogInformation("Follow: {Subject} -> {CreatedAt}", follow.Subject, follow.CreatedAt);
         }
-        
+
         if (message.Record is Post post)
         {
             // The Actor Did.
