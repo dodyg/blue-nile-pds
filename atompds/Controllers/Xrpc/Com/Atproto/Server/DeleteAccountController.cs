@@ -17,23 +17,17 @@ public class DeleteAccountController : ControllerBase
 {
     private readonly ILogger<DeleteAccountController> _logger;
     private readonly AccountRepository _accountRepository;
-    private readonly ActorRepository _actorRepository;
     private readonly SequencerRepository _sequencer;
     private readonly IMailer _mailer;
-    private readonly PlcClient _plcClient;
     public DeleteAccountController(ILogger<DeleteAccountController> logger,
         AccountRepository accountRepository,
-        ActorRepository actorRepository,
         SequencerRepository sequencer,
-        IMailer mailer,
-        PlcClient plcClient)
+        IMailer mailer)
     {
         _logger = logger;
         _accountRepository = accountRepository;
-        _actorRepository = actorRepository;
         _sequencer = sequencer;
         _mailer = mailer;
-        _plcClient = plcClient;
 
     }
     
