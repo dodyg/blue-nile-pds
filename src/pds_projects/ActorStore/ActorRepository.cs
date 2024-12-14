@@ -1,29 +1,35 @@
 ﻿using ActorStore.Db;
 using ActorStore.Repo;
-using Config;
 using Crypto;
-using Crypto.Secp256k1;
-using FishyFlip.Models;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Xrpc;
 
 namespace ActorStore;
 
 public class ActorRepository : IDisposable, IAsyncDisposable
 {
     private readonly ActorStoreDb _db;
-    public SqliteConnection? Connection => _db.Database.GetDbConnection() as SqliteConnection;
     private readonly SqlRepoTransactor _sqlRepoTransactor;
-    public RepoRepository Repo { get; }
-    public RecordRepository Record { get; }
-    
+
     public ActorRepository(ActorStoreDb db, string did, IKeyPair keyPair)
     {
         _db = db;
         _sqlRepoTransactor = new SqlRepoTransactor(db, did);
         Record = new RecordRepository(db, did, keyPair, _sqlRepoTransactor);
         Repo = new RepoRepository(db, did, keyPair, _sqlRepoTransactor, Record);
+    }
+    public SqliteConnection? Connection => _db.Database.GetDbConnection() as SqliteConnection;
+    public RepoRepository Repo { get; }
+    public RecordRepository Record { get; }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _db.DisposeAsync();
+    }
+
+    public void Dispose()
+    {
+        _db.Dispose();
     }
 
     public string[] ListCollections(string did, ActorStoreDb db)
@@ -34,7 +40,7 @@ public class ActorRepository : IDisposable, IAsyncDisposable
             .Distinct()
             .ToArray();
     }
-    
+
     public async Task<T> TransactDb<T>(Func<ActorStoreDb, Task<T>> fn)
     {
         await using var tx = await _db.Database.BeginTransactionAsync();
@@ -50,7 +56,7 @@ public class ActorRepository : IDisposable, IAsyncDisposable
             throw;
         }
     }
-    
+
     public async Task<T> TransactRepo<T>(Func<ActorRepository, Task<T>> fn)
     {
         await using var tx = await _db.Database.BeginTransactionAsync();
@@ -65,15 +71,5 @@ public class ActorRepository : IDisposable, IAsyncDisposable
             await tx.RollbackAsync();
             throw;
         }
-    }
-    
-    public void Dispose()
-    {
-        _db.Dispose();
-    }
-    
-    public async ValueTask DisposeAsync()
-    {
-        await _db.DisposeAsync();
     }
 }

@@ -7,19 +7,17 @@ namespace DidLib;
 
 public class SignedOp<T> : ICborEncodable<SignedOp<T>> where T : ICborEncodable<T>
 {
-    [JsonPropertyName("sig")]
-    public required string Sig { get; init; }
-    
-    [JsonPropertyName("op")]
-    public required T Op { get; init; }
-    
+    [JsonPropertyName("sig")] public required string Sig { get; init; }
+
+    [JsonPropertyName("op")] public required T Op { get; init; }
+
     public CBORObject ToCborObject()
     {
         var cbor = Op.ToCborObject();
         cbor.Add("sig", Sig);
         return cbor;
     }
-    
+
     public static SignedOp<T> FromCborObject(CBORObject obj)
     {
         var op = T.FromCborObject(obj);
@@ -34,12 +32,10 @@ public class SignedOp<T> : ICborEncodable<SignedOp<T>> where T : ICborEncodable<
 
 public class Tombstone : ICborEncodable<Tombstone>
 {
-    [JsonPropertyName("type")]
-    public string Type => "plc_tombstone";    
-    
-    [JsonPropertyName("prev")]
-    public required string Prev { get; init; }
-    
+    [JsonPropertyName("type")] public string Type => "plc_tombstone";
+
+    [JsonPropertyName("prev")] public required string Prev { get; init; }
+
     public CBORObject ToCborObject()
     {
         var cbor = CBORObject.NewMap();
@@ -47,7 +43,7 @@ public class Tombstone : ICborEncodable<Tombstone>
         cbor.Add("prev", Prev);
         return cbor;
     }
-    
+
     public static Tombstone FromCborObject(CBORObject cbor)
     {
         var prev = cbor["prev"].AsString();
@@ -65,27 +61,22 @@ public class Tombstone : ICborEncodable<Tombstone>
 
 public class AtProtoOp : ICborEncodable<AtProtoOp>
 {
-    [JsonPropertyName("type")]
-    public required string Type { get; init; }
-        
+    [JsonPropertyName("type")] public required string Type { get; init; }
+
     [JsonPropertyName("verificationMethods")]
     public required Dictionary<string, string> VerificationMethods { get; init; }
-        
-    [JsonPropertyName("rotationKeys")]
-    public required string[] RotationKeys { get; init; }
-        
-    [JsonPropertyName("alsoKnownAs")]
-    public required string[] AlsoKnownAs { get; init; }
-        
-    [JsonPropertyName("services")]
-    public required Dictionary<string, Service> Services { get; init; }
-        
+
+    [JsonPropertyName("rotationKeys")] public required string[] RotationKeys { get; init; }
+
+    [JsonPropertyName("alsoKnownAs")] public required string[] AlsoKnownAs { get; init; }
+
+    [JsonPropertyName("services")] public required Dictionary<string, Service> Services { get; init; }
+
     // a CID hash pointer to a previous operation if an update, or null for a creation.
     // If null, the key should actually be part of the object, with value null, not simply omitted.
     // In DAG-CBOR encoding, the CID is string-encoded
-    [JsonPropertyName("prev")]
-    public required string? Prev { get; init; }
-    
+    [JsonPropertyName("prev")] public required string? Prev { get; init; }
+
     public CBORObject ToCborObject()
     {
         var cbor = CBORObject.NewMap();
@@ -97,7 +88,7 @@ public class AtProtoOp : ICborEncodable<AtProtoOp>
         cbor.Add("prev", Prev);
         return cbor;
     }
-    
+
     public static AtProtoOp FromCborObject(CBORObject cbor)
     {
         var type = cbor["type"].AsString();
@@ -105,7 +96,7 @@ public class AtProtoOp : ICborEncodable<AtProtoOp>
         var rotationKeys = cbor["rotationKeys"].Values.Select(x => x.AsString()).ToArray();
         var alsoKnownAs = cbor["alsoKnownAs"].Values.Select(x => x.AsString()).ToArray();
         var services = JsonSerializer.Deserialize<Dictionary<string, Service>>(cbor["services"].ToJSONString());
-        string? prev = cbor.ContainsKey("prev") && !cbor["prev"].IsNull ? cbor["prev"].AsString() : null;
+        var prev = cbor.ContainsKey("prev") && !cbor["prev"].IsNull ? cbor["prev"].AsString() : null;
         return new AtProtoOp
         {
             Type = type,

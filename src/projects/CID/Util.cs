@@ -15,7 +15,7 @@ public static class Util
             _ => throw new CIDException(Error.UnknownCodec)
         };
     }
-    
+
     public static Multihash Sha2_256Digest(string data)
     {
         var bytes = Encoding.UTF8.GetBytes(data);

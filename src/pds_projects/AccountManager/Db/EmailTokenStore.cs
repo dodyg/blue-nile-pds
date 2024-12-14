@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Crypto;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Xrpc;
 
@@ -16,10 +17,10 @@ public class EmailTokenStore
 
     public async Task<string> CreateEmailToken(string did, EmailToken.EmailTokenPurpose purpose)
     {
-        var token = Crypto.Utils.RandomHexString(32).ToUpper();
+        var token = Utils.RandomHexString(32).ToUpper();
         var now = DateTime.UtcNow;
-        
-        
+
+
         // check for conflict on {purpose, did}, we only want one token per purpose per did at a time
         var existingToken = await _db.EmailTokens
             .Where(x => x.Did == did && x.Purpose == purpose)
@@ -56,7 +57,7 @@ public class EmailTokenStore
         {
             throw new XRPCError(new InvalidRequestErrorDetail("InvalidToken", "Token is invalid."));
         }
-        
+
         var expired = emailToken.RequestedAt + TimeSpan.FromMinutes(15);
         if (DateTime.UtcNow > expired)
         {

@@ -7,13 +7,13 @@ namespace AccountManager.Db;
 public class Account
 {
     public const string TableName = "account";
-    
+
     [StringLength(2048)] public required string Did { get; set; }
     [StringLength(2048)] public required string Email { get; set; }
     [StringLength(2048)] public required string PasswordSCrypt { get; set; }
     public DateTime? EmailConfirmedAt { get; set; }
     public bool InvitesDisabled { get; set; }
-    
+
     public virtual Actor Actor { get; set; }
 }
 
@@ -28,7 +28,7 @@ public class Actor
     [StringLength(2048)] public required string? TakedownRef { get; set; }
     public DateTime? DeactivatedAt { get; set; }
     public DateTime? DeleteAfter { get; set; }
-    
+
     public virtual Account? Account { get; set; }
 }
 
@@ -96,7 +96,7 @@ public class RefreshToken
 {
     public const string TableName = "refresh_token";
 
-    [Key,StringLength(2048)] public required string Id { get; set; }
+    [Key] [StringLength(2048)] public required string Id { get; set; }
     [StringLength(2048)] public required string Did { get; set; }
     public required DateTime ExpiresAt { get; set; }
     [StringLength(2048)] public string? AppPasswordName { get; set; }
@@ -153,7 +153,7 @@ public class InviteCodeUse
 {
     public const string TableName = "invite_code_use";
 
-    [Key,StringLength(2048)] public required string Code { get; set; }
+    [Key] [StringLength(2048)] public required string Code { get; set; }
     [StringLength(2048)] public required string UsedBy { get; set; }
     public required DateTime UsedAt { get; set; }
 }
@@ -161,7 +161,6 @@ public class InviteCodeUse
 [Table(TableName)]
 public class EmailToken
 {
-    public const string TableName = "email_token";
 
     public enum EmailTokenPurpose
     {
@@ -171,6 +170,8 @@ public class EmailToken
         delete_account,
         plc_operation
     }
+
+    public const string TableName = "email_token";
 
     public EmailTokenPurpose Purpose { get; set; }
     [StringLength(2048)] public required string Did { get; set; }

@@ -1,18 +1,16 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Http.Features;
-using Xrpc;
+﻿using Xrpc;
 
 namespace atompds.Middleware;
 
 public class AuthMiddleware
 {
     private readonly RequestDelegate _next;
-    
+
     public AuthMiddleware(RequestDelegate next)
     {
         _next = next;
     }
-    
+
     public async Task Invoke(HttpContext context)
     {
         var endpoint = context.GetEndpoint();
@@ -21,7 +19,7 @@ public class AuthMiddleware
             await _next(context);
             return;
         }
-        
+
         var verifier = context.RequestServices.GetRequiredService<AuthVerifier>();
         var accessStandard = endpoint.Metadata.GetMetadata<AccessStandardAttribute>();
         if (accessStandard != null)
@@ -29,28 +27,28 @@ public class AuthMiddleware
             var output = await accessStandard.Handle(verifier, context);
             context.Items["AuthOutput"] = output;
         }
-        
+
         var accessFull = endpoint.Metadata.GetMetadata<AccessFullAttribute>();
         if (accessFull != null)
         {
             var output = await accessFull.Handle(verifier, context);
             context.Items["AuthOutput"] = output;
         }
-        
+
         var accessPrivileged = endpoint.Metadata.GetMetadata<AccessPrivilegedAttribute>();
         if (accessPrivileged != null)
         {
             var output = await accessPrivileged.Handle(verifier, context);
             context.Items["AuthOutput"] = output;
         }
-        
+
         var refresh = endpoint.Metadata.GetMetadata<RefreshAttribute>();
         if (refresh != null)
         {
             var output = await refresh.Handle(verifier, context);
             context.Items["AuthOutput"] = output;
         }
-        
+
         await _next(context);
     }
 }
@@ -61,34 +59,34 @@ public static class AuthMiddlewareExtensions
     {
         return builder.UseMiddleware<AuthMiddleware>();
     }
-    
+
     public static AuthVerifier.AccessOutput GetAuthOutput(this HttpContext context)
     {
         if (!context.Items.TryGetValue("AuthOutput", out var item))
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
         }
-        
+
         if (item is not AuthVerifier.AccessOutput output)
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
         }
-        
+
         return output;
     }
-    
+
     public static AuthVerifier.RefreshOutput GetRefreshOutput(this HttpContext context)
     {
         if (!context.Items.TryGetValue("AuthOutput", out var item))
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
         }
-        
+
         if (item is not AuthVerifier.RefreshOutput output)
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
         }
-        
+
         return output;
     }
 }
@@ -103,25 +101,26 @@ public class AdminTokenAttribute : Attribute
 
 public class AccessStandardAttribute : Attribute
 {
-    private readonly bool _checkTakenDown;
     private readonly bool _checkDeactivated;
-    
+    private readonly bool _checkTakenDown;
+
     public AccessStandardAttribute(bool checkTakenDown = false, bool checkDeactivated = false)
     {
         _checkTakenDown = checkTakenDown;
         _checkDeactivated = checkDeactivated;
     }
-    
+
     public Task<AuthVerifier.AccessOutput> Handle(AuthVerifier verifier, HttpContext context)
     {
         return verifier.AccessStandard(context, _checkTakenDown, _checkDeactivated);
     }
 }
+
 public class AccessFullAttribute : Attribute
-{    
-    private readonly bool _checkTakenDown;
+{
     private readonly bool _checkDeactivated;
-    
+    private readonly bool _checkTakenDown;
+
     public AccessFullAttribute(bool checkTakenDown = false, bool checkDeactivated = false)
     {
         _checkTakenDown = checkTakenDown;
@@ -133,11 +132,12 @@ public class AccessFullAttribute : Attribute
         return verifier.AccessFull(context, _checkTakenDown, _checkDeactivated);
     }
 }
+
 public class AccessPrivilegedAttribute : Attribute
-{    
-    private readonly bool _checkTakenDown;
+{
     private readonly bool _checkDeactivated;
-    
+    private readonly bool _checkTakenDown;
+
     public AccessPrivilegedAttribute(bool checkTakenDown = false, bool checkDeactivated = false)
     {
         _checkTakenDown = checkTakenDown;

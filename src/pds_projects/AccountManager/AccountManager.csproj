@@ -7,19 +7,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="jose-jwt" Version="5.1.0" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-      <PackageReference Include="Scrypt.NET" Version="1.3.0" />
+        <PackageReference Include="jose-jwt" Version="5.1.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Scrypt.NET" Version="1.3.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\projects\CID\CID.csproj" />
-      <ProjectReference Include="..\..\projects\CommonDb\CommonDb.csproj" />
-      <ProjectReference Include="..\Config\Config.csproj" />
-      <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
+        <ProjectReference Include="..\..\projects\CID\CID.csproj"/>
+        <ProjectReference Include="..\..\projects\CommonDb\CommonDb.csproj"/>
+        <ProjectReference Include="..\Config\Config.csproj"/>
+        <ProjectReference Include="..\Xrpc\Xrpc.csproj"/>
     </ItemGroup>
 
 </Project>

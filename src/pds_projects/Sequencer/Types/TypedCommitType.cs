@@ -3,8 +3,8 @@
 public enum TypedCommitType
 {
     Commit,
-    Handle, 
-    Identity, 
-    Account, 
+    Handle,
+    Identity,
+    Account,
     Tombstone
 }

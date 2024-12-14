@@ -9,7 +9,7 @@ public class StubMailer : IMailer
     {
         _logger = logger;
     }
-    
+
     public Task SendAccountDelete(string token, string to)
     {
         _logger.LogInformation("Sending account delete email to {to} with token {token}", to, token);

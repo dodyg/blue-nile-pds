@@ -9,7 +9,6 @@ namespace Repo;
 
 public class Repo
 {
-    public record Params(IRepoStorage Storage, MST.MST Data, Commit Commit, Cid Cid);
     private readonly IRepoStorage _storage;
 
     public Repo(Params p)
@@ -59,7 +58,7 @@ public class Repo
 
     public static async Task<Repo> Load(IRepoStorage storage, Cid? cid)
     {
-        var commitCid = cid ?? (await storage.GetRoot());
+        var commitCid = cid ?? await storage.GetRoot();
         if (commitCid == null)
         {
             throw new Exception("No root commit found");
@@ -98,7 +97,7 @@ public class Repo
         }
 
         var dataCid = await data.GetPointer();
-        var diff = await DataDiff.Of(data, this.Data);
+        var diff = await DataDiff.Of(data, Data);
         var newBlocks = diff.NewMstBlocks;
         var removedCids = diff.RemovedCids;
 
@@ -107,7 +106,7 @@ public class Repo
         {
             throw new Exception($"Missing leaves: {string.Join(", ", addedLeaves.missing)}");
         }
-        
+
         newBlocks.AddMap(addedLeaves.blocks);
 
         var rev = TID.NextStr(Commit.Rev);
@@ -122,21 +121,22 @@ public class Repo
         {
             removedCids.Add(Cid);
         }
-        
+
         return new CommitData(commitCid, rev, commit.Rev, Cid, newBlocks, removedCids);
     }
-    
+
     public async Task<Repo> ApplyCommit(CommitData commit)
     {
         _storage.ApplyCommit(commit);
         return await Load(_storage, commit.Cid);
     }
-    
+
     public async Task<Repo> ApplyWrites(IRecordWriteOp[] toWrite, IKeyPair keypair)
     {
         var commit = await FormatCommit(toWrite, keypair);
         return await ApplyCommit(commit);
     }
+    public record Params(IRepoStorage Storage, MST.MST Data, Commit Commit, Cid Cid);
 }
 
 public enum WriteOpAction
@@ -180,7 +180,7 @@ public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record
 public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
 {
     public WriteOpAction Action => WriteOpAction.Update;
-    
+
     public RecordUpdateOp UpdateWriteToOp()
     {
         return new RecordUpdateOp(Uri.Collection, Uri.Rkey, Record);
@@ -190,7 +190,7 @@ public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record
 public record PreparedDelete(ATUri Uri, Cid? SwapCid) : IPreparedWrite
 {
     public WriteOpAction Action => WriteOpAction.Delete;
-    
+
     public RecordDeleteOp DeleteWriteToOp()
     {
         return new RecordDeleteOp(Uri.Collection, Uri.Rkey);
@@ -216,4 +216,3 @@ public record RecordDeleteOp(string Collection, string RKey) : IRecordWriteOp
 {
     public WriteOpAction Action => WriteOpAction.Delete;
 }
-

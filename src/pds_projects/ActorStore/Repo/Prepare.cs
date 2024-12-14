@@ -19,7 +19,7 @@ public class Prepare
     {
         return new PreparedDelete(ATUri.Create($"{did}/{collection}/{rkey}"), swapCid);
     }
-    
+
     public static PreparedCreate PrepareCreate(string did, string collection, string? rkey, Cid? swap, ATObject record, bool? validate)
     {
         var maybeValidate = validate != false;
@@ -29,7 +29,7 @@ public class Prepare
         }
 
         // TODO: need to properly validate the record
-        ValidationStatus validationStatus = ValidationStatus.Unknown;
+        var validationStatus = ValidationStatus.Unknown;
         if (maybeValidate)
         {
             // TODO:
@@ -51,8 +51,7 @@ public class Prepare
             [], // TODO: BlobRefs need to be parsed out of the record
             validationStatus);
     }
-    
-    
+
 
     public static PreparedUpdate PrepareUpdate(string did, string collection, string rkey, Cid? swapCid, ATObject record, bool? validate)
     {
@@ -61,13 +60,13 @@ public class Prepare
         {
             throw new Exception($"Invalid type, expected {collection}, got {record.Type}");
         }
-        
-        ValidationStatus validationStatus = ValidationStatus.Unknown;
+
+        var validationStatus = ValidationStatus.Unknown;
         if (maybeValidate)
         {
             //
         }
-        
+
         AssertNoExplicitSlurs(rkey, record);
         return new PreparedUpdate(
             ATUri.Create($"{did}/{collection}/{rkey}"),
@@ -83,7 +82,7 @@ public class Prepare
         // TODO: This is probably not in any way correct.
         var cborObj = CBORObject.FromJSONString(record.ToJson());
         var block = CborBlock.Encode(cborObj);
-        
+
         return block.Cid;
     }
 
@@ -124,7 +123,10 @@ public class Prepare
             {
                 foreach (var facet in post.Facets)
                 {
-                    if (facet.Features == null) continue;
+                    if (facet.Features == null)
+                    {
+                        continue;
+                    }
                     foreach (var feature in facet.Features)
                     {
                         if (feature is Tag tag)
@@ -136,7 +138,7 @@ public class Prepare
                 }
             }
         }
-        
+
         if (HandleManager.HasExplicitSlur(sb.ToString()))
         {
             throw new Exception("Unacceptable slur in record.");

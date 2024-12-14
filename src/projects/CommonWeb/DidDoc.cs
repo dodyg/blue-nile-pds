@@ -23,7 +23,7 @@ public class DidDoc
 
         return null;
     }
-    
+
     public static (string type, string publicKeyMultibase)? GetSigningKey(DidDocument doc)
     {
         return GetVerificationMaterial(doc, "atproto");
@@ -36,7 +36,7 @@ public class DidDoc
         {
             return null;
         }
-        
+
         return $"did:key:{parsed.Value.publicKeyMultibase}";
     }
 
@@ -75,7 +75,7 @@ public class DidDoc
         {
             return null;
         }
-            
+
         return (match.Type, match.PublicKeyMultibase);
     }
 
@@ -91,30 +91,30 @@ public class DidDoc
         {
             return null;
         }
-                
+
         if (type != null && service.Type != type)
         {
             return null;
         }
-        
+
         return ValidateUrl(service.ServiceEndpoint);
     }
-    
+
     public static string? ValidateUrl(string url)
     {
         if (!url.StartsWith("http://") && !url.StartsWith("https://"))
         {
             return null;
         }
-        
+
         if (!CanParseUrl(url))
         {
             return null;
         }
-        
+
         return url;
     }
-    
+
     public static bool CanParseUrl(string url)
     {
         return Uri.TryCreate(url, UriKind.Absolute, out _);
@@ -150,12 +150,12 @@ public class DidDoc
                 }
             }
         }
-        
+
         if (service == null)
         {
             return null;
         }
-        
+
         return service;
     }
 }

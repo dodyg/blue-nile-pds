@@ -5,15 +5,15 @@ namespace Identity;
 
 public class HandleResolver
 {
-    private readonly HttpClient _httpClient;
     public const string SUBDOMAIN = "_atproto";
     public const string PREFIX = "did=";
-    
+    private readonly HttpClient _httpClient;
+
     public HandleResolver(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
-    
+
     public async Task<string?> Resolve(string handle, CancellationToken cancellationToken)
     {
         var dnsResult = await ResolveDns(handle);
@@ -30,7 +30,7 @@ public class HandleResolver
 
         return null;
     }
-    
+
     public async Task<string?> ResolveDns(string handle)
     {
         try
@@ -51,7 +51,7 @@ public class HandleResolver
                     return txt[PREFIX.Length..];
                 }
             }
-            
+
             return null;
         }
         catch (Exception)
@@ -59,7 +59,7 @@ public class HandleResolver
             return null;
         }
     }
-    
+
     public async Task<string?> ResolveHttp(string handle, CancellationToken cancellationToken)
     {
         try
@@ -71,7 +71,7 @@ public class HandleResolver
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            
+
             var line = content.Split('\n').FirstOrDefault();
             if (line == null || !line.StartsWith(PREFIX))
             {

@@ -6,7 +6,7 @@ namespace AccountManager.Db;
 public class PasswordStore
 {
     private readonly AccountManagerDb _db;
-    
+
     public PasswordStore(AccountManagerDb db)
     {
         _db = db;
@@ -19,8 +19,8 @@ public class PasswordStore
         {
             return false;
         }
-        
+
         var enc = new ScryptEncoder();
-       return enc.Compare(password, found.PasswordSCrypt);
+        return enc.Compare(password, found.PasswordSCrypt);
     }
 }

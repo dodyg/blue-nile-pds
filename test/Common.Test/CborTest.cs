@@ -5,21 +5,7 @@ namespace Common.Test;
 
 public class CborTest
 {
-    public class TestObject
-    {
-        public TestObject(string name, int age, Cid cid)
-        {
-            Name = name;
-            Age = age;
-            Cid = cid;
-        }
-        
-        public string Name { get; }
-        public int Age { get; }
-        
-        public Cid Cid { get; }
-    }
-    
+
     [Fact]
     public void TestCbor()
     {
@@ -38,5 +24,20 @@ public class CborTest
         Assert.Equal(30, age);
         Assert.Equal(cbor, decoded);
         Assert.Equal(obj.Cid, cidObj);
+    }
+
+    public class TestObject
+    {
+        public TestObject(string name, int age, Cid cid)
+        {
+            Name = name;
+            Age = age;
+            Cid = cid;
+        }
+
+        public string Name { get; }
+        public int Age { get; }
+
+        public Cid Cid { get; }
     }
 }

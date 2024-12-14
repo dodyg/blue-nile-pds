@@ -14,7 +14,7 @@ public static class MSTDiff
         }
         return diff;
     }
-    
+
     public static async Task<DataDiff> Diff(MST curr, MST? prev)
     {
         await curr.GetPointer();
@@ -37,18 +37,18 @@ public static class MSTDiff
                 await rightWalker.Advance();
                 continue;
             }
-            else if (leftWalker.Status is WalkerStatusProgress leftProgress && rightWalker.Status.Done)
+            if (leftWalker.Status is WalkerStatusProgress leftProgress && rightWalker.Status.Done)
             {
                 await diff.NodeDelete(leftProgress.Current);
                 await leftWalker.Advance();
                 continue;
             }
-            
+
             if (leftWalker.Status.Done || rightWalker.Status.Done)
             {
                 break;
             }
-            
+
             var left = (leftWalker.Status as WalkerStatusProgress)?.Current;
             var right = (rightWalker.Status as WalkerStatusProgress)?.Current;
             if (left == null || right == null)
@@ -78,10 +78,10 @@ public static class MSTDiff
                     await diff.NodeAdd(rightLeaf);
                     await rightWalker.Advance();
                 }
-                
+
                 continue;
             }
-                        
+
             // next, ensure that we're on the same layer
             // if one walker is at a higher layer than the other, we need to do one of two things
             // if the higher walker is pointed at a tree, step into that tree to try to catch up with the lower
@@ -134,47 +134,46 @@ public static class MSTDiff
                 }
                 continue;
             }
-            
+
             if (left is Leaf && right is MST)
             {
                 await diff.NodeAdd(right);
                 await rightWalker.StepInto();
                 continue;
             }
-            else if (left is MST && right is Leaf)
+            if (left is MST && right is Leaf)
             {
                 await diff.NodeDelete(left);
                 await leftWalker.StepInto();
                 continue;
             }
-            
+
             throw new Exception("Unidentifiable case in diff walk");
         }
-        
+
         return diff;
     }
 }
 
 public class DataDiff
 {
+
+    [JsonPropertyName("adds")] public Dictionary<string, DataAdd> Adds { get; set; } = new();
+
+    [JsonPropertyName("updates")] public Dictionary<string, DataUpdate> Updates { get; set; } = new();
+
+    [JsonPropertyName("deletes")] public Dictionary<string, DataDelete> Deletes { get; set; } = new();
+
+    [JsonPropertyName("newMstBlocks")] public BlockMap NewMstBlocks { get; set; } = new();
+
+    [JsonPropertyName("newLeafCids")] public CidSet NewLeafCids { get; set; } = new();
+
+    [JsonPropertyName("removedCids")] public CidSet RemovedCids { get; set; } = new();
+
     public static async Task<DataDiff> Of(MST curr, MST? prev)
     {
         return await MSTDiff.Diff(curr, prev);
     }
-    
-    [JsonPropertyName("adds")]
-    public Dictionary<string, DataAdd> Adds { get; set; } = new();
-    [JsonPropertyName("updates")]
-    public Dictionary<string, DataUpdate> Updates { get; set; } = new();
-    [JsonPropertyName("deletes")]
-    public Dictionary<string, DataDelete> Deletes { get; set; } = new();
-    
-    [JsonPropertyName("newMstBlocks")]
-    public BlockMap NewMstBlocks { get; set; } = new();
-    [JsonPropertyName("newLeafCids")]
-    public CidSet NewLeafCids { get; set; } = new();
-    [JsonPropertyName("removedCids")]
-    public CidSet RemovedCids { get; set; } = new();
 
     public async Task NodeAdd(INodeEntry entry)
     {
@@ -206,7 +205,7 @@ public class DataDiff
             throw new Exception("Unknown node type");
         }
     }
-    
+
     public void LeafAdd(string key, Cid cid)
     {
         Adds[key] = new DataAdd(key, cid);
@@ -219,14 +218,14 @@ public class DataDiff
             NewLeafCids.Add(cid);
         }
     }
-    
+
     public void LeafUpdate(string key, Cid prev, Cid cid)
     {
         if (prev.Equals(cid))
         {
             return;
         }
-        
+
         Updates[key] = new DataUpdate(key, prev, cid);
         RemovedCids.Add(cid);
         NewLeafCids.Add(cid);
@@ -244,7 +243,7 @@ public class DataDiff
             RemovedCids.Add(cid);
         }
     }
-    
+
     public void TreeAdd(Cid cid, byte[] bytes)
     {
         if (RemovedCids.Has(cid))
@@ -256,7 +255,7 @@ public class DataDiff
             NewMstBlocks.Set(cid, bytes);
         }
     }
-    
+
     public void TreeDelete(Cid cid)
     {
         if (NewMstBlocks.Has(cid))
@@ -269,9 +268,10 @@ public class DataDiff
         }
     }
 }
-public record DataAdd([property:JsonPropertyName("key")]string Key, [property:JsonPropertyName("cid")]Cid Cid);
-public record DataUpdate([property:JsonPropertyName("key")]string Key, [property:JsonPropertyName("prev")]Cid Prev, [property:JsonPropertyName("cid")]Cid Cid);
-public record DataDelete([property:JsonPropertyName("key")]string Key, [property:JsonPropertyName("cid")]Cid Cid);
+
+public record DataAdd([property: JsonPropertyName("key")] string Key, [property: JsonPropertyName("cid")] Cid Cid);
+public record DataUpdate([property: JsonPropertyName("key")] string Key, [property: JsonPropertyName("prev")] Cid Prev, [property: JsonPropertyName("cid")] Cid Cid);
+public record DataDelete([property: JsonPropertyName("key")] string Key, [property: JsonPropertyName("cid")] Cid Cid);
 
 public class CidSet
 {

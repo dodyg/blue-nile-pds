@@ -1,45 +1,43 @@
 ﻿// ReSharper disable InconsistentNaming
+
 namespace Xrpc;
 
 public class XRPCError : Exception
 {
-    public ResponseType Status { get; }
-    public string Error { get; }
-    
-    public ErrorDetail Detail => new(Error, Message);
 
-    public XRPCError(int statusCode, string? error = null, string? message = null, Exception? innerException = null) : base(message ?? error ?? ResponseTypes.HttpResponseCodeToString(statusCode), innerException)
+    public XRPCError(int statusCode, string? error = null, string? message = null, Exception? innerException = null) : base(
+        message ?? error ?? ResponseTypes.HttpResponseCodeToString(statusCode), innerException)
     {
         Status = ResponseTypes.HttpResponseCodeToEnum(statusCode);
         Error = error ?? ResponseTypes.HttpResponseCodeToName(statusCode);
     }
-    
+
     public XRPCError(ResponseType status, string? error = null, string? message = null, Exception? innerException = null) : base(message, innerException)
     {
         Status = status;
         Error = error ?? ResponseTypeNames.Map.GetValueOrDefault(status, ResponseTypeNames.Unknown);
     }
-    
+
     public XRPCError(ErrorDetail detail, Exception? innerException = null) : base(detail.Message, innerException)
     {
         Status = ResponseTypeNames.ReverseMap.GetValueOrDefault(detail.Error, detail.Status);
         Error = detail.Error;
     }
-    
+
     public XRPCError(ResponseType status, ErrorDetail detail, Exception? innerException = null) : base(detail.Message, innerException)
     {
         Status = status;
         Error = detail.Error;
     }
+    public ResponseType Status { get; }
+    public string Error { get; }
+
+    public ErrorDetail Detail => new(Error, Message);
 }
 
 public record ErrorDetail
 {
-    public string Error { get; }
-    public string Message { get; }
-    
-    public ResponseType Status { get; }
-    
+
     public ErrorDetail(string error, string message)
     {
         Error = error;
@@ -53,15 +51,20 @@ public record ErrorDetail
         Message = message;
         Status = status;
     }
-    
+
     public ErrorDetail(ResponseType status, string message) : this(ResponseTypeNames.Map.GetValueOrDefault(status, "Unknown"), message) { }
+    public string Error { get; }
+    public string Message { get; }
+
+    public ResponseType Status { get; }
 }
+
 public record InvalidRequestErrorDetail : ErrorDetail
 {
     public InvalidRequestErrorDetail(string Message) : base(ResponseType.InvalidRequest, Message)
     {
     }
-    
+
     public InvalidRequestErrorDetail(string Error, string Message) : base(ResponseType.InvalidRequest, Error, Message)
     {
     }

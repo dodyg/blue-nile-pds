@@ -4,13 +4,13 @@ using Microsoft.Extensions.Logging;
 namespace Sequencer;
 
 public record CrawlersConfig(string Hostname, string[] Crawlers);
+
 public class Crawlers
 {
-    public DateTime LastNotified { get; private set; }
     public static readonly TimeSpan NotifyThreshold = TimeSpan.FromMinutes(20);
-    
-    private readonly CrawlersConfig _config;
     private readonly HttpClient _client;
+
+    private readonly CrawlersConfig _config;
     private readonly ILogger<Crawlers> _logger;
 
 
@@ -21,6 +21,7 @@ public class Crawlers
         _client = client;
         _logger = logger;
     }
+    public DateTime LastNotified { get; private set; }
 
     public async Task NotifyOfUpdate()
     {
@@ -28,13 +29,13 @@ public class Crawlers
         {
             return;
         }
-        
+
         var crawlTasks = new List<Task>();
         foreach (var host in _config.Crawlers)
         {
             crawlTasks.Add(RequestCrawl(host));
         }
-        
+
         await Task.WhenAll(crawlTasks);
         LastNotified = DateTime.UtcNow;
     }
@@ -47,12 +48,12 @@ public class Crawlers
         {
             lh = $"https://{host}";
         }
-            
+
         var response = await _client.PostAsJsonAsync($"{lh}/xrpc/com.atproto.sync.requestCrawl", new
         {
             hostname = _config.Hostname
         });
-            
+
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("Failed to request crawl from {Host}", lh);

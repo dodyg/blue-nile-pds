@@ -9,13 +9,13 @@ public class Verify
         {
             throw new ArgumentException($"Expected key alg {jwtAlg}, got {parsed.JwtAlg}");
         }
-        
+
         var plugin = Did.KeyPlugins.Values.FirstOrDefault(x => x.JwtAlg == parsed.JwtAlg);
         if (plugin == null)
         {
             throw new ArgumentException($"Unsupported signature algorithm: {parsed.JwtAlg}");
         }
-        
+
         return plugin.VerifySignature(didKey, data, sig, opts);
     }
 }

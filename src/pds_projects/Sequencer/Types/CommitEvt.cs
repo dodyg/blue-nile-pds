@@ -43,14 +43,14 @@ public record CommitEvt : ICborEncodable<CommitEvt>
         cbor.Add("blobs", blobsArr);
         return cbor;
     }
-    
+
     public static CommitEvt FromCborObject(CBORObject cbor)
     {
         var rebase = cbor["rebase"].AsBoolean();
         var tooBig = cbor["tooBig"].AsBoolean();
         var repo = cbor["repo"].AsString();
         var rev = cbor["rev"].AsString();
-        string? since = cbor.ContainsKey("since") && !cbor["since"].IsNull ? cbor["since"].AsString() : null;
+        var since = cbor.ContainsKey("since") && !cbor["since"].IsNull ? cbor["since"].AsString() : null;
         var blocks = cbor["blocks"].GetByteString();
         var ops = cbor["ops"].Values.Select(CommitEvtOp.FromCborObject).ToArray();
         var blobs = cbor["blobs"].Values.Select(Cid.FromCBOR).ToArray();

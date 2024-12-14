@@ -17,7 +17,7 @@ public enum ResponseType
     MethodNotImplemented = 501,
     UpstreamFailure = 502,
     NotEnoughResources = 503,
-    UpstreamTimeout = 504,
+    UpstreamTimeout = 504
 }
 
 public class ResponseTypeNames
@@ -37,7 +37,7 @@ public class ResponseTypeNames
     public const string UpstreamFailure = "UpstreamFailure";
     public const string NotEnoughResources = "NotEnoughResources";
     public const string UpstreamTimeout = "UpstreamTimeout";
-    
+
     public static readonly Dictionary<ResponseType, string> Map = new()
     {
         {ResponseType.Unknown, Unknown},
@@ -56,7 +56,7 @@ public class ResponseTypeNames
         {ResponseType.NotEnoughResources, NotEnoughResources},
         {ResponseType.UpstreamTimeout, UpstreamTimeout}
     };
-    
+
     public static readonly Dictionary<string, ResponseType> ReverseMap = Map.ToDictionary(x => x.Value, x => x.Key);
 }
 
@@ -77,7 +77,7 @@ public class ResponseTypeStrings
     public const string UpstreamFailure = "Upstream Failure";
     public const string NotEnoughResources = "Not Enough Resources";
     public const string UpstreamTimeout = "Upstream Timeout";
-    
+
     public static readonly Dictionary<ResponseType, string> Map = new()
     {
         {ResponseType.Unknown, Unknown},
@@ -96,7 +96,7 @@ public class ResponseTypeStrings
         {ResponseType.NotEnoughResources, NotEnoughResources},
         {ResponseType.UpstreamTimeout, UpstreamTimeout}
     };
-    
+
     public static readonly Dictionary<string, ResponseType> ReverseMap = Map.ToDictionary(x => x.Value, x => x.Key);
 }
 
@@ -106,7 +106,7 @@ public class ResponseTypes
     {
         if (Enum.IsDefined(typeof(ResponseType), status))
         {
-            return (ResponseType) status;
+            return (ResponseType)status;
         }
 
         return status switch
@@ -118,12 +118,12 @@ public class ResponseTypes
             _ => ResponseType.InternalServerError
         };
     }
-    
+
     public static string HttpResponseCodeToName(int status)
     {
         return ResponseTypeNames.Map.GetValueOrDefault(HttpResponseCodeToEnum(status), ResponseTypeNames.Unknown);
     }
-    
+
     public static string HttpResponseCodeToString(int status)
     {
         return ResponseTypeStrings.Map.GetValueOrDefault(HttpResponseCodeToEnum(status), ResponseTypeStrings.Unknown);

@@ -5,7 +5,7 @@ namespace AccountManager.Db;
 public class RepoStore
 {
     private readonly AccountManagerDb _db;
-    
+
     public RepoStore(AccountManagerDb db)
     {
         _db = db;
@@ -32,7 +32,7 @@ public class RepoStore
             existingRoot.Cid = cid;
             existingRoot.Rev = rev;
         }
-        
+
         await _db.SaveChangesAsync();
     }
 }

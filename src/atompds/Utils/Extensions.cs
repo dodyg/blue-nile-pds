@@ -1,5 +1,7 @@
 ﻿using CommonWeb;
 using DidDoc = FishyFlip.Models.DidDoc;
+using Service = FishyFlip.Models.Service;
+using VerificationMethod = FishyFlip.Models.VerificationMethod;
 
 namespace atompds.Utils;
 
@@ -14,14 +16,14 @@ public static class Extensions
             document.VerificationMethod?.Select(method => method.ToVerificationMethod()).ToList() ?? [],
             document.Service?.Select(service => service.ToService()).ToList() ?? []);
     }
-    
-    public static FishyFlip.Models.VerificationMethod ToVerificationMethod(this VerificationMethod method)
+
+    public static VerificationMethod ToVerificationMethod(this CommonWeb.VerificationMethod method)
     {
-        return new FishyFlip.Models.VerificationMethod(method.Id, method.Type, method.Controller, method.PublicKeyMultibase!);
+        return new VerificationMethod(method.Id, method.Type, method.Controller, method.PublicKeyMultibase!);
     }
-    
-    public static FishyFlip.Models.Service ToService(this Service method)
+
+    public static Service ToService(this CommonWeb.Service method)
     {
-        return new FishyFlip.Models.Service(method.Id, method.Type, method.ServiceEndpoint);
+        return new Service(method.Id, method.Type, method.ServiceEndpoint);
     }
 }

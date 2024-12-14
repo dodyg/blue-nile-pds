@@ -6,8 +6,8 @@ namespace Identity;
 public class PlcResolver : BaseResolver
 {
     private readonly HttpClient _client;
-    private readonly TimeSpan _timeout;
     private readonly string _plcUrl;
+    private readonly TimeSpan _timeout;
     public PlcResolver(TimeSpan timeout, string plcUrl, IDidCache didCache, HttpClient client) : base(didCache)
     {
         _client = client;

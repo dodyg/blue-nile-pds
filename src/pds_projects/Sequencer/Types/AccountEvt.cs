@@ -9,7 +9,7 @@ public record AccountEvt : ICborEncodable<AccountEvt>
     public required string Did { get; init; }
     public required bool Active { get; init; }
     public required AccountStore.AccountStatus? Status { get; init; }
-    
+
     public CBORObject ToCborObject()
     {
         var cbor = CBORObject.NewMap();
@@ -21,12 +21,12 @@ public record AccountEvt : ICborEncodable<AccountEvt>
         }
         return cbor;
     }
-    
+
     public static AccountEvt FromCborObject(CBORObject cbor)
     {
         var did = cbor["did"].AsString();
         var active = cbor["active"].AsBoolean();
-        string? status = cbor.ContainsKey("status") && !cbor["status"].IsNull ? cbor["status"].AsString() : null;
+        var status = cbor.ContainsKey("status") && !cbor["status"].IsNull ? cbor["status"].AsString() : null;
         return new AccountEvt
         {
             Did = did,

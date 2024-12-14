@@ -1,13 +1,11 @@
 ﻿using AccountManager;
 using AccountManager.Db;
-using ActorStore;
 using atompds.Middleware;
-using DidLib;
+using FishyFlip.Lexicon.Com.Atproto.Server;
+using Mailer;
 using Microsoft.AspNetCore.Mvc;
 using Sequencer;
 using Xrpc;
-using FishyFlip.Lexicon.Com.Atproto.Server;
-using Mailer;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 
@@ -15,10 +13,10 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 [Route("xrpc")]
 public class DeleteAccountController : ControllerBase
 {
-    private readonly ILogger<DeleteAccountController> _logger;
     private readonly AccountRepository _accountRepository;
-    private readonly SequencerRepository _sequencer;
+    private readonly ILogger<DeleteAccountController> _logger;
     private readonly IMailer _mailer;
+    private readonly SequencerRepository _sequencer;
     public DeleteAccountController(ILogger<DeleteAccountController> logger,
         AccountRepository accountRepository,
         SequencerRepository sequencer,
@@ -30,14 +28,14 @@ public class DeleteAccountController : ControllerBase
         _mailer = mailer;
 
     }
-    
+
     [HttpPost("com.atproto.server.requestAccountDelete")]
-    [AccessFull(checkTakenDown:true)]
+    [AccessFull(true)]
     public async Task RequestAccountDelete(CancellationToken cancellationToken)
     {
         var auth = HttpContext.GetAuthOutput();
         var did = auth.AccessCredentials.Did;
-        var account = await _accountRepository.GetAccount(did, new AvailabilityFlags(IncludeTakenDown: true, IncludeDeactivated: true));
+        var account = await _accountRepository.GetAccount(did, new AvailabilityFlags(true, true));
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Account not found."));
@@ -51,7 +49,7 @@ public class DeleteAccountController : ControllerBase
         var emailToken = await _accountRepository.CreateEmailToken(did, EmailToken.EmailTokenPurpose.delete_account);
         await _mailer.SendAccountDelete(emailToken, account.Email);
     }
-    
+
     [HttpPost("com.atproto.server.deleteAccount")]
     public async Task DeleteAccount(
         [FromBody] DeleteAccountInput input,
@@ -62,19 +60,19 @@ public class DeleteAccountController : ControllerBase
         {
             throw new XRPCError(new InvalidRequestErrorDetail("InvalidDid", "Invalid DID."));
         }
-        
-        var account = await _accountRepository.GetAccount(did, new AvailabilityFlags(IncludeTakenDown: true, IncludeDeactivated: true));
+
+        var account = await _accountRepository.GetAccount(did, new AvailabilityFlags(true, true));
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("AccountNotFound", "Account not found."));
         }
-        
+
         var validPass = await _accountRepository.VerifyAccountPassword(did, input.Password!);
         if (!validPass)
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Invalid did or password"));
         }
-        
+
         await _accountRepository.AssertValidEmailToken(did, input.Token!, EmailToken.EmailTokenPurpose.delete_account);
         await _accountRepository.DeleteAccount(did);
         var accountSeq = await _sequencer.SequenceAccountEvent(did, AccountStore.AccountStatus.Deleted);

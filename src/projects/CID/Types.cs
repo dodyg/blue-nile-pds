@@ -19,9 +19,9 @@ public enum Error
 
 public class CIDException : Exception
 {
-    public Error Error { get; }
     public CIDException(Error error) : base(error.ToString())
     {
         Error = error;
     }
+    public Error Error { get; }
 }

@@ -1,4 +1,5 @@
-﻿using AccountManager.Db;
+﻿using AccountManager;
+using AccountManager.Db;
 using atompds.Utils;
 using CommonWeb;
 using Config;
@@ -14,13 +15,14 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 [Route("xrpc")]
 public class CreateSessionController : ControllerBase
 {
-    private readonly AccountManager.AccountRepository _accountRepository;
+    private readonly AccountRepository _accountRepository;
     private readonly IdentityConfig _identityConfig;
     private readonly IdResolver _idResolver;
     private readonly ILogger<CreateSessionController> _logger;
 
-    public CreateSessionController(AccountManager.AccountRepository accountRepository,
-        IdentityConfig identityConfig, IdResolver idResolver,
+    public CreateSessionController(AccountRepository accountRepository,
+        IdentityConfig identityConfig,
+        IdResolver idResolver,
         ILogger<CreateSessionController> logger)
     {
         _accountRepository = accountRepository;
@@ -28,7 +30,7 @@ public class CreateSessionController : ControllerBase
         _idResolver = idResolver;
         _logger = logger;
     }
-    
+
     [HttpPost("com.atproto.server.createSession")]
     public async Task<IActionResult> CreateSession([FromBody] CreateSessionInput request)
     {
@@ -36,12 +38,12 @@ public class CreateSessionController : ControllerBase
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Identifier and password are required"));
         }
-        
+
         var login = await _accountRepository.Login(request.Identifier, request.Password);
         var creds = await _accountRepository.CreateSession(login.Did);
         var didDoc = await DidDocForSession(login.Did);
         var (active, status) = FormatAccountStatus(login);
-        
+
         return Ok(new CreateSessionOutput(creds.AccessJwt,
             creds.RefreshJwt,
             new ATHandle(login.Handle ?? Constants.INVALID_HANDLE),
@@ -65,21 +67,24 @@ public class CreateSessionController : ControllerBase
         {
             return (false, AccountStore.AccountStatus.Takendown);
         }
-        
+
         if (account.DeactivatedAt != null)
         {
             return (false, AccountStore.AccountStatus.Deactivated);
         }
-        
+
         return (true, AccountStore.AccountStatus.Active);
     }
-    
+
     private async Task<DidDocument?> DidDocForSession(string did, bool forceRefresh = false)
     {
-        if (!_identityConfig.EnableDidDocWithSession) return null;
+        if (!_identityConfig.EnableDidDocWithSession)
+        {
+            return null;
+        }
         return await SafeResolveDidDoc(did, forceRefresh);
     }
-    
+
     private async Task<DidDocument?> SafeResolveDidDoc(string did, bool forceRefresh = false)
     {
         try

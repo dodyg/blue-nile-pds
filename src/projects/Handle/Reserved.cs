@@ -17,7 +17,7 @@ public class Reserved
         "lexicon",
         "bsky",
         "bluesky",
-        "handle",
+        "handle"
     ];
 
     // naively pulled from: https://radwebhosting.com/client_area/knowledgebase/196/List-of-Banned-Subdomain-Prefixes.html
@@ -863,7 +863,7 @@ public class Reserved
         "yourdomain",
         "yourname",
         "yoursite",
-        "yourusername",
+        "yourusername"
     ];
 
     public static string[] famousAccounts =
@@ -1051,7 +1051,7 @@ public class Reserved
         "paulocoelho",
         "portalr7",
         "rede_globo",
-        "zerohora",
+        "zerohora"
     ];
 
 

@@ -1,7 +1,6 @@
 ﻿using System.Buffers.Text;
 using System.Security.Cryptography;
 using Crypto;
-using Common;
 using PeterO.Cbor;
 using SimpleBase;
 
@@ -16,12 +15,12 @@ public static class Operations
         var b64Url = Base64Url.EncodeToString(sig);
         return Task.FromResult(b64Url);
     }
-    
+
     public static async Task<SignedOp<AtProtoOp>> AtProtoOp(string signingKey, string handle, string pds, string[] rotationKeys, string? cid, IKeyPair keyPair)
     {
         var op = FormatAtProtoOp(signingKey, handle, pds, rotationKeys, cid);
         var sig = await GetSignature(op.ToCborObject(), keyPair);
-        
+
         return new SignedOp<AtProtoOp>
         {
             Sig = sig,
@@ -63,17 +62,23 @@ public static class Operations
             Prev = cid
         };
     }
-    
+
     private static string EnsureAtProtoPrefix(string str)
     {
-        if (str.StartsWith("at://")) return str;
+        if (str.StartsWith("at://"))
+        {
+            return str;
+        }
         var stripped = str.Replace("http://", "").Replace("https://", "");
         return $"at://{stripped}";
     }
-    
+
     private static string EnsureHttpPrefix(string str)
     {
-        if (str.StartsWith("http://") || str.StartsWith("https://")) return str;
+        if (str.StartsWith("http://") || str.StartsWith("https://"))
+        {
+            return str;
+        }
         return $"https://{str}";
     }
 }

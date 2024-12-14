@@ -7,14 +7,14 @@ public class DidWebResolver : BaseResolver
 {
     public const string DOC_PATH = "/.well-known/did.json";
     private readonly HttpClient _client;
-    
+
     private readonly TimeSpan _timeout;
     public DidWebResolver(TimeSpan timeout, IDidCache? didCache, HttpClient client) : base(didCache)
     {
         _timeout = timeout;
         _client = client;
     }
-    
+
     // TODO: Handle when value is not found vs errors
     public override async Task<string?> ResolveNoCheck(string did)
     {
@@ -24,8 +24,8 @@ public class DidWebResolver : BaseResolver
         if (parsedId.Length < 1)
         {
             throw new PoorlyFormattedDidError(did);
-        } 
-        else if (parts.Length == 1)
+        }
+        if (parts.Length == 1)
         {
             path = parts[0] + DOC_PATH;
         }
@@ -33,12 +33,12 @@ public class DidWebResolver : BaseResolver
         {
             path = parts[1] ?? throw new PoorlyFormattedDidError(did);
         }
-        
+
         var url = new Uri(path);
         if (url.Host == "localhost")
         {
             // set scheme to http
-            url = new UriBuilder(url) { Scheme = "http" }.Uri;
+            url = new UriBuilder(url) {Scheme = "http"}.Uri;
         }
 
         try

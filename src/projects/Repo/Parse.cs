@@ -15,7 +15,7 @@ public class Parse
 
         return ParseObjByDef(bytes, cid, parse);
     }
-    
+
     public static T ParseObjByDef<T>(byte[] bytes, Cid cid, Func<CBORObject, T?> parse)
     {
         var obj = CBORObject.DecodeFromBytes(bytes);
@@ -24,7 +24,7 @@ public class Parse
         {
             throw new Exception($"Failed to parse block {cid}");
         }
-        
+
         return res;
     }
 }

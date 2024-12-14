@@ -7,12 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="DnsClient" Version="1.8.0" />
+        <PackageReference Include="DnsClient" Version="1.8.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CommonWeb\CommonWeb.csproj" />
-      <ProjectReference Include="..\Crypto\Crypto.csproj" />
+        <ProjectReference Include="..\CommonWeb\CommonWeb.csproj"/>
+        <ProjectReference Include="..\Crypto\Crypto.csproj"/>
     </ItemGroup>
 
 </Project>

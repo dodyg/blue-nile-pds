@@ -10,8 +10,8 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 public class DescribeServerController : ControllerBase
 {
     private readonly IdentityConfig _identityConfig;
-    private readonly ServiceConfig _serviceConfig;
     private readonly InvitesConfig _invitesConfig;
+    private readonly ServiceConfig _serviceConfig;
 
     public DescribeServerController(IdentityConfig identityConfig, ServiceConfig serviceConfig, InvitesConfig invitesConfig)
     {
@@ -19,7 +19,7 @@ public class DescribeServerController : ControllerBase
         _serviceConfig = serviceConfig;
         _invitesConfig = invitesConfig;
     }
-    
+
     [HttpGet("com.atproto.server.describeServer")]
     public IActionResult DescribeServer()
     {

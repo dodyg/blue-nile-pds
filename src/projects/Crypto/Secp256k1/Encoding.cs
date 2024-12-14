@@ -11,10 +11,10 @@ public class Encoding
         {
             throw new Exception("Failed to compress public key");
         }
-        
+
         return compactOutput;
     }
-    
+
     public static byte[] DecompressPubKey(byte[] pubKeyBytes)
     {
         var decompressedOutput = new byte[Secp256k1Net.Secp256k1.SERIALIZED_UNCOMPRESSED_PUBKEY_LENGTH];
@@ -22,7 +22,7 @@ public class Encoding
         {
             throw new Exception("Failed to decompress public key");
         }
-        
+
         return decompressedOutput;
     }
 }

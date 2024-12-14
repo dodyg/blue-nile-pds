@@ -1,17 +1,18 @@
 ﻿using System.Text.Json;
 using CommonWeb;
+using Crypto;
 
 namespace Identity;
 
 public abstract class BaseResolver
 {
-    protected IDidCache? Cache { get; }
-    
+
     public BaseResolver(IDidCache? cache = null)
     {
         Cache = cache;
     }
-    
+    protected IDidCache? Cache { get; }
+
     public DidDocument ValidateDidDoc(string did, string val)
     {
         DidDocument doc;
@@ -23,17 +24,17 @@ public abstract class BaseResolver
         {
             throw new PoorlyFormattedDidDocumentError(did, val, e);
         }
-        
+
         if (doc.Id != did)
         {
-            throw new PoorlyFormattedDidDocumentError(did,val, null);
+            throw new PoorlyFormattedDidDocumentError(did, val, null);
         }
-        
+
         return doc;
     }
-    
+
     public abstract Task<string?> ResolveNoCheck(string did);
-    
+
     public async Task<DidDocument?> ResolveNoCache(string did)
     {
         var doc = await ResolveNoCheck(did);
@@ -50,7 +51,7 @@ public abstract class BaseResolver
         {
             return;
         }
-        
+
         await Cache.RefreshCache(did, () => ResolveNoCache(did), prevResult);
     }
 
@@ -70,7 +71,7 @@ public abstract class BaseResolver
                 return fromCache.Doc;
             }
         }
-        
+
         var got = await ResolveNoCache(did);
         if (got == null)
         {
@@ -85,10 +86,10 @@ public abstract class BaseResolver
         {
             await Cache.CacheDid(did, got, fromCache ?? null);
         }
-        
+
         return got;
     }
-    
+
     public async Task<DidDocument> EnsureResolve(string did, bool forceRefresh = false)
     {
         var doc = await Resolve(did, forceRefresh);
@@ -98,13 +99,13 @@ public abstract class BaseResolver
         }
         return doc;
     }
-    
+
     public async Task<AtprotoData> ResolveAtproto(string did, bool forceRefresh = false)
     {
         var doc = await EnsureResolve(did, forceRefresh);
         return Atproto_Data.EnsureAtpDocument(doc);
     }
-    
+
     public async Task<string> ResolveAtprotoKey(string did, bool forceRefresh = false)
     {
         var doc = await EnsureResolve(did, forceRefresh);
@@ -114,7 +115,7 @@ public abstract class BaseResolver
     public async Task<bool> VerifySignature(string did, byte[] data, byte[] sig, bool forceRefresh = false)
     {
         var signingKey = await ResolveAtprotoKey(did, forceRefresh);
-        return Crypto.Verify.VerifySignature(signingKey, data, sig, null, null);
+        return Verify.VerifySignature(signingKey, data, sig, null, null);
     }
 }
 

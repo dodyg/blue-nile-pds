@@ -7,9 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Multiformats.Base" Version="2.0.2" />
-      <PackageReference Include="Multiformats.Codec" Version="1.1.2" />
-      <PackageReference Include="Multiformats.Hash" Version="1.5.0" />
+        <PackageReference Include="Multiformats.Base" Version="2.0.2"/>
+        <PackageReference Include="Multiformats.Codec" Version="1.1.2"/>
+        <PackageReference Include="Multiformats.Hash" Version="1.5.0"/>
     </ItemGroup>
 
 </Project>

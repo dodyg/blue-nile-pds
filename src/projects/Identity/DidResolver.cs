@@ -7,8 +7,8 @@ public class DidResolver : BaseResolver
     {
         _methods = new Dictionary<string, BaseResolver>
         {
-            {"plc", new PlcResolver(timeout, plcUrl, didCache, httpClient) },
-            {"web", new DidWebResolver(timeout, didCache, httpClient) }
+            {"plc", new PlcResolver(timeout, plcUrl, didCache, httpClient)},
+            {"web", new DidWebResolver(timeout, didCache, httpClient)}
         };
     }
 
@@ -19,13 +19,13 @@ public class DidResolver : BaseResolver
         {
             throw new PoorlyFormattedDidError(did);
         }
-        
+
         var method = split[1];
         if (!_methods.TryGetValue(method, out var resolver))
         {
             throw new UnsupportedDidMethodError(did);
         }
-        
+
         return resolver.ResolveNoCheck(did);
     }
 }

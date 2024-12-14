@@ -8,23 +8,23 @@ namespace AccountManager;
 
 public class AccountRepository
 {
-    private readonly ServiceConfig _serviceConfig;
-    private readonly SecretsConfig _secretsConfig;
     private readonly AccountStore _accountStore;
-    private readonly RepoStore _repoStore;
-    private readonly PasswordStore _passwordStore;
     private readonly Auth _auth;
-    private readonly InviteStore _inviteStore;
-    private readonly EmailTokenStore _emailTokenStore;
     private readonly AccountManagerDb _db;
+    private readonly EmailTokenStore _emailTokenStore;
+    private readonly InviteStore _inviteStore;
+    private readonly PasswordStore _passwordStore;
+    private readonly RepoStore _repoStore;
+    private readonly SecretsConfig _secretsConfig;
+    private readonly ServiceConfig _serviceConfig;
     public AccountRepository(
-        ServiceConfig serviceConfig, 
-        SecretsConfig secretsConfig, 
+        ServiceConfig serviceConfig,
+        SecretsConfig secretsConfig,
         AccountStore accountStore,
         RepoStore repoStore,
         PasswordStore passwordStore,
-        Auth auth, 
-        InviteStore inviteStore, 
+        Auth auth,
+        InviteStore inviteStore,
         EmailTokenStore emailTokenStore,
         AccountManagerDb db)
     {
@@ -44,9 +44,15 @@ public class AccountRepository
         var account = await _accountStore.GetAccount(repo, flags);
         return account?.Did;
     }
-    
-    public async Task<(string AccessJwt, string RefreshJwt)> CreateAccount(string did, string handle, string? email, string? password, 
-        string repoCid, string repoRev, string? inviteCode, bool? deactivated)
+
+    public async Task<(string AccessJwt, string RefreshJwt)> CreateAccount(string did,
+        string handle,
+        string? email,
+        string? password,
+        string repoCid,
+        string repoRev,
+        string? inviteCode,
+        bool? deactivated)
     {
         string? passwordScrypt = null;
         if (password != null)
@@ -64,7 +70,7 @@ public class AccountRepository
             // ensure invite code is available
             await _inviteStore.EnsureInviteIsAvailable(inviteCode);
         }
-        
+
         await using var transaction = await _db.Database.BeginTransactionAsync();
         await _accountStore.RegisterActor(did, handle, deactivated);
         if (email != null && passwordScrypt != null)
@@ -76,25 +82,25 @@ public class AccountRepository
         await _repoStore.UpdateRoot(did, repoCid, repoRev);
         await transaction.CommitAsync();
         await _db.SaveChangesAsync();
-        
+
         return (tokens.AccessToken, tokens.RefreshToken);
     }
-    
+
     public async Task DeleteAccount(string did)
     {
         await _accountStore.DeleteAccount(did);
     }
-    
+
     public async Task EnsureInviteIsAvailable(string code)
     {
         await _inviteStore.EnsureInviteIsAvailable(code);
     }
-    
+
     public async Task<ActorAccount?> GetAccount(string handleOrDid, AvailabilityFlags? flags = null)
     {
         return await _accountStore.GetAccount(handleOrDid, flags);
     }
-    
+
     public async Task<ActorAccount?> GetAccountByEmail(string email, AvailabilityFlags? flags = null)
     {
         return await _accountStore.GetAccountByEmail(email, flags);
@@ -114,22 +120,22 @@ public class AccountRepository
     {
         return _emailTokenStore.CreateEmailToken(did, purpose);
     }
-    
+
     public Task AssertValidEmailToken(string did, string token, EmailToken.EmailTokenPurpose purpose)
     {
         return _emailTokenStore.AssertValidToken(did, token, purpose);
     }
-    
+
     public async Task UpdateRepoRoot(string did, Cid cid, string rev)
     {
         await _repoStore.UpdateRoot(did, cid.ToString(), rev);
     }
-    
+
     public Task<bool> VerifyAccountPassword(string did, string appPassword)
     {
         return _passwordStore.VerifyAccountPassword(did, appPassword);
     }
-    
+
     public async Task<ActorAccount> Login(string identifier, string password)
     {
         var start = DateTime.UtcNow;
@@ -140,11 +146,11 @@ public class AccountRepository
             ActorAccount? user;
             if (identifierNormalized.Contains("@"))
             {
-                user = await GetAccountByEmail(identifierNormalized, new AvailabilityFlags(IncludeTakenDown: true,IncludeDeactivated: true));
+                user = await GetAccountByEmail(identifierNormalized, new AvailabilityFlags(true, true));
             }
             else
             {
-                user = await GetAccount(identifierNormalized, new AvailabilityFlags(IncludeTakenDown: true,IncludeDeactivated: true));
+                user = await GetAccount(identifierNormalized, new AvailabilityFlags(true, true));
             }
 
             if (user == null)

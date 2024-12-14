@@ -5,13 +5,13 @@ namespace Crypto;
 
 public class Multibase
 {
-    private static readonly Base16 Base16Lower = new Base16(new Base16Alphabet("0123456789abcdef"));
-    private static readonly Base16 Base16Upper = new Base16(new Base16Alphabet("0123456789ABCDEF"));
-    private static readonly Base32 Base32Lower = new Base32(new Base32Alphabet("abcdefghijklmnopqrstuvwxyz234567"));
-    private static readonly Base32 Base32Upper = new Base32(new Base32Alphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"));
-    private static readonly Base58 Base58Btc = new Base58(new Base58Alphabet("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"));
-    
-    
+    private static readonly Base16 Base16Lower = new(new Base16Alphabet("0123456789abcdef"));
+    private static readonly Base16 Base16Upper = new(new Base16Alphabet("0123456789ABCDEF"));
+    private static readonly Base32 Base32Lower = new(new Base32Alphabet("abcdefghijklmnopqrstuvwxyz234567"));
+    private static readonly Base32 Base32Upper = new(new Base32Alphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"));
+    private static readonly Base58 Base58Btc = new(new Base58Alphabet("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"));
+
+
     public static byte[] MultibaseToBytes(string mb)
     {
         var prefix = mb[0];

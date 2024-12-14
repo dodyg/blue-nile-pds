@@ -16,7 +16,7 @@ public class CidTests
     {
         var cid = Cid.Create(input);
         var outputStr = cid.ToStringOfBase(encoding);
-        
+
         Assert.Equal(expectedOutput, outputStr);
     }
 
@@ -27,7 +27,7 @@ public class CidTests
         var digest = Util.Sha2_256Digest(input);
         var cid = Cid.NewV0(digest);
         var outputStr = cid.ToStringOfBase(encoding);
-        
+
         Assert.Equal(expectedOutput, outputStr);
     }
 
@@ -38,7 +38,7 @@ public class CidTests
         var data = cid.ToBytes();
         var cmp = Cid.ReadBytes(data);
         Assert.Equal(cid, cmp);
-        
+
         var cmp2 = cmp.ToV1();
         Assert.Equal(cid, cmp2);
 
@@ -53,7 +53,7 @@ public class CidTests
         var input = "bafkreibme22gw2h7y2h7tg2fhqotaqjucnbc24deqo72b6mkl2egezxhvy";
         var expectedOutput = Util.Sha2_256Digest("foo");
         var cid = Cid.FromString(input);
-        
+
         Assert.Equal(Version.V1, cid.Version);
         Assert.Equal((ulong)MulticodecCode.Raw, cid.Codec);
         Assert.Equal(expectedOutput, cid.Hash);
@@ -65,7 +65,7 @@ public class CidTests
         var input = "zUFKqwZsvwnjhQeVttU28NEx8z4mfJJN7U4KfG8rFVAoXHKF2";
         var cid = Cid.FromString(input);
         var cid2 = Ipfs.Cid.Decode(input);
-        
+
         Assert.Equal(Version.V1, cid.Version);
     }
 
@@ -74,7 +74,7 @@ public class CidTests
     {
         var old = "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n";
         var cid = Cid.FromString(old);
-        
+
         Assert.Equal(Version.V0, cid.Version);
         Assert.Equal(old, cid.ToStringOfBase(MultibaseEncoding.Base58Btc));
     }
@@ -115,13 +115,13 @@ public class CidTests
         byte[] data = [1, 2, 3];
         var hash = Util.Sha2_256Digest(data);
         var cid = Cid.NewV0(hash);
-        
+
         // test that we can store the CID as a hash and get it back
         var dict = new Dictionary<Cid, byte[]>
         {
             [cid] = data
         };
-        
+
         Assert.True(dict.ContainsKey(cid));
         Assert.Equal(data, dict[cid]);
     }

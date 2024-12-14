@@ -7,6 +7,7 @@ using Repo;
 using Repo.MST;
 using Sequencer.Db;
 using Sequencer.Types;
+using Util = Repo.Util;
 
 namespace Sequencer;
 
@@ -14,18 +15,14 @@ public record CloseEvt;
 
 public class SequencerRepository : IDisposable
 {
-    public event EventHandler<ISeqEvt[]>? OnEvents;
-    public event EventHandler<CloseEvt>? OnClose;
-    
-    private readonly SequencerDb _db;
-    private readonly SequencerDb _pollDb;
     private readonly Crawlers _crawlers;
-    private readonly ILogger<SequencerRepository> _logger;
     private readonly CancellationTokenSource _cts = new();
-    public int? LastSeen { get; private set; }
-    private int TriesWithNoResults { get; set; }
+
+    private readonly SequencerDb _db;
+    private readonly ILogger<SequencerRepository> _logger;
+    private readonly SequencerDb _pollDb;
     private readonly Task _pollTask;
-    
+
     public SequencerRepository(IDbContextFactory<SequencerDb> seqDbFactory, Crawlers crawlers, ILogger<SequencerRepository> logger)
     {
         _db = seqDbFactory.CreateDbContext();
@@ -34,11 +31,23 @@ public class SequencerRepository : IDisposable
         _logger = logger;
         _pollTask = Task.Run(PollTask, _cts.Token);
     }
+    public int? LastSeen { get; private set; }
+    private int TriesWithNoResults { get; set; }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _pollTask?.Wait();
+        OnClose?.Invoke(this, new CloseEvt());
+        _db.Dispose();
+        _pollDb.Dispose();
+    }
+    public event EventHandler<ISeqEvt[]>? OnEvents;
+    public event EventHandler<CloseEvt>? OnClose;
 
     private async Task PollTask()
     {
         while (_cts.Token.IsCancellationRequested == false)
-        {
             try
             {
                 await PollDb();
@@ -47,7 +56,6 @@ public class SequencerRepository : IDisposable
             {
                 _logger.LogError(e, "Error polling db");
             }
-        }
     }
 
     private async Task PollDb()
@@ -85,7 +93,7 @@ public class SequencerRepository : IDisposable
         var seq = await _db.RepoSeqs
             .OrderByDescending(x => x.Seq)
             .FirstOrDefaultAsync();
-        
+
         return seq?.Seq;
     }
 
@@ -95,20 +103,20 @@ public class SequencerRepository : IDisposable
             .Where(x => x.Seq > cursor)
             .OrderBy(x => x.Seq)
             .FirstOrDefaultAsync();
-        
+
         return seq;
     }
-    
+
     public async Task<RepoSeq?> EarliestAfterTime(DateTime time)
     {
         var seq = await _db.RepoSeqs
             .Where(x => x.SequencedAt > time)
             .OrderBy(x => x.Seq)
             .FirstOrDefaultAsync();
-        
+
         return seq;
     }
-    
+
     // TODO: This should be private, dboverride is here just so we're using a separate dbcontext for the poll task as it runs on a separate thread
     public async Task<ISeqEvt[]> GetRange(int? earliestSeq, int? latestSeq, DateTime? earliestTime, int? limit, SequencerDb? dbOverride = null)
     {
@@ -120,28 +128,28 @@ public class SequencerRepository : IDisposable
         {
             seqs = seqs.Where(x => x.Seq > earliestSeq);
         }
-        
+
         if (latestSeq != null)
         {
             seqs = seqs.Where(x => x.Seq <= latestSeq);
         }
-        
+
         if (earliestTime != null)
         {
             seqs = seqs.Where(x => x.SequencedAt >= earliestTime);
         }
-        
+
         if (limit != null)
         {
             seqs = seqs.Take(limit.Value);
         }
-        
+
         var rows = await seqs.ToArrayAsync();
         if (rows.Length < 1)
         {
             return [];
         }
-        
+
         var seqEvents = new List<ISeqEvt>();
         foreach (var row in rows)
         {
@@ -203,10 +211,10 @@ public class SequencerRepository : IDisposable
                 _logger.LogError(e, "Error decoding event");
             }
         }
-        
+
         return seqEvents.ToArray();
     }
-    
+
     public async Task DeleteAllForUser(string did, int[] excludingSeq)
     {
         await _db.RepoSeqs
@@ -227,31 +235,31 @@ public class SequencerRepository : IDisposable
         var evt = await FormatSeqCommit(did, commitData, writes);
         return await SequenceEvent(evt);
     }
-    
+
     public async Task<int> SequenceHandleUpdate(string did, string handle)
     {
         var evt = FormatSeqHandleUpdate(did, handle);
         return await SequenceEvent(evt);
     }
-    
+
     public async Task<int> SequenceIdentityEvent(string did, string? handle)
     {
         var evt = FormatSeqIdentityEvent(did, handle);
         return await SequenceEvent(evt);
     }
-    
+
     public async Task<int> SequenceAccountEvent(string did, AccountStore.AccountStatus status)
     {
         var evt = FormatSeqAccountEvent(did, status);
         return await SequenceEvent(evt);
     }
-    
+
     public async Task<int> SequenceTombstoneEvent(string did)
     {
         var evt = FormatSeqTombstoneEvent(did);
         return await SequenceEvent(evt);
     }
-    
+
     private async Task<RepoSeq> FormatSeqCommit(string did, CommitData commitData, IPreparedWrite[] writes)
     {
         var ops = new List<CommitEvtOp>();
@@ -269,7 +277,7 @@ public class SequencerRepository : IDisposable
                 justRoot.Set(commitData.Cid, rootBlock);
             }
 
-            carSlice = await Repo.Util.BlocksToCarFile(commitData.Cid, justRoot);
+            carSlice = await Util.BlocksToCarFile(commitData.Cid, justRoot);
         }
         else
         {
@@ -306,7 +314,7 @@ public class SequencerRepository : IDisposable
                 });
             }
 
-            carSlice = await Repo.Util.BlocksToCarFile(commitData.Cid, commitData.NewBlocks);
+            carSlice = await Util.BlocksToCarFile(commitData.Cid, commitData.NewBlocks);
         }
 
         return new RepoSeq
@@ -354,7 +362,7 @@ public class SequencerRepository : IDisposable
             Did = did,
             Handle = handle
         };
-        
+
         return new RepoSeq
         {
             Did = did,
@@ -363,16 +371,16 @@ public class SequencerRepository : IDisposable
             SequencedAt = DateTime.UtcNow
         };
     }
-    
+
     private RepoSeq FormatSeqAccountEvent(string did, AccountStore.AccountStatus status)
     {
         var accountEvt = new AccountEvt
         {
             Did = did,
             Active = status == AccountStore.AccountStatus.Active,
-            Status = status == AccountStore.AccountStatus.Active ? null : status,
+            Status = status == AccountStore.AccountStatus.Active ? null : status
         };
-        
+
         return new RepoSeq
         {
             Did = did,
@@ -381,14 +389,14 @@ public class SequencerRepository : IDisposable
             SequencedAt = DateTime.UtcNow
         };
     }
-    
+
     private RepoSeq FormatSeqTombstoneEvent(string did)
     {
         var tombstoneEvt = new TombstoneEvt
         {
             Did = did
         };
-        
+
         return new RepoSeq
         {
             Did = did,
@@ -396,14 +404,5 @@ public class SequencerRepository : IDisposable
             Event = tombstoneEvt.ToCborObject().EncodeToBytes(),
             SequencedAt = DateTime.UtcNow
         };
-    }
-    
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _pollTask?.Wait();
-        OnClose?.Invoke(this, new CloseEvt());
-        _db.Dispose();
-        _pollDb.Dispose();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using CommonWeb;
 using Config;
 using Identity;
 using Xrpc;
@@ -7,86 +8,6 @@ namespace Handle;
 
 public partial class HandleManager
 {
-    private readonly IdentityConfig _identityConfig;
-    private readonly IdResolver _idResolver;
-    public HandleManager(IdentityConfig identityConfig, IdResolver idResolver)
-    {
-        _identityConfig = identityConfig;
-        _idResolver = idResolver;
-    }
-    
-    public async Task<string> NormalizeAndValidateHandle(string inputHandle, string? did, bool? allowReserved)
-    {
-        var handle = NormalizeAndEnsureValidHandle(inputHandle);
-        
-        if (!IsValidTld(handle))
-        {
-            throw new XRPCError(new InvalidHandleErrorDetail("Handle TLD is invalid or disallowed"));
-        }
-        
-        if (HasExplicitSlur(handle))
-        {
-            throw new XRPCError(new InvalidHandleErrorDetail("Inappropriate language in handle"));
-        }
-        
-        if (IsServiceDomain(handle, _identityConfig.ServiceHandleDomains.ToArray()))
-        {
-            EnsureHandleServiceConstraints(handle, _identityConfig.ServiceHandleDomains.ToArray(), allowReserved ?? false);
-        }
-        else 
-        {
-            if (did == null)
-            {
-                throw new XRPCError(new InvalidHandleErrorDetail("Not a supported handle domain"));
-            }
-            
-            var resolvedDid = await _idResolver.HandleResolver.Resolve(handle, CancellationToken.None);
-            if (resolvedDid == null || resolvedDid != did)
-            {
-                throw new XRPCError(new InvalidHandleErrorDetail("External handle did not resolve to DID"));
-            }
-        }
-        
-        return handle;
-    }
-
-    private void EnsureHandleServiceConstraints(string handle, string[] availableUserDomains, bool allowReserved = false)
-    {
-        var supportedDomain = availableUserDomains.FirstOrDefault(handle.EndsWith) ?? "";
-        
-        // ex. handle = "foo.bar.baz", supportedDomain = "bar.baz"
-        // check that "foo" is valid
-        var front = handle[..(handle.Length - supportedDomain.Length - 1)];
-        if (front.Contains('.'))
-        {
-            throw new XRPCError(new InvalidHandleErrorDetail("Invalid characters in handle"));
-        }
-        
-        if (front.Length < 3)
-        {
-            throw new XRPCError(new InvalidHandleErrorDetail("Handle too short"));
-        }
-        
-        if (front.Length > 18)
-        {
-            throw new XRPCError(new InvalidHandleErrorDetail("Handle too long"));
-        }
-        
-        if (!allowReserved && Reserved.ReservedSubdomains.Any(x => x == front))
-        {
-            throw new XRPCError(new InvalidHandleErrorDetail("Reserved handle"));
-        }
-    }
-    
-    private bool IsServiceDomain(string handle, string[] serviceDomains)
-    {
-        return serviceDomains.Any(handle.EndsWith);
-    }
-
-    private bool IsValidTld(string tld)
-    {
-        return !DISALLOWED_TLDS.Contains(tld);
-    }
 
     private static readonly Regex[] Sr =
     [
@@ -98,25 +19,7 @@ public partial class HandleManager
         ES6(),
         ES7()
     ];
-    
-    public static bool HasExplicitSlur(string handle)
-    {
-        var sh = handle.Replace(".", "").Replace("-", "").Replace("_", "");
-        return Sr.Any(r => r.IsMatch(handle) || r.IsMatch(sh));
-    }
-    
-    public string NormalizeAndEnsureValidHandle(string handle)
-    {
-        var normalized = NormalizeHandle(handle);
-        CommonWeb.Util.EnsureValidHandle(normalized);
-        return normalized;
-    }
 
-    private string NormalizeHandle(string handle)
-    {
-        return handle.ToLower();
-    }
-    
     public static readonly string[] DISALLOWED_TLDS =
     [
         ".local",
@@ -127,10 +30,109 @@ public partial class HandleManager
         ".example",
         ".alt",
         // policy could concievably change on ".onion" some day
-        ".onion",
+        ".onion"
         // NOTE: .test is allowed in testing and devopment. In practical terms
         // "should" "never" actually resolve and get registered in production
     ];
+
+    private readonly IdentityConfig _identityConfig;
+    private readonly IdResolver _idResolver;
+    public HandleManager(IdentityConfig identityConfig, IdResolver idResolver)
+    {
+        _identityConfig = identityConfig;
+        _idResolver = idResolver;
+    }
+
+    public async Task<string> NormalizeAndValidateHandle(string inputHandle, string? did, bool? allowReserved)
+    {
+        var handle = NormalizeAndEnsureValidHandle(inputHandle);
+
+        if (!IsValidTld(handle))
+        {
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle TLD is invalid or disallowed"));
+        }
+
+        if (HasExplicitSlur(handle))
+        {
+            throw new XRPCError(new InvalidHandleErrorDetail("Inappropriate language in handle"));
+        }
+
+        if (IsServiceDomain(handle, _identityConfig.ServiceHandleDomains.ToArray()))
+        {
+            EnsureHandleServiceConstraints(handle, _identityConfig.ServiceHandleDomains.ToArray(), allowReserved ?? false);
+        }
+        else
+        {
+            if (did == null)
+            {
+                throw new XRPCError(new InvalidHandleErrorDetail("Not a supported handle domain"));
+            }
+
+            var resolvedDid = await _idResolver.HandleResolver.Resolve(handle, CancellationToken.None);
+            if (resolvedDid == null || resolvedDid != did)
+            {
+                throw new XRPCError(new InvalidHandleErrorDetail("External handle did not resolve to DID"));
+            }
+        }
+
+        return handle;
+    }
+
+    private void EnsureHandleServiceConstraints(string handle, string[] availableUserDomains, bool allowReserved = false)
+    {
+        var supportedDomain = availableUserDomains.FirstOrDefault(handle.EndsWith) ?? "";
+
+        // ex. handle = "foo.bar.baz", supportedDomain = "bar.baz"
+        // check that "foo" is valid
+        var front = handle[..(handle.Length - supportedDomain.Length - 1)];
+        if (front.Contains('.'))
+        {
+            throw new XRPCError(new InvalidHandleErrorDetail("Invalid characters in handle"));
+        }
+
+        if (front.Length < 3)
+        {
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle too short"));
+        }
+
+        if (front.Length > 18)
+        {
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle too long"));
+        }
+
+        if (!allowReserved && Reserved.ReservedSubdomains.Any(x => x == front))
+        {
+            throw new XRPCError(new InvalidHandleErrorDetail("Reserved handle"));
+        }
+    }
+
+    private bool IsServiceDomain(string handle, string[] serviceDomains)
+    {
+        return serviceDomains.Any(handle.EndsWith);
+    }
+
+    private bool IsValidTld(string tld)
+    {
+        return !DISALLOWED_TLDS.Contains(tld);
+    }
+
+    public static bool HasExplicitSlur(string handle)
+    {
+        var sh = handle.Replace(".", "").Replace("-", "").Replace("_", "");
+        return Sr.Any(r => r.IsMatch(handle) || r.IsMatch(sh));
+    }
+
+    public string NormalizeAndEnsureValidHandle(string handle)
+    {
+        var normalized = NormalizeHandle(handle);
+        Util.EnsureValidHandle(normalized);
+        return normalized;
+    }
+
+    private string NormalizeHandle(string handle)
+    {
+        return handle.ToLower();
+    }
 
 
     [GeneratedRegex(

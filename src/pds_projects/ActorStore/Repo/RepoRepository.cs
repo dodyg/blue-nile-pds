@@ -13,9 +13,9 @@ public class RepoRepository
     private readonly ActorStoreDb _db;
     private readonly string _did;
     private readonly IKeyPair _keyPair;
-    private readonly SqlRepoTransactor _storage;
-    private readonly RecordRepository _record;
     private readonly DateTime _now = DateTime.UtcNow;
+    private readonly RecordRepository _record;
+    private readonly SqlRepoTransactor _storage;
     public RepoRepository(ActorStoreDb db, string did, IKeyPair keyPair, SqlRepoTransactor storage, RecordRepository record)
     {
         _db = db;
@@ -24,7 +24,7 @@ public class RepoRepository
         _storage = storage;
         _record = record;
     }
-    
+
     public async Task<string[]> GetCollections()
     {
         return await _db.Records
@@ -37,11 +37,11 @@ public class RepoRepository
     {
         var writeOpts = writes.Select(x => x.CreateWriteToOp()).ToArray();
         var commit = await global::Repo.Repo.FormatInitCommit(_storage, _did, _keyPair, writeOpts);
-        
+
         await _storage.ApplyCommit(commit);
         await IndexWrites(writes.Cast<IPreparedWrite>().ToArray(), commit.Rev);
         // TODO: Actually do stuff with blobs
-        
+
         return commit;
     }
 
@@ -98,7 +98,7 @@ public class RepoRepository
         {
             throw new Exception("Bad commit swap");
         }
-        
+
         await _storage.CacheRev(currRoot.Rev);
         var newRecordsCids = new List<Cid>();
         var delAndUpdateUris = new List<ATUri>();
@@ -120,8 +120,11 @@ public class RepoRepository
                 delAndUpdateUris.Add(delete.Uri);
                 swapCid = delete.SwapCid;
             }
-            
-            if (swapCid == null) continue;
+
+            if (swapCid == null)
+            {
+                continue;
+            }
 
             var record = await _record.GetRecord(write.Uri, null, true);
             Cid? currRecord = record != null ? Cid.FromString(record.Cid) : null;
@@ -142,11 +145,11 @@ public class RepoRepository
                 throw new Exception("Bad swap");
             }
         }
-        
+
         var repo = await global::Repo.Repo.Load(_storage, currRoot.Cid);
         var writeOps = writes.Select(WriteToOp).ToArray();
         var commit = await repo.FormatCommit(writeOps, _keyPair);
-        
+
         // find blocks that would be deleted but are referenced by another record
         var dupeRecordCids = await GetDuplicateRecordCids(commit.RemovedCids.ToArray(), delAndUpdateUris.ToArray());
         foreach (var dupeCid in dupeRecordCids)
@@ -166,15 +169,18 @@ public class RepoRepository
 
     private async Task<Cid[]> GetDuplicateRecordCids(Cid[] cids, ATUri[] touchedUris)
     {
-        if (cids.Length == 0 || touchedUris.Length == 0) return [];
+        if (cids.Length == 0 || touchedUris.Length == 0)
+        {
+            return [];
+        }
         var cidStrs = cids.Select(x => x.ToString()).ToArray();
         var uriStrs = touchedUris.Select(x => x.ToString()).ToArray();
-        
+
         var res = await _db.Records
             .Where(x => cidStrs.Contains(x.Cid) && !uriStrs.Contains(x.Uri))
             .Select(x => x.Cid)
             .ToArrayAsync();
-        
+
         return res.Select(Cid.FromString).ToArray();
     }
 

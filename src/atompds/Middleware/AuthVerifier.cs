@@ -12,15 +12,6 @@ public record AuthVerifierConfig(string JwtKey, string AdminPass, string PublicU
 
 public class AuthVerifier
 {
-    private readonly AccountRepository _accountRepository;
-    private readonly IdResolver _idResolver;
-    private readonly AuthVerifierConfig _config;
-    public AuthVerifier(AccountRepository accountRepository, IdResolver idResolver, AuthVerifierConfig config)
-    {
-        _accountRepository = accountRepository;
-        _idResolver = idResolver;
-        _config = config;
-    }
 
     public enum AuthScope
     {
@@ -39,34 +30,44 @@ public class AuthVerifier
         {AuthScope.AppPassPrivileged, "com.atproto.appPassPrivileged"},
         {AuthScope.SignupQueued, "com.atproto.signupQueued"}
     };
-    
+
+    private readonly AccountRepository _accountRepository;
+    private readonly AuthVerifierConfig _config;
+    private readonly IdResolver _idResolver;
+    public AuthVerifier(AccountRepository accountRepository, IdResolver idResolver, AuthVerifierConfig config)
+    {
+        _accountRepository = accountRepository;
+        _idResolver = idResolver;
+        _config = config;
+    }
+
     public async Task<AccessOutput> AccessStandard(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessToken(ctx, 
+        return await ValidateAccessToken(ctx,
         [
             ScopeMap[AuthScope.Access],
             ScopeMap[AuthScope.AppPass],
             ScopeMap[AuthScope.AppPassPrivileged]
         ], checkTakenDown, checkDeactivated);
     }
-    
+
     public async Task<AccessOutput> AccessFull(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessToken(ctx, 
+        return await ValidateAccessToken(ctx,
         [
-            ScopeMap[AuthScope.Access],
+            ScopeMap[AuthScope.Access]
         ], checkTakenDown, checkDeactivated);
     }
-    
+
     public async Task<AccessOutput> AccessPrivileged(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessToken(ctx, 
+        return await ValidateAccessToken(ctx,
         [
             ScopeMap[AuthScope.Access],
             ScopeMap[AuthScope.AppPassPrivileged]
         ], checkTakenDown, checkDeactivated);
     }
-    
+
     public RefreshOutput Refresh(HttpContext ctx)
     {
         var parsedHeader = ParseAuthorizationHeader(ctx.Request.Headers.Authorization);
@@ -77,14 +78,15 @@ public class AuthVerifier
             Audience = _config.PdsDid,
             Type = "rt+jwt"
         });
-        
-        var decoded = JsonSerializer.Deserialize<Dictionary<string, object>>(result.Payload) ?? throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
-        
+
+        var decoded = JsonSerializer.Deserialize<Dictionary<string, object>>(result.Payload) ??
+                      throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+
         if (!decoded.TryGetValue("jti", out var value) || string.IsNullOrWhiteSpace(value.ToString()))
         {
             throw new XRPCError(ResponseType.AuthRequired, new ErrorDetail("MissingTokenId", "Unexpected missing refresh token id"));
         }
-        
+
         return new RefreshOutput(new RefreshCredentials
         {
             Did = result.Did,
@@ -94,61 +96,20 @@ public class AuthVerifier
         }, result.Token);
     }
 
-    public abstract record AuthOutput
-    {
-        public AuthOutput(IAuthCredentials credentials, string artifacts)
-        {
-            Credentials = credentials;
-            Artifacts = artifacts;
-        }
-        
-        public IAuthCredentials Credentials { get; }
-        public string Artifacts { get; }
-    }
-    public interface IAuthCredentials
-    {
-        public string Type { get; }
-    }
-    public record AccessOutput(AccessCredentials AccessCredentials, string Artifacts) : AuthOutput(AccessCredentials, Artifacts);
-    public record RefreshOutput(RefreshCredentials RefreshCredentials, string Artifacts) : AuthOutput(RefreshCredentials, Artifacts);
-    public record AdminOutput(AdminCredentials AdminCredentials, string Artifacts) : AuthOutput(AdminCredentials, Artifacts);
-
-    public record AdminCredentials : IAuthCredentials
-    {
-        public string Type => "admin_token";
-    }
-    
-    public record AccessCredentials : IAuthCredentials
-    {
-        public string Type => "access";
-        public required string Did { get; init; }
-        public required string Scope { get; init; }
-        public required string? Audience { get; init; }
-        public required bool IsPrivileged { get; init; }
-    }
-    
-    public record RefreshCredentials : IAuthCredentials
-    {
-        public string Type => "refresh";
-        public required string Did { get; init; }
-        public required string Scope { get; init; }
-        public required string? Audience { get; init; }
-        public required bool IsPrivileged { get; init; }
-    }
-
-    public record ValidatedBearer(string Did, string Scope, string Token, string Payload, string? Audience);
-
     public async Task<AccessOutput> ValidateAccessToken(HttpContext ctx, string[] scopes, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        if (ctx.Response.HasStarted) throw new Exception("Response has already started");
+        if (ctx.Response.HasStarted)
+        {
+            throw new Exception("Response has already started");
+        }
         // set auth headers on response
-        
+
         ctx.Response.OnStarting(() =>
         {
             SetAuthHeaders(ctx);
             return Task.CompletedTask;
         });
-        
+
         var (type, token) = ParseAuthorizationHeader(ctx.Request.Headers.Authorization);
         AccessOutput accessOutput;
         switch (type)
@@ -164,31 +125,24 @@ public class AuthVerifier
 
         if (checkTakenDown || checkDeactivated)
         {
-            var found = await _accountRepository.GetAccount(accessOutput.AccessCredentials.Did, new AvailabilityFlags(IncludeTakenDown: checkTakenDown, IncludeDeactivated: checkDeactivated));
+            var found = await _accountRepository.GetAccount(accessOutput.AccessCredentials.Did, new AvailabilityFlags(checkTakenDown, checkDeactivated));
             if (found == null)
             {
                 throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountNotFound", "Account not found"));
             }
-            
+
             if (checkTakenDown && found.SoftDeleted)
             {
                 throw new XRPCError(new ErrorDetail("AccountTakenDown", "Account has been taken down"));
             }
-            
+
             if (checkDeactivated && found.DeactivatedAt != null)
             {
                 throw new XRPCError(new ErrorDetail("AccountDeactivated", "Account has been deactivated"));
             }
         }
-        
+
         return accessOutput;
-    }
-
-
-    private record VerifyOptions
-    {
-        public string? Audience { get; init; }
-        public string? Type { get; init; }
     }
 
     private AccessOutput ValidateBearerAccessToken(HttpContext ctx, string[] scopes)
@@ -199,7 +153,7 @@ public class AuthVerifier
             Audience = _config.PdsDid,
             Type = "at+jwt"
         });
-        
+
         return new AccessOutput(new AccessCredentials
         {
             Did = validated.Did,
@@ -208,26 +162,26 @@ public class AuthVerifier
             IsPrivileged = false
         }, validated.Token);
     }
-    
+
     private ValidatedBearer ValidateBearerToken(ParsedAuthHeader auth, string[] scopes, VerifyOptions options)
     {
         if (auth.Type != AuthType.BEARER)
         {
             throw new Exception("Invalid auth type");
         }
-        
+
         if (string.IsNullOrWhiteSpace(auth.Token))
         {
             throw new XRPCError(new ErrorDetail("AuthMissing", ""));
         }
-        
+
         var (payload, headers) = JwtVerify(auth.Token, options);
 
         if (headers["typ"].ToString() != options.Type)
         {
             throw new XRPCError(new InvalidTokenErrorDetail("Invalid token type"));
         }
-        
+
         var data = JsonSerializer.Deserialize<Dictionary<string, object>>(payload) ?? throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
         var did = data["sub"].ToString();
         var scope = data["scope"].ToString();
@@ -236,34 +190,37 @@ public class AuthVerifier
         {
             throw new XRPCError(new InvalidTokenErrorDetail("Malformed token"));
         }
-        
+
         if (audience != null && !audience.StartsWith("did:"))
         {
             throw new XRPCError(new InvalidTokenErrorDetail("Malformed token"));
         }
-        
+
         if (data.ContainsKey("cnf"))
         {
             // Proof-of-Possession (PoP) tokens are not allowed here
             // https://www.rfc-editor.org/rfc/rfc7800.html
             throw new XRPCError(new InvalidTokenErrorDetail("Malformed token"));
         }
-        
+
         if (string.IsNullOrWhiteSpace(scope) || !IsAuthScope(scope) || scopes.Length > 0 && !scopes.Contains(scope))
         {
             throw new XRPCError(new InvalidTokenErrorDetail("Bad token scope"));
         }
-        
+
         return new ValidatedBearer(did, scope, auth.Token, payload, audience);
     }
-    
-    private static bool IsAuthScope(string scope) => ScopeMap.Values.Contains(scope);
+
+    private static bool IsAuthScope(string scope)
+    {
+        return ScopeMap.Values.Contains(scope);
+    }
 
     private (string payload, IDictionary<string, object> protectedHeader) JwtVerify(string token, VerifyOptions options)
     {
         try
         {
-            string json = JWT.Verify(token, Encoding.UTF8.GetBytes(_config.JwtKey));
+            var json = JWT.Verify(token, Encoding.UTF8.GetBytes(_config.JwtKey));
             var headers = JWT.Headers(token);
             var type = headers["typ"]?.ToString();
             if (type != options.Type)
@@ -273,14 +230,15 @@ public class AuthVerifier
 
             if (options.Audience != null)
             {
-                var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+                var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ??
+                           throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
                 var aud = data["aud"].ToString();
                 if (aud != options.Audience)
                 {
                     throw new XRPCError(new InvalidTokenErrorDetail("Invalid token audience"));
                 }
             }
-            
+
             return (json, headers);
         }
         catch (Exception e)
@@ -288,16 +246,6 @@ public class AuthVerifier
             throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
         }
     }
-    
-    
-    private enum AuthType
-    {
-        BASIC,
-        BEARER,
-        DPOP
-    }
-    
-    private record ParsedAuthHeader(AuthType Type, string Token);
 
     private ParsedAuthHeader ParseAuthorizationHeader(string? authorization)
     {
@@ -305,7 +253,7 @@ public class AuthVerifier
         {
             throw new XRPCError(new InvalidTokenErrorDetail("Missing authorization header"));
         }
-        
+
         var result = authorization.Split(' ');
         if (result.Length != 2)
         {
@@ -317,18 +265,16 @@ public class AuthVerifier
         {
             throw new XRPCError(new InvalidTokenErrorDetail($"Unsupported authorization type: {authType}"));
         }
-        
+
         return new ParsedAuthHeader(type, result[1]);
     }
-    
-    private record ParsedBasicAuth(string Username, string Password);
     private ParsedBasicAuth? ParseBasicAuthorization(string? authorization)
     {
         if (authorization == null)
         {
             return null;
         }
-        
+
         var result = authorization.Split(' ');
         if (result.Length != 2)
         {
@@ -340,14 +286,14 @@ public class AuthVerifier
         {
             throw new XRPCError(new InvalidTokenErrorDetail($"Unsupported authorization type: {authType}"));
         }
-        
+
         var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(result[1]));
         var parts = decoded.Split(':');
         if (parts.Length != 2)
         {
             throw new XRPCError(new InvalidTokenErrorDetail("Malformed basic auth header"));
         }
-        
+
         return new ParsedBasicAuth(parts[0], parts[1]);
     }
 
@@ -377,7 +323,72 @@ public class AuthVerifier
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Invalid admin credentials"));
         }
-        
+
         return Task.FromResult(new AdminOutput(new AdminCredentials(), ""));
     }
+
+    public abstract record AuthOutput
+    {
+        public AuthOutput(IAuthCredentials credentials, string artifacts)
+        {
+            Credentials = credentials;
+            Artifacts = artifacts;
+        }
+
+        public IAuthCredentials Credentials { get; }
+        public string Artifacts { get; }
+    }
+
+    public interface IAuthCredentials
+    {
+        public string Type { get; }
+    }
+
+    public record AccessOutput(AccessCredentials AccessCredentials, string Artifacts) : AuthOutput(AccessCredentials, Artifacts);
+    public record RefreshOutput(RefreshCredentials RefreshCredentials, string Artifacts) : AuthOutput(RefreshCredentials, Artifacts);
+    public record AdminOutput(AdminCredentials AdminCredentials, string Artifacts) : AuthOutput(AdminCredentials, Artifacts);
+
+    public record AdminCredentials : IAuthCredentials
+    {
+        public string Type => "admin_token";
+    }
+
+    public record AccessCredentials : IAuthCredentials
+    {
+        public required string Did { get; init; }
+        public required string Scope { get; init; }
+        public required string? Audience { get; init; }
+        public required bool IsPrivileged { get; init; }
+        public string Type => "access";
+    }
+
+    public record RefreshCredentials : IAuthCredentials
+    {
+        public required string Did { get; init; }
+        public required string Scope { get; init; }
+        public required string? Audience { get; init; }
+        public required bool IsPrivileged { get; init; }
+        public string Type => "refresh";
+    }
+
+    public record ValidatedBearer(string Did, string Scope, string Token, string Payload, string? Audience);
+
+
+    private record VerifyOptions
+    {
+        public string? Audience { get; init; }
+        public string? Type { get; init; }
+    }
+
+
+    private enum AuthType
+    {
+        BASIC,
+        BEARER,
+        DPOP
+    }
+
+    private record ParsedAuthHeader(AuthType Type, string Token);
+
+    private record ParsedBasicAuth(string Username, string Password);
 }

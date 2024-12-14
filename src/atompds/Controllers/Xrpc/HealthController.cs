@@ -12,7 +12,7 @@ public class HealthController : ControllerBase
     {
         return Ok(new HealthResponse(StaticConfig.Version));
     }
-    
+
     public record HealthResponse(
         [property: JsonPropertyName("version")]
         string Version);

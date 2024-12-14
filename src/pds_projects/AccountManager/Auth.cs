@@ -9,16 +9,21 @@ namespace AccountManager;
 
 public class Auth
 {
-    private readonly AccountManagerDb _accountDb;
     public const string ACCESS_TOKEN_SCOPE = "com.atproto.access";
     public const string REFRESH_TOKEN_SCOPE = "com.atproto.refresh";
-    
+    private readonly AccountManagerDb _accountDb;
+
     public Auth(AccountManagerDb accountDb)
     {
         _accountDb = accountDb;
     }
 
-    public (string AccessToken, string RefreshToken) CreateTokens(string did, string jwtKey, string serviceDid, string? scope = null, string? jti = null, TimeSpan? expiresIn = null)
+    public (string AccessToken, string RefreshToken) CreateTokens(string did,
+        string jwtKey,
+        string serviceDid,
+        string? scope = null,
+        string? jti = null,
+        TimeSpan? expiresIn = null)
     {
         var accessToken = CreateAccessToken(did, jwtKey, serviceDid, scope, expiresIn);
         var refreshToken = CreateRefreshToken(did, jwtKey, serviceDid, jti, expiresIn);
@@ -29,12 +34,12 @@ public class Auth
     {
         return Encoding.UTF8.GetBytes(jwtKey);
     }
-    
+
     public string CreateAccessToken(string did, string jwtKey, string serviceDid, string? scope, TimeSpan? expiresIn)
     {
         var now = DateTimeOffset.UtcNow;
-        
-        var payload = new Dictionary<string, object>()
+
+        var payload = new Dictionary<string, object>
         {
             ["scope"] = scope ?? ACCESS_TOKEN_SCOPE,
             ["sub"] = did,
@@ -42,18 +47,18 @@ public class Auth
             ["iat"] = now.ToUnixTimeSeconds(),
             ["exp"] = now.Add(expiresIn ?? TimeSpan.FromHours(2)).ToUnixTimeSeconds()
         };
-        
+
         var headers = new Dictionary<string, object>
         {
             ["typ"] = "at+jwt"
         };
 
-        var encoded = JWT.Encode(payload, GetKey(jwtKey), JwsAlgorithm.HS256, extraHeaders: headers);
+        var encoded = JWT.Encode(payload, GetKey(jwtKey), JwsAlgorithm.HS256, headers);
         return encoded;
     }
-    
+
     /// <summary>
-    /// Unsafe for verification, should only be used w/ direct output from CreateRefreshToken
+    ///     Unsafe for verification, should only be used w/ direct output from CreateRefreshToken
     /// </summary>
     public Types.RefreshToken DecodeRefreshTokenUnsafe(string token, string jwtKey)
     {
@@ -62,7 +67,7 @@ public class Auth
         {
             throw new Exception("Invalid refresh token scope");
         }
-        
+
         var sub = decoded["sub"].ToString() ?? throw new Exception("Missing sub");
         var exp = long.Parse(decoded["exp"].ToString() ?? throw new Exception("Missing exp"));
         var jti = decoded["jti"].ToString() ?? throw new Exception("Missing jti");
@@ -74,7 +79,7 @@ public class Auth
         var now = DateTimeOffset.UtcNow;
         jti ??= GetRefreshTokenId();
 
-        var payload = new Dictionary<string, object>()
+        var payload = new Dictionary<string, object>
         {
             ["scope"] = REFRESH_TOKEN_SCOPE,
             ["sub"] = did,
@@ -83,16 +88,16 @@ public class Auth
             ["iat"] = now.ToUnixTimeSeconds(),
             ["exp"] = now.Add(expiresIn ?? TimeSpan.FromDays(90)).ToUnixTimeSeconds()
         };
-        
+
         var headers = new Dictionary<string, object>
         {
             ["typ"] = "refresh+jwt"
         };
 
-        var encoded = JWT.Encode(payload, GetKey(jwtKey), JwsAlgorithm.HS256, extraHeaders: headers);
+        var encoded = JWT.Encode(payload, GetKey(jwtKey), JwsAlgorithm.HS256, headers);
         return encoded;
     }
-    
+
     public async Task<bool> StoreRefreshToken(Types.RefreshToken token, string? appPassword)
     {
         var match = await _accountDb.RefreshTokens.FirstOrDefaultAsync(t => t.Id == token.Jti);
@@ -100,7 +105,7 @@ public class Auth
         {
             return false;
         }
-        
+
         await _accountDb.RefreshTokens.AddAsync(new RefreshToken
         {
             Id = token.Jti,
@@ -108,11 +113,11 @@ public class Auth
             AppPasswordName = appPassword,
             ExpiresAt = DateTimeOffset.FromUnixTimeSeconds(token.Exp).UtcDateTime
         });
-        
+
         await _accountDb.SaveChangesAsync();
         return true;
     }
-    
+
     public async Task DeleteExpiredRefreshTokens(string did, DateTimeOffset now)
     {
         var nowUtc = now.UtcDateTime;
@@ -136,26 +141,26 @@ public class Auth
             }
         }
     }
-    
+
     public async Task<bool> RevokeRefreshToken(string jti)
     {
         _accountDb.RefreshTokens.RemoveRange(_accountDb.RefreshTokens.Where(t => t.Id == jti));
         return await _accountDb.SaveChangesAsync() > 0;
     }
-    
+
     public async Task<bool> RevokeRefreshTokensByDid(string did)
     {
         _accountDb.RefreshTokens.RemoveRange(_accountDb.RefreshTokens.Where(t => t.Did == did));
         return await _accountDb.SaveChangesAsync() > 0;
     }
-    
+
     public async Task<bool> RevokeAppPasswordRefreshToken(string did, string appPassword)
     {
         _accountDb.RefreshTokens.RemoveRange(_accountDb.RefreshTokens.Where(t => t.Did == did && t.AppPasswordName == appPassword));
         return await _accountDb.SaveChangesAsync() > 0;
     }
-    
-    
+
+
     private static string GetRefreshTokenId()
     {
         using var rng = RandomNumberGenerator.Create();

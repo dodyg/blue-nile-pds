@@ -7,9 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\pds_projects\Config\Config.csproj" />
-      <ProjectReference Include="..\..\pds_projects\Xrpc\Xrpc.csproj" />
-      <ProjectReference Include="..\Identity\Identity.csproj" />
+        <ProjectReference Include="..\..\pds_projects\Config\Config.csproj"/>
+        <ProjectReference Include="..\..\pds_projects\Xrpc\Xrpc.csproj"/>
+        <ProjectReference Include="..\Identity\Identity.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -11,18 +11,18 @@ public static partial class Util
         {
             throw new Exception("DID requires \"did:\" prefix");
         }
-        
+
         if (!BoringAscii().IsMatch(did))
         {
             throw new Exception("Disallowed characters in DID (ASCII letters, digits, and a couple other characters only)");
         }
-        
+
         var items = did.Split(':');
         if (items.Length < 3)
         {
             throw new Exception("DID requires prefix, method, and method-specific content");
         }
-        
+
         if (!MethodRegex().IsMatch(items[1]))
         {
             throw new Exception("Invalid method name");
@@ -32,7 +32,7 @@ public static partial class Util
         {
             throw new Exception("DID cannot end with ':' or '%'");
         }
-        
+
         if (did.Length > 2048)
         {
             throw new Exception("DID is too long (2048 chars max)");
@@ -41,7 +41,7 @@ public static partial class Util
 
     [GeneratedRegex(@"^[a-zA-Z0-9._:%-]*$")]
     private static partial Regex BoringAscii();
-    
+
     [GeneratedRegex(@"^[a-z]+$")]
     private static partial Regex MethodRegex();
 
@@ -52,10 +52,10 @@ public static partial class Util
         {
             throw new Exception("URI cannot contain more than one '#' character");
         }
-        
+
         var fragmentPart = uriParts.Length == 2 ? uriParts[1] : null;
         uri = uriParts[0];
-        
+
         if (!UriRegex().IsMatch(uri))
         {
             throw new Exception("Disallowed characters in ATURI (ASCII)");
@@ -111,17 +111,17 @@ public static partial class Util
             }
             // would validate rkey here, but there are basically no constraints!
         }
-        
+
         if (parts.Length >= 6)
         {
             throw new Exception("ATURI path can have at most two parts, and no trailing slash");
         }
-        
+
         if (uriParts.Length >= 2 && fragmentPart == null)
         {
             throw new Exception("ATURI fragment must be non-empty and start with slash");
         }
-        
+
         if (fragmentPart != null)
         {
             if (fragmentPart.Length == 0 || fragmentPart[0] != '/')
@@ -133,14 +133,14 @@ public static partial class Util
                 throw new Exception("Disallowed characters in ATURI fragment (ASCII)");
             }
         }
-        
+
         if (uri.Length > 8 * 1024)
         {
             throw new Exception("ATURI is far too long");
         }
     }
-    
-    
+
+
     // Handle constraints, in English:
     //  - must be a possible domain name
     //    - RFC-1035 is commonly referenced, but has been updated. eg, RFC-3696,
@@ -206,18 +206,18 @@ public static partial class Util
         {
             throw new Exception("Disallowed characters in NSID (ASCII letters, digits, dashes, periods only)");
         }
-        
+
         if (nsid.Length > 317) // 253 + 1 + 63
         {
             throw new Exception("NSID is too long (317 chars max)");
         }
-        
+
         var labels = nsid.Split('.');
         if (labels.Length < 3)
         {
             throw new Exception("NSID needs at least three parts");
         }
-        
+
         for (var i = 0; i < labels.Length; i++)
         {
             var l = labels[i];
@@ -243,11 +243,11 @@ public static partial class Util
             }
         }
     }
-    
+
 
     [GeneratedRegex("^[a-zA-Z0-9.-]*$")]
     private static partial Regex BasicHandleRegex();
-    
+
     [GeneratedRegex(@"^[a-zA-Z0-9._~:@!$&')(*+,;=%/-]*$")]
     private static partial Regex UriRegex();
 }

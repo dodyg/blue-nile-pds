@@ -9,7 +9,7 @@ public class TIDTests
         var str = tid.ToString();
         Assert.Equal(13, str.Length);
     }
-    
+
     [Fact]
     public void ParseTid()
     {
@@ -20,13 +20,13 @@ public class TIDTests
         Assert.Equal(parsed.GetClockId(), tid.GetClockId());
         Assert.Equal(tid, parsed);
     }
-    
+
     [Fact]
     public void ThrowsOnInvalidTid()
     {
         Assert.Throws<ArgumentException>(() => TID.FromStr(""));
     }
-    
+
     [Fact]
     public void NextString()
     {
@@ -35,7 +35,7 @@ public class TIDTests
         var nextStr = TID.NextStr(prevStr);
         Assert.True(string.CompareOrdinal(prevStr, nextStr) < 0);
     }
-    
+
     [Fact]
     public void Ordering()
     {
@@ -47,7 +47,7 @@ public class TIDTests
         Assert.True(oldest.OlderThan(newest));
         Assert.False(newest.OlderThan(oldest));
     }
-    
+
     [Fact]
     public void Equality()
     {
@@ -55,7 +55,7 @@ public class TIDTests
         var tid2 = TID.FromStr(tid1.ToString());
         Assert.Equal(tid1, tid2);
     }
-    
+
     [Fact]
     public void Inequality()
     {

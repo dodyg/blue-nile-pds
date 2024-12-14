@@ -1,10 +1,10 @@
 ﻿using System.Text.Json;
+using AccountManager;
 using Config;
 using FishyFlip.Lexicon.Com.Atproto.Identity;
 using FishyFlip.Models;
 using Handle;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using Xrpc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Identity;
@@ -13,15 +13,15 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Identity;
 [Route("xrpc")]
 public class ResolveHandleController : ControllerBase
 {
-    private readonly AccountManager.AccountRepository _accountRepository;
-    private readonly ILogger<ResolveHandleController> _logger;
+    private readonly AccountRepository _accountRepository;
+    private readonly IBskyAppViewConfig _appViewConfig;
+    private readonly HttpClient _client;
     private readonly HandleManager _handle;
     private readonly IdentityConfig _identityConfig;
-    private readonly HttpClient _client;
-    private readonly IBskyAppViewConfig _appViewConfig;
+    private readonly ILogger<ResolveHandleController> _logger;
     public ResolveHandleController(
-        AccountManager.AccountRepository accountRepository,
-        HandleManager handle, 
+        AccountRepository accountRepository,
+        HandleManager handle,
         IdentityConfig identityConfig,
         HttpClient client,
         IBskyAppViewConfig appViewConfig,
@@ -47,15 +47,12 @@ public class ResolveHandleController : ControllerBase
         {
             did = user.Did;
         }
-        else
-        {
-            // disabling this error since I have handles registered with the appview
-            // if (_identityConfig.ServiceHandleDomains.Any(x => handle.EndsWith(x) || handle == x[1..]))
-            // {
-            //     throw new XRPCError(new InvalidRequestErrorDetail("Unable to resolve handle"));
-            // }
-        }
 
+        // disabling this error since I have handles registered with the appview
+        // if (_identityConfig.ServiceHandleDomains.Any(x => handle.EndsWith(x) || handle == x[1..]))
+        // {
+        //     throw new XRPCError(new InvalidRequestErrorDetail("Unable to resolve handle"));
+        // }
         if (did == null)
         {
             // TODO: if identity is not from our server, we should direct the appview to attempt to resolve the handle
@@ -69,7 +66,7 @@ public class ResolveHandleController : ControllerBase
 
         return Ok(new ResolveHandleOutput(new ATDid(did)));
     }
-    
+
     private async Task<string?> TryResolveFromAppView(string handle)
     {
         if (_appViewConfig is BskyAppViewConfig appViewConfig)
@@ -86,7 +83,7 @@ public class ResolveHandleController : ControllerBase
                 }
             }
         }
-        
+
         return null;
     }
 }

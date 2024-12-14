@@ -13,7 +13,7 @@ public record CommitData(Cid Cid, string Rev, string? Since, Cid? Prev, BlockMap
 public record Commit(string Did, Cid Data, string Rev, Cid? Prev, byte[] Sig) : ICborEncodable<Commit>
 {
     public int Version => 3;
-    
+
     public CBORObject ToCborObject()
     {
         var obj = CBORObject.NewMap();
@@ -25,7 +25,7 @@ public record Commit(string Did, Cid Data, string Rev, Cid? Prev, byte[] Sig) : 
         obj.Add("version", Version);
         return obj;
     }
-    
+
     public static Commit FromCborObject(CBORObject obj)
     {
         var did = obj["did"].AsString();
@@ -40,7 +40,7 @@ public record Commit(string Did, Cid Data, string Rev, Cid? Prev, byte[] Sig) : 
 public record UnsignedCommit(string Did, Cid Data, string Rev, Cid? Prev) : ICborEncodable<UnsignedCommit>
 {
     public int Version => 3;
-    
+
     public CBORObject ToCborObject()
     {
         var obj = CBORObject.NewMap();
@@ -51,7 +51,7 @@ public record UnsignedCommit(string Did, Cid Data, string Rev, Cid? Prev) : ICbo
         obj.Add("version", Version);
         return obj;
     }
-    
+
     public static UnsignedCommit FromCborObject(CBORObject obj)
     {
         var did = obj["did"].AsString();
@@ -61,4 +61,5 @@ public record UnsignedCommit(string Did, Cid Data, string Rev, Cid? Prev) : ICbo
         return new UnsignedCommit(did, data, rev, prev);
     }
 }
+
 public record Entry(Cid Cid, byte[] Block);

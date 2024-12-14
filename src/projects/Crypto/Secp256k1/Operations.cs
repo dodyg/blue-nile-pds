@@ -11,7 +11,7 @@ public class Operations
         {
             throw new ArgumentException($"Not a secp256k1 did:key: {did}");
         }
-        
+
         var keyBytes = prefixedBytes[Const.SECP256K1_DID_PREFIX.Length..];
         return VerifySig(keyBytes, data, sig, opts);
     }
@@ -24,7 +24,7 @@ public class Operations
         {
             return false;
         }
-        
+
         // fix pkey length
         if (publicKey.Length == 33)
         {
@@ -33,10 +33,10 @@ public class Operations
             {
                 return false;
             }
-            
+
             publicKey = buf;
         }
-        
+
         if (IsCompactFormat(sig))
         {
             var outBuf = new byte[64];
@@ -44,10 +44,10 @@ public class Operations
             {
                 return false;
             }
-            
+
             sig = outBuf;
         }
-        
+
         return Secp256k1Wrapper.Verify(sig, msgHash, publicKey);
     }
 
@@ -58,13 +58,13 @@ public class Operations
         {
             return false;
         }
-            
+
         var compactBuf = new byte[64];
         if (!Secp256k1Wrapper.SignatureSerializeCompact(compactBuf, outBuf))
         {
             return false;
         }
-            
+
         return sig.SequenceEqual(compactBuf);
     }
 }

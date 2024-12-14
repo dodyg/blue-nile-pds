@@ -15,7 +15,7 @@ public class NotFoundMiddleware
     {
         _next = next;
     }
-    
+
     public async Task Invoke(HttpContext context)
     {
         await _next(context);

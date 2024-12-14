@@ -21,7 +21,7 @@ public record CommitEvtOp : ICborEncodable<CommitEvtOp>
         }
         return cbor;
     }
-    
+
     public static CommitEvtOp FromCborObject(CBORObject cbor)
     {
         var actionTxt = cbor["action"].AsString().ToUpper();

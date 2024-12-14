@@ -1,5 +1,4 @@
 ﻿using System.Net.WebSockets;
-using System.Text;
 using Config;
 using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -14,17 +13,18 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Sync;
 [Route("xrpc")]
 public class SubscribeReposController : ControllerBase
 {
-    private readonly SubscriptionConfig _subscriptionConfig;
-    private readonly SequencerRepository _sequencer;
     private readonly ILogger<SubscribeReposController> _logger;
-    public SubscribeReposController(SubscriptionConfig subscriptionConfig, SequencerRepository sequencer,
+    private readonly SequencerRepository _sequencer;
+    private readonly SubscriptionConfig _subscriptionConfig;
+    public SubscribeReposController(SubscriptionConfig subscriptionConfig,
+        SequencerRepository sequencer,
         ILogger<SubscribeReposController> logger)
     {
         _subscriptionConfig = subscriptionConfig;
         _sequencer = sequencer;
         _logger = logger;
     }
-    
+
     [HttpGet("com.atproto.sync.subscribeRepos")]
     public async Task SubscribeRepos(
         [FromQuery] int? cursor, // The last known event seq number to backfill from.
@@ -58,15 +58,15 @@ public class SubscribeReposController : ControllerBase
                         .Add("message", "Requested cursor is in the future.")
                         .EncodeToBytes();
                     byte[] buffer = [..header, ..blob];
-                    
+
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     _logger.LogInformation("Future cursor requested.");
 
                     return;
                 }
-                
+
                 if (next != null && next.SequencedAt < backfillTime)
-                { 
+                {
                     var header = CBORObject.NewMap()
                         .Add("t", "#info")
                         .Add("op", FrameHeaderOperation.Error)
@@ -76,7 +76,7 @@ public class SubscribeReposController : ControllerBase
                         .Add("message", "Requested cursor exceeded limit. Possibly missing events.")
                         .EncodeToBytes();
                     byte[] buffer = [..header, ..blob];
-                    
+
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     var startEvt = await _sequencer.EarliestAfterTime(backfillTime);
                     outboxCursor = startEvt?.Seq - 1;
@@ -86,7 +86,7 @@ public class SubscribeReposController : ControllerBase
                     outboxCursor = cursor;
                 }
             }
-            
+
             await foreach (var evt in outbox.Events(outboxCursor, cancellationToken, webSocket))
             {
                 //_logger.LogInformation("Handling {type} event: {Seq}", evt.Type, evt.Seq);
@@ -97,8 +97,8 @@ public class SubscribeReposController : ControllerBase
                         .Add("op", FrameHeaderOperation.Frame)
                         .EncodeToBytes(cborOpts);
                     var blob = commit.Evt.ToCborObject()
-                            .Add("seq", evt.Seq)
-                            .Add("time", evt.Time.ToString("O"));
+                        .Add("seq", evt.Seq)
+                        .Add("time", evt.Time.ToString("O"));
                     byte[] buffer = [..header, ..blob.EncodeToBytes(cborOpts)];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                 }

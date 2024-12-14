@@ -11,19 +11,25 @@ public readonly record struct Cid
     public const ulong DAG_PB = 0x70;
     public const ulong SHA2_256 = (uint)HashType.SHA2_256; // 0x12
     public const string IPFS_DELIM = "/ipfs/";
-    
+
     public Version Version { get; private init; }
     public ulong Codec { get; private init; }
     public Multihash Hash { get; private init; }
-    
+
 
     // Check if the version of `data` string is CIDv0.
     // v0 is a Base58Btc encoded sha hash, so it has
     // fixed length and always begins with "Qm"
-    public static bool IsV0Str(string data) => data.Length == 46 && data.StartsWith("Qm");
+    public static bool IsV0Str(string data)
+    {
+        return data.Length == 46 && data.StartsWith("Qm");
+    }
 
     // Check if the version of `data` bytes is CIDv0.
-    public static bool IsV0Binary(byte[] data) => data.Length == 34 && data[0] == Cid.SHA2_256 && data[1] == 0x20;
+    public static bool IsV0Binary(byte[] data)
+    {
+        return data.Length == 34 && data[0] == SHA2_256 && data[1] == 0x20;
+    }
 
     private void AssertCidV0()
     {
@@ -42,23 +48,32 @@ public readonly record struct Cid
             throw new CIDException(Error.InvalidCidV0Multihash);
         }
     }
-    
+
     public override string ToString()
     {
         return ToStringOfBase(MultibaseEncoding.Base58Btc);
     }
-    
-    public static Cid NewV0(Multihash hash) => StrictNewV0(Version.V0, DAG_PB, hash);
 
-    public static Cid NewV1(ulong codec, Multihash hash) => StrictNewV1(Version.V1, codec, hash);
-
-    public static Cid New(Version version, ulong codec, Multihash hash) => version switch
+    public static Cid NewV0(Multihash hash)
     {
-        Version.V0 => StrictNewV0(version, codec, hash),
-        Version.V1 => StrictNewV1(version, codec, hash),
-        _ => throw new CIDException(Error.InvalidCidVersion)
-    };
-    
+        return StrictNewV0(Version.V0, DAG_PB, hash);
+    }
+
+    public static Cid NewV1(ulong codec, Multihash hash)
+    {
+        return StrictNewV1(Version.V1, codec, hash);
+    }
+
+    public static Cid New(Version version, ulong codec, Multihash hash)
+    {
+        return version switch
+        {
+            Version.V0 => StrictNewV0(version, codec, hash),
+            Version.V1 => StrictNewV1(version, codec, hash),
+            _ => throw new CIDException(Error.InvalidCidVersion)
+        };
+    }
+
     private static Cid StrictNewV0(Version version, ulong codec, Multihash hash)
     {
         if (version != Version.V0)
@@ -94,13 +109,16 @@ public readonly record struct Cid
         AssertCidV0();
         return StrictNewV1(Version.V1, DAG_PB, Hash);
     }
-    
-    public Cid ToV1() => Version switch
+
+    public Cid ToV1()
     {
-        Version.V0 => V0ToV1(),
-        Version.V1 => this,
-        _ => throw new CIDException(Error.InvalidCidVersion)
-    };
+        return Version switch
+        {
+            Version.V0 => V0ToV1(),
+            Version.V1 => this,
+            _ => throw new CIDException(Error.InvalidCidVersion)
+        };
+    }
 
     public static Cid ReadBytes(byte[] bytes)
     {
@@ -153,7 +171,7 @@ public readonly record struct Cid
             _ => throw new CIDException(Error.InvalidCidVersion)
         };
     }
-    
+
     private string ToStringV0()
     {
         AssertCidV0();
@@ -170,8 +188,8 @@ public readonly record struct Cid
         var hashBytes = Hash.ToBytes();
         return [(byte)Version, (byte)Codec, ..hashBytes];
     }
-    
-    
+
+
     public static Cid FromString(string cidStr)
     {
         string hash;
@@ -200,18 +218,18 @@ public readonly record struct Cid
         var digest = Util.Sha2_256Digest(data);
         return NewV1((ulong)MulticodecCode.Raw, digest);
     }
-    
+
     public static CBORObject ToCBORObject(Cid obj)
     {
         byte[] bytes = [0x00, ..obj.ToBytes()];
         return CBORObject.FromObjectAndTag(bytes, 42);
     }
-    
+
     public CBORObject ToCBORObject()
     {
         return ToCBORObject(this);
     }
-    
+
     public static Cid FromCBOR(CBORObject obj)
     {
         if (obj.Type != CBORType.ByteString)

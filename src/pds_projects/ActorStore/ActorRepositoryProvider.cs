@@ -1,9 +1,7 @@
 ﻿using ActorStore.Db;
-using ActorStore.Repo;
 using Config;
 using Crypto;
 using Crypto.Secp256k1;
-using FishyFlip.Models;
 using Microsoft.EntityFrameworkCore;
 using Xrpc;
 
@@ -12,7 +10,7 @@ namespace ActorStore;
 public class ActorRepositoryProvider
 {
     private readonly ActorStoreConfig _config;
-    
+
     public ActorRepositoryProvider(ActorStoreConfig config)
     {
         _config = config;
@@ -28,7 +26,7 @@ public class ActorRepositoryProvider
         var dbLocation = Path.Join(directory, "store.sqlite");
         var keyLocation = Path.Join(directory, "key");
         // normalize path
-        
+
         return (directory, dbLocation, keyLocation);
     }
 
@@ -45,7 +43,7 @@ public class ActorRepositoryProvider
         var kp = Secp256k1Keypair.Import(privKey, exportable);
         return kp;
     }
-    
+
     public ActorRepository Open(string did)
     {
         var (_, dbLocation, _) = GetLocation(did);
@@ -53,17 +51,17 @@ public class ActorRepositoryProvider
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Repo not found"));
         }
-        
+
         var connectionString = $"Data Source={dbLocation};";
         if (_config.DisableWalAutoCheckpoint)
         {
             connectionString += "wal_autocheckpoint=0;";
         }
-        
+
         var options = new DbContextOptionsBuilder<ActorStoreDb>()
             .UseSqlite(connectionString)
             .Options;
-        
+
         var actorStoreDb = new ActorStoreDb(options);
         try
         {
@@ -74,13 +72,13 @@ public class ActorRepositoryProvider
             actorStoreDb.Dispose();
             throw;
         }
-        
+
         return new ActorRepository(actorStoreDb, did, KeyPair(did));
     }
 
-    
+
     /// <summary>
-    /// Create a new actor store. Remember to call Dispose on the returned object when done.
+    ///     Create a new actor store. Remember to call Dispose on the returned object when done.
     /// </summary>
     public ActorRepository Create(string did, IExportableKeyPair keyPair)
     {
@@ -90,16 +88,16 @@ public class ActorRepositoryProvider
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Repo already exists"));
         }
-        
+
         var privKey = keyPair.Export();
         File.WriteAllBytes(location.KeyLocation, privKey);
-        
+
         var connectionString = $"Data Source={location.DbLocation};";
         if (_config.DisableWalAutoCheckpoint)
         {
             connectionString += "wal_autocheckpoint=0;";
         }
-        
+
         var options = new DbContextOptionsBuilder<ActorStoreDb>()
             .UseSqlite(connectionString)
             .Options;
@@ -108,12 +106,12 @@ public class ActorRepositoryProvider
         actorStoreDb.Database.Migrate();
         return new ActorRepository(actorStoreDb, did, keyPair);
     }
-    
+
     public void Destroy(string did)
     {
         // TODO: delete blobstore
         var location = GetLocation(did);
-        
+
         if (Directory.Exists(location.Directory))
         {
             Directory.Delete(location.Directory, true);

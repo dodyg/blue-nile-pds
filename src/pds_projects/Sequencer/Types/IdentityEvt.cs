@@ -7,7 +7,7 @@ public record IdentityEvt : ICborEncodable<IdentityEvt>
 {
     public required string Did { get; init; }
     public required string? Handle { get; init; }
-    
+
     public CBORObject ToCborObject()
     {
         var cbor = CBORObject.NewMap();
@@ -18,7 +18,7 @@ public record IdentityEvt : ICborEncodable<IdentityEvt>
         }
         return cbor;
     }
-    
+
     public static IdentityEvt FromCborObject(CBORObject cbor)
     {
         var did = cbor["did"].AsString();

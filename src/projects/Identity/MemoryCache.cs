@@ -3,14 +3,12 @@ using CommonWeb;
 
 namespace Identity;
 
-
 public class MemoryCache : IDidCache
 {
-    private record CacheVal(DidDocument Doc, DateTime UpdatedAt);
-    
-    private readonly TimeSpan _staleTtl;
-    private readonly TimeSpan _maxTtl;
     private readonly ConcurrentDictionary<string, CacheVal> _cache = new();
+    private readonly TimeSpan _maxTtl;
+
+    private readonly TimeSpan _staleTtl;
     public MemoryCache(TimeSpan? staleTtl = null, TimeSpan? maxTtl = null)
     {
         _staleTtl = staleTtl ?? TimeSpan.FromHours(1);
@@ -22,7 +20,7 @@ public class MemoryCache : IDidCache
         _cache[did] = new CacheVal(doc, DateTime.UtcNow);
         return Task.CompletedTask;
     }
-    
+
     public Task<CacheResult?> CheckCache(string did)
     {
         if (!_cache.TryGetValue(did, out var val))
@@ -41,7 +39,7 @@ public class MemoryCache : IDidCache
             UpdatedAt = val.UpdatedAt
         });
     }
-    
+
     public async Task RefreshCache(string did, Func<Task<DidDocument?>> getDoc, CacheResult? prevResult = null)
     {
         var doc = await getDoc();
@@ -51,16 +49,17 @@ public class MemoryCache : IDidCache
         }
         await CacheDid(did, doc);
     }
-    
+
     public Task ClearEntry(string did)
     {
         _cache.TryRemove(did, out _);
         return Task.CompletedTask;
     }
-    
+
     public Task Clear()
     {
         _cache.Clear();
         return Task.CompletedTask;
     }
+    private record CacheVal(DidDocument Doc, DateTime UpdatedAt);
 }

@@ -12,10 +12,10 @@ using Microsoft.Extensions.Logging.Debug;
 
 namespace pdsadmin;
 
-public partial class AccountCommands
+public class AccountCommands
 {
     /// <summary>
-    /// List accounts
+    ///     List accounts
     /// </summary>
     [Command("list")]
     public async Task List()
@@ -43,7 +43,7 @@ public partial class AccountCommands
             accountInfo.Switch(
                 accountInfoSuccess =>
                 {
-                  outputList.Add((accountInfoSuccess!.Handle!.Handle, accountInfoSuccess.Email!, accountInfoSuccess.Did!.Handler));
+                    outputList.Add((accountInfoSuccess!.Handle!.Handle, accountInfoSuccess.Email!, accountInfoSuccess.Did!.Handler));
                 },
                 error => Program.Logger.LogError("Failed to get account info for {Did} {Error}", repo.Did, error.Detail?.Message)
             );
@@ -57,7 +57,7 @@ public partial class AccountCommands
     }
 
     /// <summary>
-    /// Create a new account
+    ///     Create a new account
     /// </summary>
     /// <param name="email">-e, --email, Email address ex. alice@example.com</param>
     /// <param name="handle">-h, --handle, Handle, ex. alice.example.com</param>
@@ -72,7 +72,7 @@ public partial class AccountCommands
         var passwordStr = Convert.ToBase64String(password).Replace("=", "").Replace("+", "").Replace("/", "")[..24];
 
         var inviteCode = await Program.CreateInviteCodeAsync(1);
-        var result = await Program.Protocol.CreateAccountAsync(handle: atHandle, email: email, password: passwordStr, inviteCode: inviteCode.Code);
+        var result = await Program.Protocol.CreateAccountAsync(atHandle, email, password: passwordStr, inviteCode: inviteCode.Code);
 
         result.Switch(
             success =>
@@ -93,7 +93,7 @@ public partial class AccountCommands
     }
 
     /// <summary>
-    /// Delete an account specified by DID
+    ///     Delete an account specified by DID
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
     [Command("delete")]
@@ -109,27 +109,27 @@ public partial class AccountCommands
     }
 
     /// <summary>
-    /// Takedown an account specified by DID
+    ///     Takedown an account specified by DID
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
     [Command("takedown")]
     public async Task Takedown(string did)
     {
         var session = await Program.LoginAsync();
-      var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
-      var atObject = new RepoRef(atDid);
-      var takedownRef = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-      var takedownAttr = new StatusAttr(true, takedownRef.ToString());
-      var result = await Program.Protocol.UpdateSubjectStatusAsync(atObject, takedown: takedownAttr);
-      
-      result.Switch(
-          success => Program.Logger.LogInformation("{Did} taken down", did),
-          error => Program.Logger.LogError("Failed to take down account {Did} {Error} {Message}", did, error.Detail?.Error, error.Detail?.Message)
-      );
+        var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
+        var atObject = new RepoRef(atDid);
+        var takedownRef = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var takedownAttr = new StatusAttr(true, takedownRef.ToString());
+        var result = await Program.Protocol.UpdateSubjectStatusAsync(atObject, takedownAttr);
+
+        result.Switch(
+            success => Program.Logger.LogInformation("{Did} taken down", did),
+            error => Program.Logger.LogError("Failed to take down account {Did} {Error} {Message}", did, error.Detail?.Error, error.Detail?.Message)
+        );
     }
 
     /// <summary>
-    /// Remove a takedown from an account specified by DID
+    ///     Remove a takedown from an account specified by DID
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
     [Command("untakedown")]
@@ -139,8 +139,8 @@ public partial class AccountCommands
         var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
         var atObject = new RepoRef(atDid);
         var takedownAttr = new StatusAttr(false);
-        var result = await Program.Protocol.UpdateSubjectStatusAsync(atObject, takedown: takedownAttr);
-        
+        var result = await Program.Protocol.UpdateSubjectStatusAsync(atObject, takedownAttr);
+
         result.Switch(
             success => Program.Logger.LogInformation("{Did} untaken down", did),
             error => Program.Logger.LogError("Failed to untake down account {Did} {Error} {Message}", did, error.Detail?.Error, error.Detail?.Message)
@@ -148,7 +148,7 @@ public partial class AccountCommands
     }
 
     /// <summary>
-    /// Reset a password for an account specified by DID
+    ///     Reset a password for an account specified by DID
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
     [Command("reset-password")]
@@ -161,7 +161,7 @@ public partial class AccountCommands
         rnd.GetBytes(password);
         var passwordStr = Convert.ToBase64String(password).Replace("=", "").Replace("+", "").Replace("/", "")[..24];
         var result = await Program.Protocol.UpdateAccountPasswordAsync(atDid, passwordStr);
-        
+
         result.Switch(
             success =>
             {
@@ -173,10 +173,10 @@ public partial class AccountCommands
     }
 }
 
-public partial class RootCommands
+public class RootCommands
 {
     /// <summary>
-    /// Update to the latest PDS version
+    ///     Update to the latest PDS version
     /// </summary>
     /// <exception cref="NotImplementedException"></exception>
     [Command("update")]
@@ -186,14 +186,14 @@ public partial class RootCommands
     }
 
     /// <summary>
-    /// Request a crawl from a relay host
+    ///     Request a crawl from a relay host
     /// </summary>
     /// <param name="relayHost">-r, --relay-host, Relay host, ex. bsky.network</param>
     [Command("request-crawl")]
     public async Task RequestCrawl(string relayHost)
     {
         var relayHosts = relayHost.Split(',');
-        var client  = new HttpClient();
+        var client = new HttpClient();
         foreach (var host in relayHosts)
         {
             var lh = host.Trim();
@@ -202,7 +202,7 @@ public partial class RootCommands
             {
                 lh = $"https://{host}";
             }
-            
+
             var response = await client.PostAsJsonAsync($"{lh}/xrpc/com.atproto.sync.requestCrawl", new
             {
                 hostname = Program.PdsEnv.PdsHostname
@@ -217,7 +217,7 @@ public partial class RootCommands
     }
 
     /// <summary>
-    /// Create a new invite code
+    ///     Create a new invite code
     /// </summary>
     [Command("create-invite-code")]
     public async Task CreateInviteCode()

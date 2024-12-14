@@ -17,11 +17,11 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Repo;
 public class DescribeRepoController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
-    private readonly IdResolver _idResolver;
     private readonly ActorRepositoryProvider _actorRepositoryProvider;
+    private readonly IdResolver _idResolver;
     private readonly ILogger<DescribeRepoController> _logger;
-    public DescribeRepoController(AccountRepository accountRepository, 
-        IdResolver idResolver, 
+    public DescribeRepoController(AccountRepository accountRepository,
+        IdResolver idResolver,
         ActorRepositoryProvider actorRepositoryProvider,
         ILogger<DescribeRepoController> logger)
     {
@@ -30,7 +30,7 @@ public class DescribeRepoController : ControllerBase
         _actorRepositoryProvider = actorRepositoryProvider;
         _logger = logger;
     }
-    
+
     [HttpGet("com.atproto.repo.describeRepo")]
     public async Task<IActionResult> DescribeRepo(
         [FromQuery] string repo)
@@ -47,13 +47,13 @@ public class DescribeRepoController : ControllerBase
             _logger.LogWarning(e, "Failed to resolve DID: {Did}", account.Did);
             throw new XRPCError(new InvalidRequestErrorDetail($"Could not resolve DID: {account.Did}"));
         }
-        
+
         var handle = DidDoc.GetHandle(didDoc);
         var handleIsCorrect = handle == account.Handle;
-        
+
         await using var actorDb = _actorRepositoryProvider.Open(account.Did);
         var collections = await actorDb.Repo.GetCollections();
-        
+
         return Ok(new DescribeRepoOutput(new ATHandle(handle), new ATDid(account.Did), didDoc.ToDidDoc(), collections.ToList(), handleIsCorrect));
     }
 
@@ -69,7 +69,7 @@ public class DescribeRepoController : ControllerBase
         {
             return account;
         }
-        
+
         if (account.TakedownRef != null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("RepoTakedown", $"Repo has been takendown: {did}"));
@@ -79,7 +79,7 @@ public class DescribeRepoController : ControllerBase
         {
             throw new XRPCError(new InvalidRequestErrorDetail("RepoDeactivated", $"Repo has been deactivated: {did}"));
         }
-        
+
         return account;
     }
 }

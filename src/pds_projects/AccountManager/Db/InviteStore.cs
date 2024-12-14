@@ -17,7 +17,7 @@ public class InviteStore
             invite => invite.ForAccount,
             actor => actor.Did,
             (invite, actors) => new {Invite = invite, Actors = actors});
-        
+
         var invite = await inviteActors
             .Where(x => x.Actors.All(a => a.TakedownRef == null))
             .Where(x => x.Invite.Code == code)
@@ -37,21 +37,21 @@ public class InviteStore
             throw new XRPCError(new InvalidInviteCodeErrorDetail("Provided invite code not available"));
         }
     }
-    
+
     public async Task RecordInviteUse(string did, string? inviteCode, DateTime now)
     {
         if (inviteCode == null)
         {
             return;
         }
-        
+
         await _db.InviteCodeUses.AddAsync(new InviteCodeUse
         {
             UsedBy = did,
             Code = inviteCode,
             UsedAt = now
         });
-        
+
         await _db.SaveChangesAsync();
-    } 
+    }
 }

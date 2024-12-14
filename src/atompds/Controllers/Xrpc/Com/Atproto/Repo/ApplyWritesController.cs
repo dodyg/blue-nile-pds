@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
@@ -22,22 +23,22 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Repo;
 [Route("xrpc")]
 public class ApplyWritesController : ControllerBase
 {
-    private readonly ILogger<ApplyWritesController> _logger;
-    private readonly AccountManager.AccountRepository _accountRepository;
-    private readonly IdentityConfig _identityConfig;
-    private readonly ServiceConfig _serviceConfig;
-    private readonly InvitesConfig _invitesConfig;
-    private readonly HttpClient _httpClient;
-    private readonly HandleManager _handle;
+    private readonly AccountRepository _accountRepository;
     private readonly ActorRepositoryProvider _actorRepositoryProvider;
+    private readonly IBskyAppViewConfig _bskyAppViewConfig;
+    private readonly HandleManager _handle;
+    private readonly HttpClient _httpClient;
+    private readonly IdentityConfig _identityConfig;
     private readonly IdResolver _idResolver;
+    private readonly InvitesConfig _invitesConfig;
+    private readonly ILogger<ApplyWritesController> _logger;
+    private readonly PlcClient _plcClient;
     private readonly SecretsConfig _secretsConfig;
     private readonly SequencerRepository _sequencer;
-    private readonly IBskyAppViewConfig _bskyAppViewConfig;
-    private readonly PlcClient _plcClient;
+    private readonly ServiceConfig _serviceConfig;
 
     public ApplyWritesController(ILogger<ApplyWritesController> logger,
-        AccountManager.AccountRepository accountRepository,
+        AccountRepository accountRepository,
         IdentityConfig identityConfig,
         ServiceConfig serviceConfig,
         InvitesConfig invitesConfig,
@@ -64,7 +65,7 @@ public class ApplyWritesController : ControllerBase
         _bskyAppViewConfig = bskyAppViewConfig;
         _plcClient = plcClient;
     }
-    
+
     [HttpGet("com.atproto.repo.getRecord")]
     public async Task<IActionResult> GetRecord([FromQuery] string repo, [FromQuery] string collection, [FromQuery] string rkey, [FromQuery] string? cid)
     {
@@ -76,23 +77,23 @@ public class ApplyWritesController : ControllerBase
                 // TODO: pipe to appview
                 throw new XRPCError(new InvalidRequestErrorDetail("Invalid repo."));
             }
-            
+
             throw new XRPCError(new InvalidRequestErrorDetail("Could not locate record."));
         }
-        
+
         await using var db = _actorRepositoryProvider.Open(did);
         var uri = ATUri.Create($"{did}/{collection}/{rkey}");
         var record = await db.Record.GetRecord(uri, cid);
         if (record == null || record.TakedownRef != null)
         {
-            throw new XRPCError(new InvalidRequestErrorDetail("RecordNotFound",$"Could not locate record: {uri}"));
+            throw new XRPCError(new InvalidRequestErrorDetail("RecordNotFound", $"Could not locate record: {uri}"));
         }
 
         return Ok(new GetRecordOutput(ATUri.Create(record.Uri), record.Cid, record.Value.ToATObject()));
     }
-    
+
     [HttpPost("com.atproto.repo.putRecord")]
-    [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
+    [AccessStandard(true, true)]
     public async Task<IActionResult> PutRecord(JsonDocument json)
     {
         var tx = JsonSerializer.Deserialize<PutRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
@@ -106,12 +107,12 @@ public class ApplyWritesController : ControllerBase
 
         await using var actorStore = _actorRepositoryProvider.Open(did);
         var current = await actorStore.Record.GetRecord(uri, null, true);
-        bool isUpdate = current != null;
-        
+        var isUpdate = current != null;
+
         ATObject write = isUpdate
             ? new Update(tx.Collection, tx.Rkey, tx.Record)
             : new Create(tx.Collection, tx.Rkey, tx.Record);
-        
+
         var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write]);
 
         if (isUpdate)
@@ -127,17 +128,17 @@ public class ApplyWritesController : ControllerBase
                 writeResult.ValidationStatus.ToString()));
         }
     }
-    
+
 
     [HttpPost("com.atproto.repo.deleteRecord")]
-    [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
+    [AccessStandard(true, true)]
     public async Task<IActionResult> DeleteRecord(JsonDocument json)
     {
         var tx = JsonSerializer.Deserialize<DeleteRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
         {
             AllowOutOfOrderMetadataProperties = true
         });
-        
+
         _logger.LogInformation("DeleteRecord: {tx}", tx);
         var (commit, writeArr) = await Handle(tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new Delete(tx.Collection, tx.Rkey)]);
         return Ok(new DeleteRecordOutput(new CommitMeta(commit.Cid.ToString(), commit.Rev)));
@@ -145,7 +146,7 @@ public class ApplyWritesController : ControllerBase
 
 
     [HttpPost("com.atproto.repo.createRecord")]
-    [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
+    [AccessStandard(true, true)]
     public async Task<IActionResult> ApplyWrites(JsonDocument json)
     {
         var tx = JsonSerializer.Deserialize<CreateRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
@@ -153,13 +154,13 @@ public class ApplyWritesController : ControllerBase
             AllowOutOfOrderMetadataProperties = true
         });
         _logger.LogInformation("CreateRecord: {tx}", tx);
-        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, [new Create(tx.Collection, tx.Rkey, tx.Record)]); 
+        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, [new Create(tx.Collection, tx.Rkey, tx.Record)]);
         var write = (PreparedCreate)writeArr[0];
         return Ok(new CreateRecordOutput(write.Uri, commit.Cid.ToString(), new CommitMeta(commit.Cid.ToString(), commit.Rev), write.ValidationStatus.ToString()));
     }
-    
+
     [HttpPost("com.atproto.repo.applyWrites")]
-    [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
+    [AccessStandard(true, true)]
     public async Task<IActionResult> ApplyWrites([FromBody] ApplyWritesInput tx)
     {
         _logger.LogInformation("ApplyWrites: {tx}", tx);
@@ -182,14 +183,14 @@ public class ApplyWritesController : ControllerBase
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Invalid repo type."));
         }
-        
+
         var auth = HttpContext.GetAuthOutput();
         var account = await _accountRepository.GetAccount(handleOrDid, new AvailabilityFlags(IncludeDeactivated: true));
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail($"Could not find repo: {repo}"));
         }
-        else if (account.DeactivatedAt != null)
+        if (account.DeactivatedAt != null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Account is deactivated."));
         }
@@ -199,13 +200,13 @@ public class ApplyWritesController : ControllerBase
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Invalid did."));
         }
-        
+
         return did;
     }
-    
-    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(ATIdentifier? repo, 
-        bool? validate, 
-        string? swapCommit, 
+
+    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(ATIdentifier? repo,
+        bool? validate,
+        string? swapCommit,
         string? swapRecord,
         List<ATObject>? writeOps)
     {
@@ -223,7 +224,10 @@ public class ApplyWritesController : ControllerBase
                 case "com.atproto.repo.applyWrites#create":
                 {
                     var create = (Create)write;
-                    if (create.Collection == null || create.Value == null) throw new XRPCError(new InvalidRequestErrorDetail("Invalid create."));
+                    if (create.Collection == null || create.Value == null)
+                    {
+                        throw new XRPCError(new InvalidRequestErrorDetail("Invalid create."));
+                    }
                     var preparedCreate = Prepare.PrepareCreate(did, create.Collection, create.Rkey, null, create.Value, validate);
                     writes.Add(preparedCreate);
                     break;
@@ -231,7 +235,10 @@ public class ApplyWritesController : ControllerBase
                 case "com.atproto.repo.applyWrites#update":
                 {
                     var update = (Update)write;
-                    if (update.Collection == null || update.Value == null || update.Rkey == null) throw new XRPCError(new InvalidRequestErrorDetail("Invalid update."));
+                    if (update.Collection == null || update.Value == null || update.Rkey == null)
+                    {
+                        throw new XRPCError(new InvalidRequestErrorDetail("Invalid update."));
+                    }
                     var preparedUpdate = Prepare.PrepareUpdate(did, update.Collection, update.Rkey, null, update.Value, validate);
                     writes.Add(preparedUpdate);
                     break;
@@ -239,7 +246,10 @@ public class ApplyWritesController : ControllerBase
                 case "com.atproto.repo.applyWrites#delete":
                 {
                     var delete = (Delete)write;
-                    if (delete.Collection == null || delete.Rkey == null) throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete."));
+                    if (delete.Collection == null || delete.Rkey == null)
+                    {
+                        throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete."));
+                    }
                     var preparedDelete = Prepare.PrepareDelete(did, delete.Collection, delete.Rkey, swapRecord != null ? Cid.FromString(swapRecord) : null);
                     writes.Add(preparedDelete);
                     break;
@@ -250,7 +260,7 @@ public class ApplyWritesController : ControllerBase
                 }
             }
         }
-        
+
         Cid? swapCommitCid = swapCommit != null ? Cid.FromString(swapCommit) : null;
 
         var writeArr = writes.ToArray();
@@ -259,7 +269,7 @@ public class ApplyWritesController : ControllerBase
 
         await _sequencer.SequenceCommit(did, commit, writeArr);
         await _accountRepository.UpdateRepoRoot(did, commit.Cid, commit.Rev);
-        
+
         return (commit, writeArr);
     }
 

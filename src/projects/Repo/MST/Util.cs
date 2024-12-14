@@ -8,7 +8,10 @@ namespace Repo.MST;
 
 public static partial class Util
 {
-    public static string FormatDataKey(string collection, string rkey) => $"{collection}/{rkey}";
+    public static string FormatDataKey(string collection, string rkey)
+    {
+        return $"{collection}/{rkey}";
+    }
     public static (string collection, string rkey) ParseDataKey(string key)
     {
         var split = key.Split('/');
@@ -18,29 +21,44 @@ public static partial class Util
         }
         return (split[0], split[1]);
     }
-    
+
     public static Cid CidForEntries(INodeEntry[] entry)
     {
         var data = SerializeNodeData(entry);
         return CborBlock.Encode(data).Cid;
     }
-    
+
     public static int LeadingZerosOnHash(ReadOnlySpan<byte> key)
     {
         var hash = SHA256.HashData(key);
         var leadingZeros = 0;
         foreach (var item in hash)
         {
-            if (item < 64) leadingZeros++;
-            if (item < 16) leadingZeros++;
-            if (item < 4) leadingZeros++;
-            if (item == 0) leadingZeros++;
-            else break;
+            if (item < 64)
+            {
+                leadingZeros++;
+            }
+            if (item < 16)
+            {
+                leadingZeros++;
+            }
+            if (item < 4)
+            {
+                leadingZeros++;
+            }
+            if (item == 0)
+            {
+                leadingZeros++;
+            }
+            else
+            {
+                break;
+            }
         }
-        
+
         return leadingZeros;
     }
-    
+
     public static int? LayerForEntries(INodeEntry[] entries)
     {
         var firstLeaf = entries.FirstOrDefault(x => x is Leaf);
@@ -48,10 +66,10 @@ public static partial class Util
         {
             return null;
         }
-        
+
         return LeadingZerosOnHash(Encoding.ASCII.GetBytes(leaf.Key));
     }
-    
+
     public static INodeEntry[] DeserializeNodeData(IRepoStorage storage, NodeData data, MstOpts? opts)
     {
         var entries = new List<INodeEntry>();
@@ -72,10 +90,10 @@ public static partial class Util
                 entries.Add(MST.Load(storage, entry.Tree.Value, opts?.Layer == null ? null : new MstOpts(opts.Layer - 1)));
             }
         }
-        
+
         return entries.ToArray();
     }
-    
+
     public static NodeData SerializeNodeData(INodeEntry[] entries)
     {
         var data = new NodeData
@@ -90,7 +108,7 @@ public static partial class Util
             i++;
             data.Left = mst.Pointer;
         }
-        
+
         var lastKey = "";
         while (i < entries.Length)
         {
@@ -116,23 +134,20 @@ public static partial class Util
                 Value = leaf.Value,
                 Tree = subtree
             });
-            
+
             lastKey = leaf.Key;
         }
-        
+
         return data;
     }
 
     public static int CountPrefixLen(string a, string b)
     {
         var i = 0;
-        while (i < a.Length && i < b.Length && a[i] == b[i])
-        {
-            i++;
-        }
+        while (i < a.Length && i < b.Length && a[i] == b[i]) i++;
         return i;
     }
-    
+
     public static bool EnsureValidMstKey(string str)
     {
         if (!IsValidMstKey(str))
@@ -141,21 +156,39 @@ public static partial class Util
         }
         return true;
     }
-    
+
     public static bool IsValidMstKey(string str)
     {
         var validCharsRegex = ValidCharsRegex();
-        
+
         var split = str.Split('/');
-        if (str.Length > 256) return false;
-        if (split.Length != 2) return false;
-        if (split[0].Length == 0) return false;
-        if (split[1].Length == 0) return false;
-        if (!validCharsRegex.IsMatch(split[0])) return false;
-        if (!validCharsRegex.IsMatch(split[1])) return false;
+        if (str.Length > 256)
+        {
+            return false;
+        }
+        if (split.Length != 2)
+        {
+            return false;
+        }
+        if (split[0].Length == 0)
+        {
+            return false;
+        }
+        if (split[1].Length == 0)
+        {
+            return false;
+        }
+        if (!validCharsRegex.IsMatch(split[0]))
+        {
+            return false;
+        }
+        if (!validCharsRegex.IsMatch(split[1]))
+        {
+            return false;
+        }
         return true;
     }
-    
+
     public static bool IsValidChars(string str)
     {
         return ValidCharsRegex().IsMatch(str);
