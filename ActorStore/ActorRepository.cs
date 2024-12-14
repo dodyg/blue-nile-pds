@@ -3,38 +3,27 @@ using ActorStore.Repo;
 using Config;
 using Crypto;
 using Crypto.Secp256k1;
+using FishyFlip.Models;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xrpc;
 
 namespace ActorStore;
 
-public class ActorRepository
+public class ActorRepository : IDisposable, IAsyncDisposable
 {
-    private readonly ActorStoreConfig _config;
+    private readonly ActorStoreDb _db;
+    public SqliteConnection? Connection => _db.Database.GetDbConnection() as SqliteConnection;
+    private readonly SqlRepoTransactor _sqlRepoTransactor;
+    public RepoRepository Repo { get; }
+    public RecordRepository Record { get; }
     
-    public ActorRepository(ActorStoreConfig config)
+    public ActorRepository(ActorStoreDb db, string did, IKeyPair keyPair)
     {
-        _config = config;
-    }
-
-    public (string Directory, string DbLocation, string KeyLocation) GetLocation(string did)
-    {
-        var didHash = Utils.Sha256Hex(did);
-        // note: Sha256Hex doesn't return 0x prefix so no need to substring
-        // TODO: This is for windows compat
-        did = did.Replace(":", "_");
-        var directory = Path.Join(_config.Directory, didHash, did);
-        var dbLocation = Path.Join(directory, "store.sqlite");
-        var keyLocation = Path.Join(directory, "key");
-        // normalize path
-        
-        return (directory, dbLocation, keyLocation);
-    }
-
-    public bool Exists(string did)
-    {
-        var (directory, dbLocation, _) = GetLocation(did);
-        return Directory.Exists(directory) && File.Exists(dbLocation);
+        _db = db;
+        _sqlRepoTransactor = new SqlRepoTransactor(db, did);
+        Record = new RecordRepository(db, did, keyPair, _sqlRepoTransactor);
+        Repo = new RepoRepository(db, did, keyPair, _sqlRepoTransactor, Record);
     }
 
     public string[] ListCollections(string did, ActorStoreDb db)
@@ -46,105 +35,12 @@ public class ActorRepository
             .ToArray();
     }
     
-    public RepoRepository GetRepo(string did, ActorStoreDb db)
+    public async Task<T> TransactDb<T>(Func<ActorStoreDb, Task<T>> fn)
     {
-        // TODO: This assumes the provided did is the same did as the actorstore
-        var keypair = KeyPair(did);
-        var sqlTxr = new SqlRepoTransactor(db, did);
-        var recordRepo = new RecordRepository(db, did, keypair, sqlTxr);
-        return new RepoRepository(db, did, keypair, sqlTxr, recordRepo);
-    }
-    
-    public IKeyPair KeyPair(string did, bool exportable = false)
-    {
-        var (_, _, keyLocation) = GetLocation(did);
-        var privKey = File.ReadAllBytes(keyLocation);
-        var kp = Secp256k1Keypair.Import(privKey, exportable);
-        return kp;
-    }
-    
-    public ActorStoreDb Open(string did)
-    {
-        var (_, dbLocation, _) = GetLocation(did);
-        if (!File.Exists(dbLocation))
-        {
-            throw new XRPCError(new InvalidRequestErrorDetail("Repo not found"));
-        }
-        
-        var connectionString = $"Data Source={dbLocation};";
-        if (_config.DisableWalAutoCheckpoint)
-        {
-            connectionString += "wal_autocheckpoint=0;";
-        }
-        
-        var options = new DbContextOptionsBuilder<ActorStoreDb>()
-            .UseSqlite(connectionString)
-            .Options;
-        
-        var actorStoreDb = new ActorStoreDb(options);
+        await using var tx = await _db.Database.BeginTransactionAsync();
         try
         {
-            var root = actorStoreDb.RepoRoots.FirstOrDefault();
-        }
-        catch (Exception ex)
-        {
-            actorStoreDb.Dispose();
-            throw;
-        }
-        
-        return actorStoreDb;
-    }
-
-    
-    /// <summary>
-    /// Create a new actor store. Remember to call Dispose on the returned object when done.
-    /// </summary>
-    public ActorStoreDb Create(string did, IExportableKeyPair keyPair)
-    {
-        var location = GetLocation(did);
-        Directory.CreateDirectory(location.Directory);
-        if (File.Exists(location.DbLocation))
-        {
-            throw new XRPCError(new InvalidRequestErrorDetail("Repo already exists"));
-        }
-        
-        var privKey = keyPair.Export();
-        File.WriteAllBytes(location.KeyLocation, privKey);
-        
-        var connectionString = $"Data Source={location.DbLocation};";
-        if (_config.DisableWalAutoCheckpoint)
-        {
-            connectionString += "wal_autocheckpoint=0;";
-        }
-        
-        var options = new DbContextOptionsBuilder<ActorStoreDb>()
-            .UseSqlite(connectionString)
-            .Options;
-
-        var actorStoreDb = new ActorStoreDb(options);
-        actorStoreDb.Database.Migrate();
-        return actorStoreDb;
-    }
-    
-    public void Destroy(string did)
-    {
-        // TODO: delete blobstore
-        var location = GetLocation(did);
-        
-        if (Directory.Exists(location.Directory))
-        {
-            Directory.Delete(location.Directory, true);
-        }
-    }
-    
-    public async Task<T> Transact<T>(string did, Func<ActorStoreDb, Task<T>> fn)
-    {
-        var keypair = KeyPair(did, true);
-        await using var db = Open(did);
-        await using var tx = await db.Database.BeginTransactionAsync();
-        try
-        {
-            var result = await fn(db);
+            var result = await fn(_db);
             await tx.CommitAsync();
             return result;
         }
@@ -153,5 +49,31 @@ public class ActorRepository
             await tx.RollbackAsync();
             throw;
         }
+    }
+    
+    public async Task<T> TransactRepo<T>(Func<ActorRepository, Task<T>> fn)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            var result = await fn(this);
+            await tx.CommitAsync();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+    }
+    
+    public void Dispose()
+    {
+        _db.Dispose();
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        await _db.DisposeAsync();
     }
 }

@@ -18,16 +18,16 @@ public class DescribeRepoController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
     private readonly IdResolver _idResolver;
-    private readonly ActorRepository _actorRepository;
+    private readonly ActorRepositoryProvider _actorRepositoryProvider;
     private readonly ILogger<DescribeRepoController> _logger;
     public DescribeRepoController(AccountRepository accountRepository, 
         IdResolver idResolver, 
-        ActorRepository actorRepository,
+        ActorRepositoryProvider actorRepositoryProvider,
         ILogger<DescribeRepoController> logger)
     {
         _accountRepository = accountRepository;
         _idResolver = idResolver;
-        _actorRepository = actorRepository;
+        _actorRepositoryProvider = actorRepositoryProvider;
         _logger = logger;
     }
     
@@ -51,9 +51,8 @@ public class DescribeRepoController : ControllerBase
         var handle = DidDoc.GetHandle(didDoc);
         var handleIsCorrect = handle == account.Handle;
         
-        await using var actorDb = _actorRepository.Open(account.Did);
-        var repoRepository = _actorRepository.GetRepo(account.Did, actorDb);
-        var collections = await repoRepository.GetCollections();
+        await using var actorDb = _actorRepositoryProvider.Open(account.Did);
+        var collections = await actorDb.Repo.GetCollections();
         
         return Ok(new DescribeRepoOutput(new ATHandle(handle), new ATDid(account.Did), didDoc.ToDidDoc(), collections.ToList(), handleIsCorrect));
     }

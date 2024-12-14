@@ -29,10 +29,11 @@ public class ApplyWritesController : ControllerBase
     private readonly InvitesConfig _invitesConfig;
     private readonly HttpClient _httpClient;
     private readonly HandleManager _handle;
-    private readonly ActorRepository _actorRepository;
+    private readonly ActorRepositoryProvider _actorRepositoryProvider;
     private readonly IdResolver _idResolver;
     private readonly SecretsConfig _secretsConfig;
     private readonly SequencerRepository _sequencer;
+    private readonly IBskyAppViewConfig _bskyAppViewConfig;
     private readonly PlcClient _plcClient;
 
     public ApplyWritesController(ILogger<ApplyWritesController> logger,
@@ -42,10 +43,11 @@ public class ApplyWritesController : ControllerBase
         InvitesConfig invitesConfig,
         HttpClient httpClient,
         HandleManager handle,
-        ActorRepository actorRepository,
+        ActorRepositoryProvider actorRepositoryProvider,
         IdResolver idResolver,
         SecretsConfig secretsConfig,
         SequencerRepository sequencer,
+        IBskyAppViewConfig bskyAppViewConfig,
         PlcClient plcClient)
     {
         _logger = logger;
@@ -55,11 +57,38 @@ public class ApplyWritesController : ControllerBase
         _invitesConfig = invitesConfig;
         _httpClient = httpClient;
         _handle = handle;
-        _actorRepository = actorRepository;
+        _actorRepositoryProvider = actorRepositoryProvider;
         _idResolver = idResolver;
         _secretsConfig = secretsConfig;
         _sequencer = sequencer;
+        _bskyAppViewConfig = bskyAppViewConfig;
         _plcClient = plcClient;
+    }
+    
+    [HttpGet("com.atproto.repo.getRecord")]
+    public async Task<IActionResult> GetRecord([FromQuery] string repo, [FromQuery] string collection, [FromQuery] string rkey, [FromQuery] string? cid)
+    {
+        var did = await _accountRepository.GetDidForActor(repo);
+        if (did == null)
+        {
+            if (_bskyAppViewConfig is BskyAppViewConfig bskyAppViewConfig)
+            {
+                // TODO: pipe to appview
+                throw new XRPCError(new InvalidRequestErrorDetail("Invalid repo."));
+            }
+            
+            throw new XRPCError(new InvalidRequestErrorDetail("Could not locate record."));
+        }
+        
+        await using var db = _actorRepositoryProvider.Open(did);
+        var uri = ATUri.Create($"{did}/{collection}/{rkey}");
+        var record = await db.Record.GetRecord(uri, cid);
+        if (record == null || record.TakedownRef != null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("RecordNotFound",$"Could not locate record: {uri}"));
+        }
+
+        return Ok(new GetRecordOutput(ATUri.Create(record.Uri), record.Cid, record.Value.ToATObject()));
     }
 
     [HttpPost("com.atproto.repo.deleteRecord")]
@@ -181,12 +210,8 @@ public class ApplyWritesController : ControllerBase
         Cid? swapCommitCid = swapCommit != null ? Cid.FromString(swapCommit) : null;
 
         var writeArr = writes.ToArray();
-        CommitData commit;
-        await using (var db = _actorRepository.Open(did))
-        {
-            var repoRepository = _actorRepository.GetRepo(did, db);
-            commit = await repoRepository.ProcessWrites(writeArr, swapCommitCid);
-        }
+        await using var db = _actorRepositoryProvider.Open(did);
+        var commit = await db.Repo.ProcessWrites(writeArr, swapCommitCid);
 
         await _sequencer.SequenceCommit(did, commit, writeArr);
         await _accountRepository.UpdateRepoRoot(did, commit.Cid, commit.Rev);

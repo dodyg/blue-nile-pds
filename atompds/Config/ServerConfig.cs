@@ -172,7 +172,7 @@ public record ServerConfig
         services.AddScoped<Auth>();
         
         // Actor store
-        services.AddScoped<ActorRepository>();
+        services.AddScoped<ActorRepositoryProvider>();
         
         // Resolvers
         services.AddSingleton<IDidCache>(new MemoryCache(

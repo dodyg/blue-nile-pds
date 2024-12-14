@@ -32,7 +32,7 @@ public class CreateAccountController : ControllerBase
     private readonly InvitesConfig _invitesConfig;
     private readonly HttpClient _httpClient;
     private readonly HandleManager _handle;
-    private readonly ActorRepository _actorRepository;
+    private readonly ActorRepositoryProvider _actorRepositoryProvider;
     private readonly IdResolver _idResolver;
     private readonly SecretsConfig _secretsConfig;
     private readonly SequencerRepository _sequencer;
@@ -45,7 +45,7 @@ public class CreateAccountController : ControllerBase
         InvitesConfig invitesConfig,
         HttpClient httpClient,
         HandleManager handle,
-        ActorRepository actorRepository,
+        ActorRepositoryProvider actorRepositoryProvider,
         IdResolver idResolver,
         SecretsConfig secretsConfig,
         SequencerRepository sequencer,
@@ -58,7 +58,7 @@ public class CreateAccountController : ControllerBase
         _invitesConfig = invitesConfig;
         _httpClient = httpClient;
         _handle = handle;
-        _actorRepository = actorRepository;
+        _actorRepositoryProvider = actorRepositoryProvider;
         _idResolver = idResolver;
         _secretsConfig = secretsConfig;
         _sequencer = sequencer;
@@ -77,15 +77,13 @@ public class CreateAccountController : ControllerBase
             var validatedInputs = await ValidateInputsForLocalPds(request);
             validatedDid = validatedInputs.did;
 
-            await using var actorStoreDb = _actorRepository.Create(validatedInputs.did, validatedInputs.signingKey);
-            conn = actorStoreDb.Database.GetDbConnection() as SqliteConnection;
-            var repo = _actorRepository.GetRepo(validatedDid, actorStoreDb);
-            CommitData commit;
-            await using (var tx = await actorStoreDb.Database.BeginTransactionAsync())
+            await using var actorStoreDb = _actorRepositoryProvider.Create(validatedInputs.did, validatedInputs.signingKey);
+            conn = actorStoreDb.Connection;
+            var commit = await actorStoreDb.TransactRepo(async repo =>
             {
-                commit = await repo.CreateRepo([]);
-                await tx.CommitAsync();
-            }
+                var commit = await repo.Repo.CreateRepo([]);
+                return commit;
+            });
 
             if (validatedInputs.plcOp != null)
             {
@@ -139,7 +137,7 @@ public class CreateAccountController : ControllerBase
                 {
                     SqliteConnection.ClearPool(conn);
                 }
-                _actorRepository.Destroy(validatedDid);
+                _actorRepositoryProvider.Destroy(validatedDid);
             }
             throw;
         }

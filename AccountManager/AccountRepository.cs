@@ -38,6 +38,12 @@ public class AccountRepository
         _emailTokenStore = emailTokenStore;
         _db = db;
     }
+
+    public async Task<string?> GetDidForActor(string repo, AvailabilityFlags? flags = null)
+    {
+        var account = await _accountStore.GetAccount(repo, flags);
+        return account?.Did;
+    }
     
     public async Task<(string AccessJwt, string RefreshJwt)> CreateAccount(string did, string handle, string? email, string? password, 
         string repoCid, string repoRev, string? inviteCode, bool? deactivated)

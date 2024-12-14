@@ -21,18 +21,18 @@ public class AppViewProxyController : ControllerBase
     private readonly IBskyAppViewConfig _config;
     private readonly ILogger<AppViewProxyController> _logger;
     private readonly HttpClient _client;
-    private readonly ActorRepository _actorRepository;
+    private readonly ActorRepositoryProvider _actorRepositoryProvider;
     private readonly IdResolver _idResolver;
     public AppViewProxyController(IBskyAppViewConfig config, 
         ILogger<AppViewProxyController> logger, 
         HttpClient client,
-        ActorRepository actorRepository,
+        ActorRepositoryProvider actorRepositoryProvider,
         IdResolver idResolver)
     {
         _config = config;
         _logger = logger;
         _client = client;
-        _actorRepository = actorRepository;
+        _actorRepositoryProvider = actorRepositoryProvider;
         _idResolver = idResolver;
     }
     
@@ -91,6 +91,7 @@ public class AppViewProxyController : ControllerBase
     [HttpGet("app.bsky.feed.getActorLikes")]
     [HttpGet("app.bsky.unspecced.getPopularFeedGenerators")]
     [HttpGet("chat.bsky.convo.listConvos")]
+    [HttpGet("app.bsky.feed.getRepostedBy")]
     [AccessStandard]
     public async Task<IActionResult> Method()
     {
@@ -113,12 +114,11 @@ public class AppViewProxyController : ControllerBase
         }
         
         var auth = HttpContext.GetAuthOutput();
-        _logger.LogInformation($"Proxying request for {HttpContext.Request.Path} to {config.Url}");
         var reqNsid = ParseUrlNsid(HttpContext.Request.Path);
         var url = $"{config.Url}/xrpc/{reqNsid}";
         
 
-        var signingKeyPair = _actorRepository.KeyPair(auth.AccessCredentials.Did, true);
+        var signingKeyPair = _actorRepositoryProvider.KeyPair(auth.AccessCredentials.Did, true);
         if (signingKeyPair is not IExportableKeyPair exportable)
         {
             throw new XRPCError(500);
@@ -152,7 +152,7 @@ public class AppViewProxyController : ControllerBase
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
             
-            //_logger.LogInformation("Response from proxy: " + content);
+            _logger.LogInformation("[PROXY][{status}] {path} response {content}", response.StatusCode, url, content);
             
             return new ContentResult
             {
@@ -184,7 +184,7 @@ public class AppViewProxyController : ControllerBase
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
             
-            //_logger.LogInformation("Response from proxy: " + content);
+            _logger.LogInformation("[PROXY][{status}] {path} response {content}", response.StatusCode, url, content);
             
             return new ContentResult
             {
