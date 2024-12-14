@@ -128,13 +128,13 @@ public class SubscribeReposController : ControllerBase
                     byte[] buffer = [..header, ..blob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                 }
-                else if (evt.Type == TypedCommitType.Tombstone && evt is TypedTombstoneEvt tomestoneEvt)
+                else if (evt.Type == TypedCommitType.Tombstone && evt is TypedTombstoneEvt tombstone)
                 {
                     var header = CBORObject.NewMap()
                         .Add("t", "#tombstone")
                         .Add("op", FrameHeaderOperation.Frame)
                         .EncodeToBytes(cborOpts);
-                    var blob = tomestoneEvt.Evt.ToCborObject()
+                    var blob = tombstone.Evt.ToCborObject()
                         .Add("seq", evt.Seq)
                         .Add("time", evt.Time.ToString("O"))
                         .EncodeToBytes(cborOpts);

@@ -27,7 +27,7 @@ public class PlcClient
         }
     }
 
-    public async Task SendTomestone(string did, SignedOp<Tombstone> op)
+    public async Task SendTombstone(string did, SignedOp<Tombstone> op)
     {
         using var postReq = new HttpRequestMessage(HttpMethod.Post, $"{_config.Host}/{did}");
         postReq.Content = new StringContent(op.ToCborObject().ToJSONString(), Encoding.UTF8, "application/json");
