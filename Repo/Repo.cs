@@ -82,6 +82,7 @@ public class Repo
                 var cid = leaves.Add(create.Record);
                 var dataKey = $"{create.Collection}/{create.RKey}";
                 data = await data.Add(dataKey, cid);
+                //data = await data.Update(dataKey, cid);
             }
             else if (write is RecordUpdateOp update)
             {

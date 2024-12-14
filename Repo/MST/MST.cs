@@ -9,7 +9,7 @@ public record MST : INodeEntry
 {
     public readonly IRepoStorage Storage;
     public Cid Pointer { get; private set; }
-    private readonly INodeEntry[]? _entries;
+    private INodeEntry[]? _entries;
     public int? Layer { get; private set; }
     public bool OutdatedPointer { get; private set; }
     
@@ -53,9 +53,9 @@ public record MST : INodeEntry
         var nodeData = NodeData.FromCborObject(data.obj);
         TreeEntry? firstLeaf = nodeData.Entries.Count > 0 ? nodeData.Entries[0] : null;
         int? layer = firstLeaf != null ? Util.LeadingZerosOnHash(firstLeaf.Value.Key) : null;
-        var entries = Util.DeserializeNodeData(Storage, nodeData, layer == null ? null : new MstOpts(layer.Value));
+        _entries = Util.DeserializeNodeData(Storage, nodeData, layer == null ? null : new MstOpts(layer.Value));
 
-        return entries;
+        return _entries;
     }
 
     public async Task<Cid> GetPointer()
@@ -169,7 +169,7 @@ public record MST : INodeEntry
             var first = await AtIndex(index);
             if (first is Leaf leaf && leaf.Key == key)
             {
-                throw new Exception($"There is already a value at key: {key}");
+                throw new Exception($"There is already a value at key: {key} with value: {leaf.Value}");
             }
             var prevNode = await AtIndex(index - 1);
             if (prevNode is null or Leaf)

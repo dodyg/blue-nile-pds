@@ -90,6 +90,44 @@ public class ApplyWritesController : ControllerBase
 
         return Ok(new GetRecordOutput(ATUri.Create(record.Uri), record.Cid, record.Value.ToATObject()));
     }
+    
+    [HttpPost("com.atproto.repo.putRecord")]
+    [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
+    public async Task<IActionResult> PutRecord(JsonDocument json)
+    {
+        var tx = JsonSerializer.Deserialize<PutRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
+        {
+            AllowOutOfOrderMetadataProperties = true
+        });
+        _logger.LogInformation("PutRecord: {tx}", tx);
+
+        var did = await CheckAccount(tx.Repo);
+        var uri = ATUri.Create($"{did}/{tx.Collection}/{tx.Rkey}");
+
+        await using var actorStore = _actorRepositoryProvider.Open(did);
+        var current = await actorStore.Record.GetRecord(uri, null, true);
+        bool isUpdate = current != null;
+        
+        ATObject write = isUpdate
+            ? new Update(tx.Collection, tx.Rkey, tx.Record)
+            : new Create(tx.Collection, tx.Rkey, tx.Record);
+        
+        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write]);
+
+        if (isUpdate)
+        {
+            var writeResult = (PreparedUpdate)writeArr[0];
+            return Ok(new PutRecordOutput(writeResult.Uri, writeResult.Cid.ToString(), new CommitMeta(commit.Cid.ToString(), commit.Rev),
+                writeResult.ValidationStatus.ToString()));
+        }
+        else
+        {
+            var writeResult = (PreparedCreate)writeArr[0];
+            return Ok(new PutRecordOutput(writeResult.Uri, writeResult.Cid.ToString(), new CommitMeta(commit.Cid.ToString(), commit.Rev),
+                writeResult.ValidationStatus.ToString()));
+        }
+    }
+    
 
     [HttpPost("com.atproto.repo.deleteRecord")]
     [AccessStandard(checkTakenDown: true, checkDeactivated: true)]
@@ -129,11 +167,7 @@ public class ApplyWritesController : ControllerBase
         return Ok(new ApplyWritesOutput(new CommitMeta(commit.Cid.ToString(), commit.Rev), writeArr.Select(WriteToOutputResult).ToList()));
     }
 
-    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(ATIdentifier? repo, 
-        bool? validate, 
-        string? swapCommit, 
-        string? swapRecord,
-        List<ATObject>? writeOps)
+    private async Task<string> CheckAccount(ATIdentifier? repo)
     {
         string handleOrDid;
         if (repo is ATHandle atHandle)
@@ -165,7 +199,17 @@ public class ApplyWritesController : ControllerBase
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Invalid did."));
         }
-
+        
+        return did;
+    }
+    
+    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(ATIdentifier? repo, 
+        bool? validate, 
+        string? swapCommit, 
+        string? swapRecord,
+        List<ATObject>? writeOps)
+    {
+        var did = await CheckAccount(repo);
         if (writeOps == null || writeOps.Count > 200)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Invalid writes."));

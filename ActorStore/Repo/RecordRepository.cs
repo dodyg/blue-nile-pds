@@ -70,7 +70,20 @@ public class RecordRepository
             throw new Exception("Invalid rkey");
         }
 
-        _db.Records.Add(row);
+        Record? existing = null;
+        if (action == WriteOpAction.Update)
+        {
+            existing = await _db.Records.AsNoTracking().FirstOrDefaultAsync(x => x.Uri == uri.ToString());
+        }
+        
+        if (existing != null)
+        {
+            _db.Records.Update(row);
+        }
+        else
+        {
+            _db.Records.Add(row);
+        }
 
         if (record != null)
         {

@@ -83,13 +83,9 @@ public class SqlRepoTransactor : IRepoStorage
         // TODO: should find a way to do "ON CONFLICT DO NOTHING" here
         foreach (var block in blocks)
         {
-            var blockMatch = _db.RepoBlocks.FirstOrDefault(x => x.Cid == block.Cid);
-            if (blockMatch != null)
+            if (_db.RepoBlocks.Any(x => x.Cid == block.Cid))
             {
-                blockMatch.Content = block.Content;
-                blockMatch.RepoRev = block.RepoRev;
-                blockMatch.Size = block.Size;
-                _db.RepoBlocks.Update(blockMatch);
+                _db.RepoBlocks.Update(block);
             }
             else
             {
@@ -102,23 +98,21 @@ public class SqlRepoTransactor : IRepoStorage
     
     public Task UpdateRoot(Cid cid, string rev)
     {
-        var match = _db.RepoRoots.FirstOrDefault(x => x.Did == _did);
-        if (match != null)
+        var root = new RepoRoot
+        {
+            Did = _did,
+            Cid = cid.ToString(),
+            Rev = rev,
+            IndexedAt = DateTime.UtcNow
+        };
+        
+        if (_db.RepoRoots.Any(x => x.Did == _did))
         {  
-            match.Cid = cid.ToString();
-            match.Rev = rev;
-            match.IndexedAt = DateTime.UtcNow;
-            _db.RepoRoots.Update(match);
+            _db.RepoRoots.Update(root);
         }
         else
         {
-            _db.RepoRoots.Add(new RepoRoot
-            {
-                Did = _did,
-                Cid = cid.ToString(),
-                Rev = rev,
-                IndexedAt = DateTime.UtcNow
-            });
+            _db.RepoRoots.Add(root);
         }
         
         return _db.SaveChangesAsync();
