@@ -22,7 +22,7 @@ public class XRPCError : Exception
     
     public XRPCError(ErrorDetail detail, Exception? innerException = null) : base(detail.Message, innerException)
     {
-        Status = ResponseTypeNames.ReverseMap.GetValueOrDefault(detail.Error, ResponseType.Unknown);
+        Status = ResponseTypeNames.ReverseMap.GetValueOrDefault(detail.Error, detail.Status);
         Error = detail.Error;
     }
     
