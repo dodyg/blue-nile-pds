@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Security.Cryptography;
-using System.Text;
 using FishyFlip;
 using FishyFlip.Lexicon.App.Bsky.Embed;
 using FishyFlip.Lexicon.App.Bsky.Feed;
@@ -9,8 +7,6 @@ using FishyFlip.Lexicon.Com.Atproto.Repo;
 using FishyFlip.Models;
 using FishyFlip.Tools;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
-using Microsoft.Extensions.Logging.Debug;
 
 var loggerFactory = LoggerFactory.Create(builder =>
 {
