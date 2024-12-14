@@ -43,8 +43,7 @@ and should follow the same general structure.
 ## Components
 - Crypto (implements @atproto/crypto)
   - Cryptographic helper functions
-  - [x] K-256 (secp256k1) support
-  - [ ] P-256 (secp256r1) support - not implemented
+  - K-256 (secp256k1) support
 - Repo (implements @atproto/repo)
   - Merkle Search Tree (MST) structure
   - Content Addressable Archive (CAR) encoding
