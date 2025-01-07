@@ -85,6 +85,7 @@ public class RepoRepository
                 }
             }
         }
+        
         await _storage.ApplyCommit(commit);
         await IndexWrites(writes, commit.Rev);
         // TODO: blob.processWriteBlobs.

@@ -65,7 +65,7 @@ public class ActorRepositoryProvider
         var actorStoreDb = new ActorStoreDb(options);
         try
         {
-            var root = actorStoreDb.RepoRoots.FirstOrDefault();
+            var root = actorStoreDb.RepoRoots.AsNoTracking().FirstOrDefault();
         }
         catch (Exception ex)
         {

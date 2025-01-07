@@ -44,10 +44,10 @@ public class Repo
         return new CommitData(commitCid, rev, null, null, newBlocks, diff.RemovedCids);
     }
 
-    public static Task<Repo> CreateFromCommit(IRepoStorage storage, CommitData commit)
+    public static async Task<Repo> CreateFromCommit(IRepoStorage storage, CommitData commit)
     {
-        storage.ApplyCommit(commit);
-        return Load(storage, commit.Cid);
+        await storage.ApplyCommit(commit);
+        return await Load(storage, commit.Cid);
     }
 
     public static async Task<Repo> Create(IRepoStorage storage, string did, IKeyPair keypair, RecordCreateOp[]? initialWrites = null)
@@ -127,7 +127,7 @@ public class Repo
 
     public async Task<Repo> ApplyCommit(CommitData commit)
     {
-        _storage.ApplyCommit(commit);
+        await _storage.ApplyCommit(commit);
         return await Load(_storage, commit.Cid);
     }
 

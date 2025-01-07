@@ -99,6 +99,7 @@ public class SqlRepoTransactor : IRepoStorage
 
         return _db.SaveChangesAsync();
     }
+    
     public async Task ApplyCommit(CommitData commit)
     {
         await UpdateRoot(commit.Cid, commit.Rev);
@@ -182,7 +183,7 @@ public class SqlRepoTransactor : IRepoStorage
 
     public async Task<(Cid Cid, string Rev)> GetRootDetailed()
     {
-        var res = await _db.RepoRoots.SingleAsync();
+        var res = await _db.RepoRoots.AsNoTracking().SingleAsync();
         return (Cid.FromString(res.Cid), res.Rev);
     }
 
