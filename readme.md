@@ -1,5 +1,13 @@
 ﻿# atompds
 
+> [!NOTE]  
+> This is a fork of atompds. 
+>
+> - Update to .NET 10 Preview 7. 
+> - Update references so it compiles.
+> 
+> I am using it to learn about implementing PDS. 
+
 atompds is a proof of concept ATProto PDS (Personal Data Server) instance implementation written in C#.
 Most of the concepts have been manually translated from https://github.com/bluesky-social/atproto/tree/main/packages
 and should follow the same general structure.
