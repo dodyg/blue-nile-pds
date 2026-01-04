@@ -2,6 +2,7 @@
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
+using atompds.Payloads.Server;
 using atompds.Utils;
 using CommonWeb;
 using Config;
@@ -67,7 +68,7 @@ public class CreateAccountController : ControllerBase
 
     // TODO: Optional auth used to validate DID transfer
     [HttpPost("com.atproto.server.createAccount")]
-    public async Task<IActionResult> CreateAccount([FromBody] CreateAccountInput request)
+    public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest request)
     {
         string? validatedDid = null;
         SqliteConnection? conn = null;
@@ -157,12 +158,12 @@ public class CreateAccountController : ControllerBase
     }
 
     private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, SignedOp<AtProtoOp>? plcOp, bool
-        deactivated)> ValidateInputsForLocalPds(CreateAccountInput createAccountInput)
+        deactivated)> ValidateInputsForLocalPds(CreateAccountRequest createAccountInput)
     {
-        if (createAccountInput.PlcOp != null)
-        {
-            throw new XRPCError(new InvalidRequestErrorDetail("Unsupported input: \"plcOp\""));
-        }
+        // if (createAccountInput.PlcOp != null)
+        // {
+        //     throw new XRPCError(new InvalidRequestErrorDetail("Unsupported input: \"plcOp\""));
+        // }
 
         if (_invitesConfig.Required && string.IsNullOrWhiteSpace(createAccountInput.InviteCode))
         {
@@ -178,7 +179,7 @@ public class CreateAccountController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("This email address is not supported, please use a different email."));
         }
 
-        var handle = await _handle.NormalizeAndValidateHandle(createAccountInput.Handle!.Handle, createAccountInput.Did?.Handler, false);
+        var handle = await _handle.NormalizeAndValidateHandle(createAccountInput.Handle, createAccountInput.Did, false);
 
         if (_invitesConfig.Required && createAccountInput.InviteCode != null)
         {
@@ -212,7 +213,7 @@ public class CreateAccountController : ControllerBase
         return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, deactivated);
     }
 
-    private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
+    private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountRequest createAccountInput, Secp256k1Keypair signingKey)
     {
         string[] rotationKeys = [_secretsConfig.PlcRotationKey.Did()];
         if (_identityConfig.RecoveryDidKey != null)
