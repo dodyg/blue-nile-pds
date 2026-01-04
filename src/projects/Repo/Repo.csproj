@@ -14,4 +14,8 @@
         <ProjectReference Include="..\Crypto\Crypto.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Ipfs.Core" Version="0.55.0" />
+    </ItemGroup>
+
 </Project>

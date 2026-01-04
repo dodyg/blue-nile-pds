@@ -8,12 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="SimpleBase" Version="4.0.2"/>
+        <PackageReference Include="SimpleBase" Version="5.6.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Common\Common.csproj"/>
-        <ProjectReference Include="..\Crypto\Crypto.csproj"/>
+        <ProjectReference Include="..\Common\Common.csproj" />
+        <ProjectReference Include="..\Crypto\Crypto.csproj" />
     </ItemGroup>
 
 </Project>

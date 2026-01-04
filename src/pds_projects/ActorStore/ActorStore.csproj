@@ -8,17 +8,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\projects\CID\CID.csproj"/>
-        <ProjectReference Include="..\..\projects\CommonDb\CommonDb.csproj"/>
-        <ProjectReference Include="..\..\projects\DidLib\DidLib.csproj"/>
-        <ProjectReference Include="..\..\projects\Handle\Handle.csproj"/>
-        <ProjectReference Include="..\..\projects\Repo\Repo.csproj"/>
-        <ProjectReference Include="..\Config\Config.csproj"/>
-        <ProjectReference Include="..\Xrpc\Xrpc.csproj"/>
+        <ProjectReference Include="..\..\projects\CID\CID.csproj" />
+        <ProjectReference Include="..\..\projects\CommonDb\CommonDb.csproj" />
+        <ProjectReference Include="..\..\projects\DidLib\DidLib.csproj" />
+        <ProjectReference Include="..\..\projects\Handle\Handle.csproj" />
+        <ProjectReference Include="..\..\projects\Repo\Repo.csproj" />
+        <ProjectReference Include="..\Config\Config.csproj" />
+        <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
