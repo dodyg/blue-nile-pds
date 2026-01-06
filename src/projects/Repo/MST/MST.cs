@@ -19,6 +19,11 @@ public record MST : INodeEntry
     }
     public Cid Pointer { get; private set; }
     public int? Layer { get; private set; }
+
+    /// <summary>
+    ///  We don't hash the node on every mutation for performance reasons
+    ///  Instead we keep track of whether the pointer is outdated and only (recursively) calculate when needed
+    /// </summary>
     public bool OutdatedPointer { get; private set; }
 
     public static MST Create(IRepoStorage storage, INodeEntry[] entries, MstOpts? opts = null)
@@ -233,6 +238,25 @@ public record MST : INodeEntry
         return newRoot;
     }
 
+    /// <summary>
+    /// Gets the value at the given key
+    /// </summary>
+    public async Task<Cid?> Get(string key)
+    {
+        var index = await FindGtOrEqualLeafIndex(key);
+        var found = await AtIndex(index);
+        if (found is Leaf leaf && leaf.Key == key)
+        {
+            return leaf.Value;
+        }
+        var prev = await AtIndex(index - 1);
+        if (prev is MST mst)
+        {
+            return await mst.Get(key);
+        }
+        return null;
+    }
+
     public async Task<MST> Update(string key, Cid value)
     {
         Util.EnsureValidMstKey(key);
@@ -249,7 +273,7 @@ public record MST : INodeEntry
             return await UpdateEntry(index - 1, updatedTree);
         }
 
-        throw new Exception($"Key not found: {key}");
+        throw new Exception($"Could not find a record with key: {key}");
     }
 
     public async Task<MST> Delete(string key)
@@ -301,7 +325,7 @@ public record MST : INodeEntry
             }
             return await UpdateEntry(index - 1, subtree);
         }
-        throw new Exception($"Key not found: {key}");
+        throw new Exception($"Could not find a record with key: {key}");
     }
 
     public async Task<MST> AppendMerge(MST toMerge)
@@ -345,6 +369,211 @@ public record MST : INodeEntry
                 yield return entry;
             }
         }
+    }
+
+    /// <summary>
+    /// Walk tree starting at key
+    /// </summary>
+    public async IAsyncEnumerable<INodeEntry> WalkFrom(string key)
+    {
+        yield return this;
+        var index = await FindGtOrEqualLeafIndex(key);
+        var entries = await GetEntries();
+        var found = index < entries.Length ? entries[index] : null;
+        if (found is Leaf foundLeaf && foundLeaf.Key == key)
+        {
+            yield return found;
+        }
+        else
+        {
+            var prev = index > 0 ? entries[index - 1] : null;
+            if (prev != null)
+            {
+                if (prev is Leaf prevLeaf && prevLeaf.Key == key)
+                {
+                    yield return prev;
+                }
+                else if (prev is MST prevMst)
+                {
+                    await foreach (var subEntry in prevMst.WalkFrom(key))
+                    {
+                        yield return subEntry;
+                    }
+                }
+            }
+        }
+
+        for (var i = index; i < entries.Length; i++)
+        {
+            var entry = entries[i];
+            if (entry is Leaf)
+            {
+                yield return entry;
+            }
+            else if (entry is MST mst)
+            {
+                await foreach (var subEntry in mst.WalkFrom(key))
+                {
+                    yield return subEntry;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Walk leaves starting at key
+    /// </summary>
+    public async IAsyncEnumerable<Leaf> WalkLeavesFrom(string key)
+    {
+        await foreach (var node in WalkFrom(key))
+        {
+            if (node is Leaf leaf)
+            {
+                yield return leaf;
+            }
+        }
+    }
+
+    /// <summary>
+    /// List leaves with optional count, after, and before filters
+    /// </summary>
+    public async Task<List<Leaf>> List(int count = int.MaxValue, string? after = null, string? before = null)
+    {
+        var vals = new List<Leaf>();
+        await foreach (var leaf in WalkLeavesFrom(after ?? ""))
+        {
+            if (leaf.Key == after) continue;
+            if (vals.Count >= count) break;
+            if (before != null && string.CompareOrdinal(leaf.Key, before) >= 0) break;
+            vals.Add(leaf);
+        }
+        return vals;
+    }
+
+    /// <summary>
+    /// List leaves with a specific prefix
+    /// </summary>
+    public async Task<List<Leaf>> ListWithPrefix(string prefix, int count = int.MaxValue)
+    {
+        var vals = new List<Leaf>();
+        await foreach (var leaf in WalkLeavesFrom(prefix))
+        {
+            if (vals.Count >= count || !leaf.Key.StartsWith(prefix)) break;
+            vals.Add(leaf);
+        }
+        return vals;
+    }
+
+    /// <summary>
+    /// Get all paths in the tree
+    /// </summary>
+    public async Task<List<List<INodeEntry>>> Paths()
+    {
+        var entries = await GetEntries();
+        var paths = new List<List<INodeEntry>>();
+        foreach (var entry in entries)
+        {
+            if (entry is Leaf)
+            {
+                paths.Add([entry]);
+            }
+            if (entry is MST mst)
+            {
+                var subPaths = await mst.Paths();
+                foreach (var p in subPaths)
+                {
+                    var newPath = new List<INodeEntry> { mst };
+                    newPath.AddRange(p);
+                    paths.Add(newPath);
+                }
+            }
+        }
+        return paths;
+    }
+
+    /// <summary>
+    /// Walks tree and returns all nodes
+    /// </summary>
+    public async Task<List<INodeEntry>> AllNodes()
+    {
+        var nodes = new List<INodeEntry>();
+        await foreach (var entry in Walk())
+        {
+            nodes.Add(entry);
+        }
+        return nodes;
+    }
+
+    /// <summary>
+    /// Walks tree and returns all leaves
+    /// </summary>
+    public async Task<List<Leaf>> Leaves()
+    {
+        var leaves = new List<Leaf>();
+        await foreach (var entry in Walk())
+        {
+            if (entry is Leaf leaf)
+            {
+                leaves.Add(leaf);
+            }
+        }
+        return leaves;
+    }
+
+    /// <summary>
+    /// Returns total leaf count
+    /// </summary>
+    public async Task<int> LeafCount()
+    {
+        var leaves = await Leaves();
+        return leaves.Count;
+    }
+
+    /// <summary>
+    /// Walks tree and returns all CIDs
+    /// </summary>
+    public async Task<HashSet<Cid>> AllCids()
+    {
+        var cids = new HashSet<Cid>();
+        var entries = await GetEntries();
+        foreach (var entry in entries)
+        {
+            if (entry is Leaf leaf)
+            {
+                cids.Add(leaf.Value);
+            }
+            else if (entry is MST mst)
+            {
+                var subtreeCids = await mst.AllCids();
+                foreach (var cid in subtreeCids)
+                {
+                    cids.Add(cid);
+                }
+            }
+        }
+        cids.Add(await GetPointer());
+        return cids;
+    }
+
+    /// <summary>
+    /// Get CIDs for path to a key
+    /// </summary>
+    public async Task<List<Cid>> CidsForPath(string key)
+    {
+        var cids = new List<Cid> { await GetPointer() };
+        var index = await FindGtOrEqualLeafIndex(key);
+        var found = await AtIndex(index);
+        if (found is Leaf leaf && leaf.Key == key)
+        {
+            cids.Add(leaf.Value);
+            return cids;
+        }
+        var prev = await AtIndex(index - 1);
+        if (prev is MST mst)
+        {
+            cids.AddRange(await mst.CidsForPath(key));
+        }
+        return cids;
     }
 
     public async Task<MST> CreateChild()
