@@ -162,7 +162,7 @@ public static partial class Util
         var validCharsRegex = ValidCharsRegex();
 
         var split = str.Split('/');
-        if (str.Length > 256)
+        if (str.Length > 1024)
         {
             return false;
         }
@@ -194,6 +194,6 @@ public static partial class Util
         return ValidCharsRegex().IsMatch(str);
     }
 
-    [GeneratedRegex("^[a-zA-Z0-9_\\-:.]*$")]
+    [GeneratedRegex("^[a-zA-Z0-9_~\\-:.]*$")]
     private static partial Regex ValidCharsRegex();
 }
