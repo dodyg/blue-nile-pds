@@ -96,10 +96,11 @@ public class ApplyWritesController : ControllerBase
     [AccessStandard(true, true)]
     public async Task<IActionResult> PutRecord(JsonDocument json)
     {
-        var tx = JsonSerializer.Deserialize<PutRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
-        {
-            AllowOutOfOrderMetadataProperties = true
-        });
+        var tx = PutRecordInput.FromJson(json.RootElement.ToString());
+        // var tx = JsonSerializer.Deserialize<PutRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
+        // {
+        //     AllowOutOfOrderMetadataProperties = true
+        // });
         _logger.LogInformation("PutRecord: {tx}", tx);
 
         var did = await CheckAccount(tx.Repo);
