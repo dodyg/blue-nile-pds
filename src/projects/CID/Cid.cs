@@ -14,7 +14,7 @@ public readonly record struct Cid
 
     public Version Version { get; private init; }
     public ulong Codec { get; private init; }
-    public Multihash Hash { get; private init; }
+    public Multihash MultiHash { get; private init; }
 
 
     // Check if the version of `data` string is CIDv0.
@@ -43,7 +43,7 @@ public readonly record struct Cid
             throw new CIDException(Error.InvalidCidV0Codec);
         }
 
-        if (Hash.Code != HashType.SHA2_256 || Hash.Length != 32)
+        if (MultiHash.Code != HashType.SHA2_256 || MultiHash.Length != 32)
         {
             throw new CIDException(Error.InvalidCidV0Multihash);
         }
@@ -91,7 +91,7 @@ public readonly record struct Cid
             throw new CIDException(Error.InvalidCidV0Multihash);
         }
 
-        return new Cid {Version = version, Codec = codec, Hash = hash};
+        return new Cid {Version = version, Codec = codec, MultiHash = hash};
     }
 
     private static Cid StrictNewV1(Version version, ulong codec, Multihash hash)
@@ -101,13 +101,13 @@ public readonly record struct Cid
             throw new CIDException(Error.InvalidCidVersion);
         }
 
-        return new Cid {Version = version, Codec = codec, Hash = hash};
+        return new Cid {Version = version, Codec = codec, MultiHash = hash};
     }
 
     private Cid V0ToV1()
     {
         AssertCidV0();
-        return StrictNewV1(Version.V1, DAG_PB, Hash);
+        return StrictNewV1(Version.V1, DAG_PB, MultiHash);
     }
 
     public Cid ToV1()
@@ -175,17 +175,17 @@ public readonly record struct Cid
     private string ToStringV0()
     {
         AssertCidV0();
-        return Multibase.Base58.Encode(Hash.ToBytes());
+        return Multibase.Base58.Encode(MultiHash.ToBytes());
     }
 
     private byte[] V0ToBytes()
     {
-        return Hash.ToBytes();
+        return MultiHash.ToBytes();
     }
 
     private byte[] V1ToBytes()
     {
-        var hashBytes = Hash.ToBytes();
+        var hashBytes = MultiHash.ToBytes();
         return [(byte)Version, (byte)Codec, ..hashBytes];
     }
 

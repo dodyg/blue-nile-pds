@@ -57,7 +57,7 @@ public class CidTests
 
         Assert.Equal(Version.V1, cid.Version);
         Assert.Equal((ulong)MulticodecCode.Raw, cid.Codec);
-        Assert.Equal(expectedOutput, cid.Hash);
+        Assert.Equal(expectedOutput, cid.MultiHash);
     }
 
     [Fact]
@@ -138,6 +138,6 @@ public class CidTests
 
         Assert.Equal((ulong)MulticodecCode.Raw, result.Codec);
         Assert.Equal(Version.V1, result.Version);
-        Assert.Equal(result.Hash.Digest.ToHexString(), actualDigest);
+        Assert.Equal(result.MultiHash.Digest.ToHexString(), actualDigest);
     }
 }
