@@ -30,4 +30,11 @@
         <ProjectReference Include="..\..\src\projects\CID\CID.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="..\data\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </Content>
+    </ItemGroup>
+
 </Project>

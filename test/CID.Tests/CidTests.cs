@@ -1,4 +1,5 @@
-﻿using Multiformats.Base;
+﻿using Ipfs;
+using Multiformats.Base;
 using Multiformats.Codec;
 
 namespace CID.Tests;
@@ -124,5 +125,19 @@ public class CidTests
 
         Assert.True(dict.ContainsKey(cid));
         Assert.Equal(data, dict[cid]);
+    }
+
+    [Theory]
+    [InlineData("hello-world.png", "b487017b538407049156bb2609702277a3574ad7a8cee6d7017903085aad3d11")]
+    public void TestCidForBlob(string blobFileName, string actualDigest)
+    {
+        var filePath = @"./data/blobs" + "/" + blobFileName;
+        var stream = File.OpenRead(filePath);
+
+        var result = Util.CidForBlobs(stream);
+
+        Assert.Equal((ulong)MulticodecCode.Raw, result.Codec);
+        Assert.Equal(Version.V1, result.Version);
+        Assert.Equal(result.Hash.Digest.ToHexString(), actualDigest);
     }
 }
