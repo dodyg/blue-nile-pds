@@ -28,11 +28,16 @@ public record ServerConfig
             throw new Exception($"Invalid environment configuration: {string.Join(", ", validationResults.Select(x => x.ErrorMessage))}");
         }
 
-        if (env.PDS_DATA_DIRECTORY != null && !Directory.Exists(env.PDS_DATA_DIRECTORY))
+        if (env.PDS_DATA_DIRECTORY != null)
         {
-            Directory.CreateDirectory(env.PDS_DATA_DIRECTORY);
+            env.PDS_DATA_DIRECTORY = ExpandPath(env.PDS_DATA_DIRECTORY);
+            if (!Directory.Exists(env.PDS_DATA_DIRECTORY))
+            {
+                Directory.CreateDirectory(env.PDS_DATA_DIRECTORY);
+            }
         }
 
+        env.PDS_ACTOR_STORE_DIRECTORY = ExpandPath(env.PDS_ACTOR_STORE_DIRECTORY);
         if (!Directory.Exists(env.PDS_ACTOR_STORE_DIRECTORY))
         {
             Directory.CreateDirectory(env.PDS_ACTOR_STORE_DIRECTORY);
@@ -179,6 +184,20 @@ public record ServerConfig
             Location = env.PDS_BLOBSTORE_DISK_LOCATION,
             TempLocation = env.PDS_BLOBSTORE_DISK_TMP_LOCATION
         };
+    }
+
+    private static string ExpandPath(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return path;
+        
+        if (path.StartsWith("~/"))
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[2..]);
+        
+        if (path == "~")
+            return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        
+        return path;
     }
 
     public static void RegisterServices(IServiceCollection services, ServerConfig config)
