@@ -36,6 +36,13 @@ public class Backlink
     public required string LinkTo { get; set; }
 }
 
+public enum BlobStatus
+{
+    Temporary = 0,
+    Permanent = 1,
+    GarbageCollected = 2
+}
+
 [Table(TableName)]
 public class Blob
 {
@@ -49,6 +56,7 @@ public class Blob
     public int? Height { get; set; }
     public required DateTime CreatedAt { get; set; }
     public string? TakedownRef { get; set; }
+    public required BlobStatus Status { get; set; }
 }
 
 [Table(TableName)]

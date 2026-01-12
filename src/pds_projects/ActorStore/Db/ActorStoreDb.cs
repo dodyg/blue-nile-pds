@@ -61,5 +61,13 @@ public class ActorStoreDb : DbContext
 
         // account_pref_pkey = {id}
         modelBuilder.Entity<AccountPref>().HasKey(ap => ap.Id);
+
+
+         modelBuilder
+        .Entity<Blob>()
+        .Property(e => e.Status)
+        .HasConversion(
+            v => v.ToString(),
+            v => (BlobStatus)Enum.Parse(typeof(BlobStatus), v));
     }
 }
