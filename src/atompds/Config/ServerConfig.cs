@@ -3,6 +3,7 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using atompds.Middleware;
+using BlobStore;
 using Config;
 using Crypto.Secp256k1;
 using DidLib;
@@ -226,6 +227,9 @@ public record ServerConfig
 
         // Actor store
         services.AddScoped<ActorRepositoryProvider>();
+
+        // blobstore
+        services.AddSingleton<BlobStoreFactory>();
 
         // Resolvers
         services.AddSingleton<IDidCache>(new MemoryCache(

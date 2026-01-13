@@ -1,8 +1,10 @@
 ﻿using ActorStore.Db;
 using ActorStore.Repo;
+using BlobStore;
 using Crypto;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Repo;
 
 namespace ActorStore;
 
@@ -11,16 +13,18 @@ public class ActorRepository : IDisposable, IAsyncDisposable
     private readonly ActorStoreDb _db;
     private readonly SqlRepoTransactor _sqlRepoTransactor;
 
-    public ActorRepository(ActorStoreDb db, string did, IKeyPair keyPair)
+    public ActorRepository(ActorStoreDb db, string did, IKeyPair keyPair, IBlobStore blobStore)
     {
         _db = db;
         _sqlRepoTransactor = new SqlRepoTransactor(db, did);
         Record = new RecordRepository(db, did, keyPair, _sqlRepoTransactor);
-        Repo = new RepoRepository(db, did, keyPair, _sqlRepoTransactor, Record);
+        BlobStore = blobStore;
+        Repo = new RepoRepository(db, did, keyPair, _sqlRepoTransactor, Record, blobStore);
     }
     public SqliteConnection? Connection => _db.Database.GetDbConnection() as SqliteConnection;
     public RepoRepository Repo { get; }
     public RecordRepository Record { get; }
+    public IBlobStore BlobStore { get; }
 
     public async ValueTask DisposeAsync()
     {

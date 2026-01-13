@@ -1,4 +1,5 @@
 ﻿using ActorStore.Db;
+using BlobStore;
 using Config;
 using Crypto;
 using Crypto.Secp256k1;
@@ -10,10 +11,12 @@ namespace ActorStore;
 public class ActorRepositoryProvider
 {
     private readonly ActorStoreConfig _config;
+    private readonly BlobStoreFactory _blobStoreFactory;
 
-    public ActorRepositoryProvider(ActorStoreConfig config)
+    public ActorRepositoryProvider(ActorStoreConfig config, BlobStoreFactory blobStoreFactory)
     {
         _config = config;
+        _blobStoreFactory = blobStoreFactory;
     }
 
     public (string Directory, string DbLocation, string KeyLocation) GetLocation(string did)
@@ -73,7 +76,8 @@ public class ActorRepositoryProvider
             throw;
         }
 
-        return new ActorRepository(actorStoreDb, did, KeyPair(did));
+        var blobStore = _blobStoreFactory.Create(did);
+        return new ActorRepository(actorStoreDb, did, KeyPair(did), blobStore);
     }
 
 
@@ -104,7 +108,10 @@ public class ActorRepositoryProvider
 
         var actorStoreDb = new ActorStoreDb(options);
         actorStoreDb.Database.Migrate();
-        return new ActorRepository(actorStoreDb, did, keyPair);
+
+        var blobStore = _blobStoreFactory.Create(did);
+        
+        return new ActorRepository(actorStoreDb, did, keyPair, blobStore);
     }
 
     public void Destroy(string did)

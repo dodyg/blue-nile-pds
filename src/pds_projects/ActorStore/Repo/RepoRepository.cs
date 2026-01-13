@@ -14,15 +14,18 @@ public class RepoRepository
     private readonly string _did;
     private readonly IKeyPair _keyPair;
     private readonly DateTime _now = DateTime.UtcNow;
-    private readonly RecordRepository _record;
-    private readonly SqlRepoTransactor _storage;
-    public RepoRepository(ActorStoreDb db, string did, IKeyPair keyPair, SqlRepoTransactor storage, RecordRepository record)
+    public RecordRepository Record { get; }
+    public SqlRepoTransactor Storage { get; }
+    public IBlobStore BlobStore { get; }
+    public RepoRepository(ActorStoreDb db, string did, IKeyPair keyPair, SqlRepoTransactor storage, RecordRepository record,
+    IBlobStore blobStore)
     {
         _db = db;
         _did = did;
         _keyPair = keyPair;
-        _storage = storage;
-        _record = record;
+        Storage = storage;
+        Record = record;
+        BlobStore = blobStore;
     }
 
     public async Task<string[]> GetCollections()
@@ -36,9 +39,9 @@ public class RepoRepository
     public async Task<CommitData> CreateRepo(PreparedCreate[] writes)
     {
         var writeOpts = writes.Select(x => x.CreateWriteToOp()).ToArray();
-        var commit = await global::Repo.Repo.FormatInitCommit(_storage, _did, _keyPair, writeOpts);
+        var commit = await global::Repo.Repo.FormatInitCommit(Storage, _did, _keyPair, writeOpts);
 
-        await _storage.ApplyCommit(commit);
+        await Storage.ApplyCommit(commit);
         await IndexWrites(writes.Cast<IPreparedWrite>().ToArray(), commit.Rev);
         // TODO: Actually do stuff with blobs
 
@@ -51,15 +54,15 @@ public class RepoRepository
         {
             if (write is PreparedCreate create)
             {
-                await _record.IndexRecord(create.Uri, create.Cid, create.Record, WriteOpAction.Create, rev, _now);
+                await Record.IndexRecord(create.Uri, create.Cid, create.Record, WriteOpAction.Create, rev, _now);
             }
             else if (write is PreparedUpdate update)
             {
-                await _record.IndexRecord(update.Uri, update.Cid, update.Record, WriteOpAction.Update, rev, _now);
+                await Record.IndexRecord(update.Uri, update.Cid, update.Record, WriteOpAction.Update, rev, _now);
             }
             else if (write is PreparedDelete delete)
             {
-                await _record.DeleteRecord(delete.Uri);
+                await Record.DeleteRecord(delete.Uri);
             }
         }
     }
@@ -86,7 +89,7 @@ public class RepoRepository
             }
         }
         
-        await _storage.ApplyCommit(commit);
+        await Storage.ApplyCommit(commit);
         await IndexWrites(writes, commit.Rev);
         // TODO: blob.processWriteBlobs.
         return commit;
@@ -94,13 +97,13 @@ public class RepoRepository
 
     public async Task<CommitData> FormatCommit(IPreparedWrite[] writes, Cid? swapCommit)
     {
-        var currRoot = await _storage.GetRootDetailed();
+        var currRoot = await Storage.GetRootDetailed();
         if (swapCommit != null && !currRoot.Cid.Equals(swapCommit))
         {
             throw new Exception("Bad commit swap");
         }
 
-        await _storage.CacheRev(currRoot.Rev);
+        await Storage.CacheRev(currRoot.Rev);
         var newRecordsCids = new List<Cid>();
         var delAndUpdateUris = new List<ATUri>();
         foreach (var write in writes)
@@ -127,7 +130,7 @@ public class RepoRepository
                 continue;
             }
 
-            var record = await _record.GetRecord(write.Uri, null, true);
+            var record = await Record.GetRecord(write.Uri, null, true);
             Cid? currRecord = record != null ? Cid.FromString(record.Cid) : null;
             if (write.Action == WriteOpAction.Create && swapCid != null)
             {
@@ -147,7 +150,7 @@ public class RepoRepository
             }
         }
 
-        var repo = await global::Repo.Repo.Load(_storage, currRoot.Cid);
+        var repo = await global::Repo.Repo.Load(Storage, currRoot.Cid);
         var writeOps = writes.Select(WriteToOp).ToArray();
         var commit = await repo.FormatCommit(writeOps, _keyPair);
 
@@ -161,7 +164,7 @@ public class RepoRepository
         var newRecordBlocks = commit.NewBlocks.GetMany(newRecordsCids.ToArray());
         if (newRecordBlocks.missing.Length > 0)
         {
-            var missingBlocks = await _storage.GetBlocks(newRecordBlocks.missing);
+            var missingBlocks = await Storage.GetBlocks(newRecordBlocks.missing);
             commit.NewBlocks.AddMap(missingBlocks.blocks);
         }
 

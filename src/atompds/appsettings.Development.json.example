@@ -11,9 +11,9 @@
   "Config": {
     "PDS_PORT": 2583,
     "PDS_HOSTNAME": "example.com",
-    "PDS_DATA_DIRECTORY": "~/pds_data/data",
-    "PDS_BLOBSTORE_DISK_LOCATION": "~/pds_data/blocks",
-    "PDS_BLOBSTORE_DISK_TMP_LOCATION": "~/pds_data/temp",
+    "PDS_DATA_DIRECTORY": "~/.pds_data/data",
+    "PDS_BLOBSTORE_DISK_LOCATION": "~/.pds_data/blocks",
+    "PDS_BLOBSTORE_DISK_TMP_LOCATION": "~/.pds_data/temp",
     "PDS_JWT_SECRET": "", // openssl rand --hex 16
     "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX": "", // openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32
     "PDS_SERVICE_HANDLE_DOMAINS": [ "example.com" ],

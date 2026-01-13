@@ -21,3 +21,21 @@ public interface IRepoStorage
     public Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytes(Cid cid);
     public Task<(CBORObject obj, byte[] bytes)?> AttemptRead(Cid cid);
 }
+
+
+
+public interface IBlobStore
+{
+    public Task PutTemp(Cid cid, byte[] bytes);
+    public Task PutTemp(Cid cid, Stream stream);
+
+    public Task PutPermanent(Cid cid, byte[] bytes);
+    public Task PutPermanent(Cid cid, Stream stream);
+
+    public Task MakePermanent(Cid cid);
+    public Task<byte[]> GetBytes(Cid cid);
+    public Task<Stream> GetStream(Cid cid);
+
+    public Task Delete(Cid cid);
+    public Task DeleteMany(Cid[] cid);
+}
