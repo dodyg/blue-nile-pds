@@ -164,8 +164,8 @@ public interface IPreparedDataWrite : IPreparedWrite
     public PreparedBlobRef[] Blobs { get; }
 }
 
-public record BlobConstraint(string[]? Accept, int? MaxSize);
-public record PreparedBlobRef(Cid Cid, string MimeType, BlobConstraint Constraints);
+public record BlobConstraint(string[]? Accept, long? MaxSize);
+public record PreparedBlobRef(Cid Cid, string MimeType, long Size, BlobConstraint Constraints);
 
 public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
 {

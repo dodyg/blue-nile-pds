@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 using CID;
 using Common;
 using FishyFlip.Lexicon;
@@ -48,7 +49,7 @@ public class Prepare
             CidForSafeRecord(record),
             swap,
             recordCbor,
-            [], // TODO: BlobRefs need to be parsed out of the record
+            ExtractBlobReferences(record.ToJson()),
             validationStatus);
     }
 
@@ -73,7 +74,7 @@ public class Prepare
             CidForSafeRecord(record),
             swapCid,
             CBORObject.FromJSONString(record.ToJson()),
-            [],
+            ExtractBlobReferences(record.ToJson()),
             validationStatus);
     }
 
@@ -144,4 +145,129 @@ public class Prepare
             throw new Exception("Unacceptable slur in record.");
         }
     }
+
+
+    static PreparedBlobRef[] ExtractBlobReferences(string json)
+    {
+        using var jsonDoc = JsonDocument.Parse(json);
+        return ExtractBlobReferences(jsonDoc.RootElement);
+    }
+
+    static PreparedBlobRef[] ExtractBlobReferences(JsonElement root)
+    {
+        // Do a BFS over the json graph
+        // TODO: there is a constraits stuff they extract in the reference implementaion
+        // I still don't know the purpose of it so I will leave it for now
+
+        int MAX_LEVEL = 32;
+
+        var IsRelevantType = (JsonElement elem) => 
+            elem.ValueKind == JsonValueKind.Object || elem.ValueKind == JsonValueKind.Array;
+
+        if (!IsRelevantType(root))
+            return [];
+
+        List<PreparedBlobRef> result = [];
+        // parent might be useful later for constraints
+        var q = new Queue<(JsonElement elem, int level, JsonElement? parent)>();
+
+        q.Enqueue((root, 0, null));
+
+        while (q.Any())
+        {
+            var cur = q.Dequeue();
+
+            if (cur.level > MAX_LEVEL)
+                continue;
+
+            if (cur.elem.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var elem in cur.elem.EnumerateArray().Where(IsRelevantType))
+                    q.Enqueue((elem, cur.level + 1, cur.elem));
+                
+                continue;
+            }
+
+            var blobRef = TryExtractBlobReference(cur.elem);
+            if (blobRef is not null)
+            {
+                result.Add(blobRef);
+                continue;
+            }
+
+            foreach (var prop in cur.elem.EnumerateObject().Where(p => IsRelevantType(p.Value)))
+            {
+                q.Enqueue((prop.Value, cur.level + 1, cur.elem));
+            }
+
+        }
+
+        return result.ToArray();
+    }
+
+    static PreparedBlobRef? TryExtractBlobReference(JsonElement elem)
+    {
+        // https://atproto.com/specs/data-model#blob-type
+        // TODO: maybe support legacy blob format
+        if (elem.ValueKind != JsonValueKind.Object)
+            return null;
+
+        try
+        {
+            var typeElem = elem.GetProperty("$type");
+            if (typeElem.ValueKind != JsonValueKind.String)
+                return null;
+            
+            string type = typeElem.GetString()!;
+
+            if (type != "blob")
+                return null;
+
+            var mimeTypeElem = elem.GetProperty("mimeType");
+            if (mimeTypeElem.ValueKind != JsonValueKind.String)
+                return null;
+
+            if (string.IsNullOrWhiteSpace(mimeTypeElem.GetString()))
+                return null;
+
+            string mimeType = mimeTypeElem.GetString()!;
+
+            var sizeElem = elem.GetProperty("size");
+            if (sizeElem.ValueKind != JsonValueKind.Number)
+                return null;
+
+            long size = sizeElem.GetInt64();
+            if (size <= 0)
+                return null;
+
+
+            var refObj = elem.GetProperty("ref");
+            if (refObj.ValueKind != JsonValueKind.Object)
+                return null;
+
+            var cidElem = refObj.GetProperty("$link");
+            if (cidElem.ValueKind != JsonValueKind.String)
+                return null;
+
+            string cidStr = cidElem.GetString()!;
+
+            if (string.IsNullOrWhiteSpace(cidStr))
+                return null;
+
+            var cid = Cid.FromString(cidStr);
+
+            // TODO: constraints
+            return new PreparedBlobRef(cid, mimeType, size, new(null, null));
+
+        }
+        catch (KeyNotFoundException)
+        {
+            return null;
+        }
+        catch (CIDException)
+        {
+            return null;
+        }
+    }
+
 }
