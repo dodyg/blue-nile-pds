@@ -226,10 +226,10 @@ public readonly record struct Cid
         }
     }
 
-    public static Cid Create(string data)
+    public static Cid Create(string data, MultibaseEncoding? mbEncoding = null)
     {
         var digest = Util.Sha2_256Digest(data);
-        return NewV1((ulong)MulticodecCode.Raw, digest);
+        return NewV1((ulong)MulticodecCode.Raw, digest, mbEncoding);
     }
 
     public static CBORObject ToCBORObject(Cid obj)
