@@ -19,6 +19,7 @@ public class BlobController(
 {
     
     // TODO: there is some authorization stuff regarding scopes that needs to be done here (consult the reference implemenation)
+    // TODO: rate limiting
     [HttpPost("com.atproto.repo.uploadBlob")]
     [AccessStandard(true, true)]
     public async Task<IActionResult> UploadBlob()
@@ -108,6 +109,12 @@ public class BlobController(
                         b.CreatedAt = DateTime.UtcNow;
                     });
                 }
+
+
+                // TODO: need to check if the blob is referenced by any records
+                // from what I understand this can happen in the process of migrating users as the specs say
+                // in this case we need to move the blob to permanent storage
+
 
             }
 
