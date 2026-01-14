@@ -77,7 +77,7 @@ public record ServerConfig
             PublicUrl = env.PDS_HOSTNAME == "localhost" ? $"http://localhost:{env.PDS_PORT}" : $"https://{env.PDS_HOSTNAME}",
             Did = env.PDS_SERVICE_DID ?? $"did:web:{env.PDS_HOSTNAME}",
             Version = env.PDS_VERSION,
-            BlobUploadLimit = env.PDS_BLOB_UPLOAD_LIMIT,
+            BlobUploadLimitInBytes = env.PDS_BLOB_UPLOAD_LIMIT_IN_BYTES,
             DevMode = env.PDS_DEV_MODE
         };
     }

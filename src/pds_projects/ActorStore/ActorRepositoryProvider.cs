@@ -47,6 +47,9 @@ public class ActorRepositoryProvider
         return kp;
     }
 
+    /// <summary>
+    ///     open an actor store. Remember to call Dispose on the returned object when done.
+    /// </summary>
     public ActorRepository Open(string did)
     {
         var (_, dbLocation, _) = GetLocation(did);

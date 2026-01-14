@@ -21,7 +21,7 @@ public class ServerEnvironment
     public string PDS_HOSTNAME { get; set; } = "localhost";
     public string? PDS_SERVICE_DID { get; set; }
     public string? PDS_VERSION { get; set; }
-    public long PDS_BLOB_UPLOAD_LIMIT { get; set; } = 5 * 1024 * 1024; // 5MB
+    public long PDS_BLOB_UPLOAD_LIMIT_IN_BYTES { get; set; } = 5 * 1024 * 1024; // 5MB
     public bool PDS_DEV_MODE { get; set; } = false;
 
     // Data Directories

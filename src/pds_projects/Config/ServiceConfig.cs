@@ -7,6 +7,6 @@ public record ServiceConfig
     public required string PublicUrl { get; init; }
     public required string Did { get; init; }
     public string? Version { get; init; }
-    public required long BlobUploadLimit { get; init; }
+    public required long BlobUploadLimitInBytes { get; init; }
     public required bool DevMode { get; init; }
 }

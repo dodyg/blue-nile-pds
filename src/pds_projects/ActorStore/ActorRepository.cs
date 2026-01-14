@@ -18,13 +18,11 @@ public class ActorRepository : IDisposable, IAsyncDisposable
         _db = db;
         _sqlRepoTransactor = new SqlRepoTransactor(db, did);
         Record = new RecordRepository(db, did, keyPair, _sqlRepoTransactor);
-        BlobStore = blobStore;
         Repo = new RepoRepository(db, did, keyPair, _sqlRepoTransactor, Record, blobStore);
     }
     public SqliteConnection? Connection => _db.Database.GetDbConnection() as SqliteConnection;
     public RepoRepository Repo { get; }
     public RecordRepository Record { get; }
-    public IBlobStore BlobStore { get; }
 
     public async ValueTask DisposeAsync()
     {

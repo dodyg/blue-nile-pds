@@ -16,7 +16,7 @@ public class RepoRepository
     private readonly DateTime _now = DateTime.UtcNow;
     public RecordRepository Record { get; }
     public SqlRepoTransactor Storage { get; }
-    public IBlobStore BlobStore { get; }
+    public BlobTransactor Blob { get; }
     public RepoRepository(ActorStoreDb db, string did, IKeyPair keyPair, SqlRepoTransactor storage, RecordRepository record,
     IBlobStore blobStore)
     {
@@ -25,7 +25,7 @@ public class RepoRepository
         _keyPair = keyPair;
         Storage = storage;
         Record = record;
-        BlobStore = blobStore;
+        Blob = new BlobTransactor(blobStore, db);
     }
 
     public async Task<string[]> GetCollections()

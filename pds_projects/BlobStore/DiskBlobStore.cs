@@ -1,4 +1,5 @@
-﻿using CID;
+﻿using System.Net.Http.Headers;
+using CID;
 using Repo;
 
 namespace BlobStore;
@@ -15,10 +16,20 @@ public class DiskBlobStore : IBlobStore
     )
     {
         Did = did;
-        TempLocation = tempLocation;
-        Location = location;
+        TempLocation = ExpandPath(tempLocation);
+        Location = ExpandPath(location);
     }
 
+    private static string ExpandPath(string path)
+    {
+        if (path.StartsWith("~/"))
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[2..]);
+        
+        if (path == "~")
+            return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        
+        return path;
+    }
 
     private void EnsureDirectory()
     {
@@ -35,23 +46,38 @@ public class DiskBlobStore : IBlobStore
     private string GetStoredPath(Cid cid) =>
         Path.Join(Location, Did, cid.ToString());
 
-    private string GetTempPath(Cid cid) =>
-        Path.Join(TempLocation, Did, cid.ToString());
+    private string GetTempPath(string key) =>
+        Path.Join(TempLocation, Did, key);
+
+    private string GenKey() => Path.GetRandomFileName();
 
 
-    public async Task PutTemp(Cid cid, byte[] bytes)
+    public Task<string> PutTemp(byte[] bytes) =>
+        PutTemp(bytes, CancellationToken.None);
+
+    public async Task<string> PutTemp(byte[] bytes, CancellationToken ct)
     {
         EnsureTemp();
-        var path = GetTempPath(cid);
+        var key = GenKey();
+        var path = GetTempPath(key);
         await File.WriteAllBytesAsync(path, bytes);
+
+        return key;
     }
 
-    public async Task PutTemp(Cid cid, Stream stream)
+    public Task<string> PutTemp(Stream stream) =>
+        PutTemp(stream, CancellationToken.None);
+
+    public async Task<string> PutTemp(Stream stream, CancellationToken ct)
     {
         EnsureTemp();
-        var path = GetTempPath(cid);
+        var key = GenKey();
+        var path = GetTempPath(key);
+
         using var fileStream = File.Create(path);
-        await stream.CopyToAsync(fileStream);
+
+        await stream.CopyToAsync(fileStream, ct);
+        return key;
     }
 
     public async Task PutPermanent(Cid cid, byte[] bytes)
@@ -70,17 +96,17 @@ public class DiskBlobStore : IBlobStore
     }
 
 
-    public async Task MakePermanent(Cid cid)
+    public async Task MakePermanent(string tmpKey, Cid cid)
     {
         EnsureTemp();
-        var tempPath = GetTempPath(cid);
+        var tempPath = GetTempPath(tmpKey);
 
         EnsureDirectory();
         var storedPath = GetStoredPath(cid);
 
         if (!File.Exists(tempPath) && !File.Exists(storedPath))
         {
-            throw new Exception("Blob not found in temp or permanent storage");
+            throw new Exception($"Blob not found in temp: {tempPath} or already in permanent storage: {storedPath}");
         }
 
 
@@ -116,6 +142,17 @@ public class DiskBlobStore : IBlobStore
         if (!File.Exists(path))
         {
             throw new Exception("Blob not found in permanent storage");
+        }
+
+        return File.OpenRead(path);
+    }
+
+    public async Task<Stream> GetTempStream(string key)
+    {
+        var path = GetTempPath(key);
+        if (!File.Exists(path))
+        {
+            throw new Exception("Blob not found in temp storage");
         }
 
         return File.OpenRead(path);
