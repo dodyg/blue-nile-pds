@@ -18,8 +18,7 @@ public class BlobTransactor
 
     public async Task<Blob?> GetBlob(Cid cid)
     {
-        // TODO: make a CID type for blob to avoid conversion to string like this everywhere
-        var blob = Db.Blobs.FirstOrDefault(b => b.Cid == cid.ToStringOfBase(Multiformats.Base.MultibaseEncoding.Base32Lower));
+        var blob = Db.Blobs.FirstOrDefault(b => b.Cid == cid.ToString());
         return blob;
     }
 

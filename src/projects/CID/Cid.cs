@@ -16,6 +16,10 @@ public readonly record struct Cid
     public ulong Codec { get; private init; }
     public Multihash MultiHash { get; private init; }
 
+    /// <summary>
+    /// Base encoding to use when converting to string
+    /// </summary>
+    public MultibaseEncoding? Base { get; private init; }
 
     // Check if the version of `data` string is CIDv0.
     // v0 is a Base58Btc encoded sha hash, so it has
@@ -51,7 +55,7 @@ public readonly record struct Cid
 
     public override string ToString()
     {
-        return ToStringOfBase(MultibaseEncoding.Base58Btc);
+        return ToStringOfBase(Base ?? MultibaseEncoding.Base58Btc);
     }
 
     public static Cid NewV0(Multihash hash)
@@ -59,9 +63,9 @@ public readonly record struct Cid
         return StrictNewV0(Version.V0, DAG_PB, hash);
     }
 
-    public static Cid NewV1(ulong codec, Multihash hash)
+    public static Cid NewV1(ulong codec, Multihash hash, MultibaseEncoding? mbEncoding = null)
     {
-        return StrictNewV1(Version.V1, codec, hash);
+        return StrictNewV1(Version.V1, codec, hash, mbEncoding);
     }
 
     public static Cid New(Version version, ulong codec, Multihash hash)
@@ -94,14 +98,14 @@ public readonly record struct Cid
         return new Cid {Version = version, Codec = codec, MultiHash = hash};
     }
 
-    private static Cid StrictNewV1(Version version, ulong codec, Multihash hash)
+    private static Cid StrictNewV1(Version version, ulong codec, Multihash hash, MultibaseEncoding? mbEncoding = null)
     {
         if (version != Version.V1)
         {
             throw new CIDException(Error.InvalidCidVersion);
         }
 
-        return new Cid {Version = version, Codec = codec, MultiHash = hash};
+        return new Cid {Version = version, Codec = codec, MultiHash = hash, Base = mbEncoding};
     }
 
     private Cid V0ToV1()

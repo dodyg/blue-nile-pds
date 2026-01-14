@@ -113,7 +113,7 @@ public class BlobController(
 
             var blob = new Blob
             {
-                Cid = blobMetaData.Cid.ToStringOfBase(Multiformats.Base.MultibaseEncoding.Base32Lower),
+                Cid = blobMetaData.Cid.ToString(),
                 MimeType = blobMetaData.MimeType,
                 Size = blobMetaData.Size,
                 TempKey = key,
@@ -129,7 +129,7 @@ public class BlobController(
         return Ok(new BlobMetaDataResponse(
             MimeType: blobMetaData.MimeType,
             Size: blobMetaData.Size,
-            Cid: blobMetaData.Cid.ToStringOfBase(Multiformats.Base.MultibaseEncoding.Base32HexLower)
+            Cid: blobMetaData.Cid.ToString()
         ));
     }
 

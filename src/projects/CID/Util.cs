@@ -43,7 +43,7 @@ public static class Util
     public static async Task<Cid> CidForBlobs(Stream blobStream)
     {
         var multiHash = await Sha2_256Digest(blobStream);
-        return Cid.NewV1((ulong) MulticodecCode.Raw, multiHash);
+        return Cid.NewV1((ulong) MulticodecCode.Raw, multiHash, Multiformats.Base.MultibaseEncoding.Base32Lower);
     }
     /// <summary>
     /// Generates a CID with the 'blessed' format for blobs
@@ -52,6 +52,6 @@ public static class Util
     public static Cid CidForBlobs(byte[] data)
     {
         var multiHash = Sha2_256Digest(data);
-        return Cid.NewV1((ulong) MulticodecCode.Raw, multiHash);
+        return Cid.NewV1((ulong) MulticodecCode.Raw, multiHash, Multiformats.Base.MultibaseEncoding.Base32Lower);
     }
 }
