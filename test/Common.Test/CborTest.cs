@@ -1,4 +1,5 @@
 ﻿using CID;
+using Multiformats.Base;
 using PeterO.Cbor;
 
 namespace Common.Test;
@@ -9,7 +10,7 @@ public class CborTest
     [Fact]
     public void TestCbor()
     {
-        var obj = new TestObject("Alice", 30, Cid.Create("hello world"));
+        var obj = new TestObject("Alice", 30, Cid.Create("hello world", MultibaseEncoding.Base32Upper));
         var cbor = CBORObject.NewMap()
             .Add("Name", obj.Name)
             .Add("Age", obj.Age)

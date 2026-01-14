@@ -35,9 +35,9 @@ public class CidTests
     [Fact]
     public void BasicMarshalling()
     {
-        var cid = Cid.NewV1(Cid.DAG_PB, Util.Sha2_256Digest("beep boop"));
+        var cid = Cid.NewV1(Cid.DAG_PB, Util.Sha2_256Digest("beep boop"), MultibaseEncoding.Base32Lower);
         var data = cid.ToBytes();
-        var cmp = Cid.ReadBytes(data);
+        var cmp = Cid.ReadBytes(data, MultibaseEncoding.Base32Lower);
         Assert.Equal(cid, cmp);
 
         var cmp2 = cmp.ToV1();

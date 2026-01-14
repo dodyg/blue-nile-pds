@@ -124,7 +124,7 @@ public readonly record struct Cid
         };
     }
 
-    public static Cid ReadBytes(byte[] bytes)
+    public static Cid ReadBytes(byte[] bytes, MultibaseEncoding? mbEncoding = null)
     {
         if (bytes.Length < 2)
         {
@@ -150,7 +150,7 @@ public readonly record struct Cid
         return versionType switch
         {
             Version.V0 => throw new CIDException(Error.InvalidExplicitCidV0),
-            Version.V1 => StrictNewV1(versionType, codec, Multihash.Decode(digest)),
+            Version.V1 => StrictNewV1(versionType, codec, Multihash.Decode(digest), mbEncoding),
             _ => throw new CIDException(Error.InvalidCidVersion)
         };
     }
@@ -212,9 +212,18 @@ public readonly record struct Cid
             throw new CIDException(Error.InputTooShort);
         }
 
-        var decoded = IsV0Str(hash) ? Multibase.Base58.Decode(hash) : Multibase.Decode(hash, out MultibaseEncoding enc);
+        // var decoded = IsV0Str(hash) ? Multibase.Base58.Decode(hash) : Multibase.Decode(hash, out MultibaseEncoding enc);
 
-        return ReadBytes(decoded);
+        if (IsV0Str(hash))
+        {
+            var decoded = Multibase.Base58.Decode(hash);
+            return ReadBytes(decoded);
+        }
+        else
+        {
+            var decoded = Multibase.Decode(hash, out MultibaseEncoding enc);
+            return ReadBytes(decoded, enc);
+        }
     }
 
     public static Cid Create(string data)
