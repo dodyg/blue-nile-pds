@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/pds_projects/Config/Config.csproj" />
-    <ProjectReference Include="../../src/projects/Repo/Repo.csproj" />
+    <ProjectReference Include="../Config/Config.csproj" />
+    <ProjectReference Include="../../projects/Repo/Repo.csproj" />
   </ItemGroup>
 
 </Project>

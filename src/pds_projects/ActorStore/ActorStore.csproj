@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../../../pds_projects/BlobStore/BlobStore.csproj" />
+        <ProjectReference Include="../BlobStore/BlobStore.csproj" />
         <ProjectReference Include="..\..\projects\CID\CID.csproj" />
         <ProjectReference Include="..\..\projects\CommonDb\CommonDb.csproj" />
         <ProjectReference Include="..\..\projects\DidLib\DidLib.csproj" />
