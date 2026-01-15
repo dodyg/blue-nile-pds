@@ -147,13 +147,13 @@ public class Prepare
     }
 
 
-    static PreparedBlobRef[] ExtractBlobReferences(string json)
+    public static PreparedBlobRef[] ExtractBlobReferences(string json)
     {
         using var jsonDoc = JsonDocument.Parse(json);
         return ExtractBlobReferences(jsonDoc.RootElement);
     }
 
-    static PreparedBlobRef[] ExtractBlobReferences(JsonElement root)
+    public static PreparedBlobRef[] ExtractBlobReferences(JsonElement root)
     {
         // Do a BFS over the json graph
         // TODO: there is a constraits stuff they extract in the reference implementaion
@@ -205,7 +205,7 @@ public class Prepare
         return result.ToArray();
     }
 
-    static PreparedBlobRef? TryExtractBlobReference(JsonElement elem)
+    public static PreparedBlobRef? TryExtractBlobReference(JsonElement elem)
     {
         // https://atproto.com/specs/data-model#blob-type
         // TODO: maybe support legacy blob format
@@ -236,7 +236,16 @@ public class Prepare
             if (sizeElem.ValueKind != JsonValueKind.Number)
                 return null;
 
-            long size = sizeElem.GetInt64();
+            long size = 0;
+            try
+            {
+                size = sizeElem.GetInt64();
+            }
+            catch
+            {
+                return null;
+            }
+
             if (size <= 0)
                 return null;
 
@@ -254,17 +263,18 @@ public class Prepare
             if (string.IsNullOrWhiteSpace(cidStr))
                 return null;
 
-            var cid = Cid.FromString(cidStr);
-
-            // TODO: constraints
-            return new PreparedBlobRef(cid, mimeType, size, new(null, null));
-
+            try
+            {
+                var cid = Cid.FromString(cidStr);
+                // TODO: constraints
+                return new PreparedBlobRef(cid, mimeType, size, new(null, null));
+            }
+            catch
+            {
+                return null;
+            }
         }
         catch (KeyNotFoundException)
-        {
-            return null;
-        }
-        catch (CIDException)
         {
             return null;
         }
