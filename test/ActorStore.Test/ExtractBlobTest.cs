@@ -1,6 +1,8 @@
 ﻿using ActorStore.Repo;
 using CID;
 using Multiformats.Base;
+using Multiformats.Codec;
+using Multiformats.Hash;
 
 namespace ActorStore.Test;
 
@@ -2029,6 +2031,7 @@ public class ExtractBlobTests
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
         Assert.Single(result);
+        Assert.Equal(cid, result[0].Cid.ToString());
     }
 
     // Complete valid blob examples
@@ -2118,6 +2121,365 @@ public class ExtractBlobTests
         """;
         var result = Prepare.ExtractBlobReferences(json);
         Assert.Empty(result);
+    }
+
+    // ==========================================
+    // CID Validation Tests
+    // Based on: https://atproto.com/specs/data-model#link-and-cid-formats
+    // ==========================================
+    // The blessed formats for CIDs in atproto are:
+    // - CIDv1
+    // - multibase: base32 for string encoding
+    // - multicodec: raw (0x55) for links to blobs
+    // - multihash: sha-256 with 256 bits (0x12) is preferred
+
+    // Multicodec validation - blobs must use 'raw' (0x55) codec
+    [Fact]
+    public void CidValidation_RawCodec_Valid()
+    {
+        // CID with raw codec (0x55) - valid for blobs
+        var cid = Cid.Create("test blob data", MultibaseEncoding.Base32Lower);
+        Assert.Equal((ulong)MulticodecCode.Raw, cid.Codec);
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cid.ToString(), result[0].Cid.ToString());
+    }
+
+    [Fact]
+    public void CidValidation_DagCborCodec_Invalid()
+    {
+        // CID with dag-cbor codec (0x71) - NOT valid for blobs, only for data objects
+        var hash = Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("test data"));
+        var dagCborCid = Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash, MultibaseEncoding.Base32Lower);
+        
+        Assert.Equal((ulong)MulticodecCode.MerkleDAGCBOR, dagCborCid.Codec);
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{dagCborCid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void CidValidation_DagPbCodec_Invalid()
+    {
+        // CID with dag-pb codec (0x70) - NOT valid for blobs
+        var hash = Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("test data"));
+        var dagPbCid = Cid.NewV1(Cid.DAG_PB, hash, MultibaseEncoding.Base32Lower);
+        
+        Assert.Equal(Cid.DAG_PB, dagPbCid.Codec);
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{dagPbCid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Empty(result);
+    }
+
+    // CID Version tests
+    [Fact]
+    public void CidValidation_CidV1_Valid()
+    {
+        // CIDv1 with raw codec is the standard for blobs
+        var cid = Cid.Create("v1 test", MultibaseEncoding.Base32Lower);
+        var cidString = cid.ToString();
+        Assert.Equal(CID.Version.V1, cid.Version);
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    [Fact]
+    public void CidValidation_CidV0_Invalid()
+    {
+        // CIDv0 uses dag-pb codec which is not valid for blobs
+        // CIDv0 starts with "Qm" and is base58btc encoded
+        var cidV0 = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cidV0}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        // CIDv0 uses dag-pb (0x70) codec, not raw, so should be invalid
+        Assert.Empty(result);
+    }
+
+    // Multibase encoding tests - CID should be read correctly regardless of encoding
+    [Fact]
+    public void CidValidation_Base32Lower_Valid()
+    {
+        var cid = Cid.Create("base32 test", MultibaseEncoding.Base32Lower);
+        var cidString = cid.ToString();
+        Assert.True(cidString.StartsWith("b")); // base32lower prefix
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    [Fact]
+    public void CidValidation_Base32Upper_Valid()
+    {
+        var cid = Cid.Create("base32 upper test", MultibaseEncoding.Base32Upper);
+        var cidString = cid.ToString();
+        Assert.True(cidString.StartsWith("B")); // base32upper prefix
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    [Fact]
+    public void CidValidation_Base58Btc_Valid()
+    {
+        var cid = Cid.Create("base58 test", MultibaseEncoding.Base58Btc);
+        var cidString = cid.ToString();
+        Assert.True(cidString.StartsWith("z")); // base58btc prefix
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    [Fact]
+    public void CidValidation_Base64_Valid()
+    {
+        var cid = Cid.Create("base64 test", MultibaseEncoding.Base64);
+        var cidString = cid.ToString();
+        Assert.True(cidString.StartsWith("m")); // base64 prefix
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    // CID preserves encoding when parsed
+    [Fact]
+    public void CidValidation_EncodingPreservedAfterParsing()
+    {
+        var originalCid = Cid.Create("encoding preservation test", MultibaseEncoding.Base32Lower);
+        var cidString = originalCid.ToString();
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cidString}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        // The CID should be parseable and have correct codec
+        Assert.Equal((ulong)MulticodecCode.Raw, result[0].Cid.Codec);
+        // CID string should be preserved after encoding/decoding
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    [Fact]
+    public void CidValidation_DifferentEncodingsSameCid_SameBlob()
+    {
+        // Create CIDs with same content but different encodings
+        var content = "same content different encoding";
+        var cid32 = Cid.Create(content, MultibaseEncoding.Base32Lower);
+        var cid58 = Cid.Create(content, MultibaseEncoding.Base58Btc);
+        
+        var json32 = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid32}}" } }""";
+        var json58 = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid58}}" } }""";
+        
+        var result32 = Prepare.ExtractBlobReferences(json32);
+        var result58 = Prepare.ExtractBlobReferences(json58);
+        
+        Assert.Single(result32);
+        Assert.Single(result58);
+        // Both should produce the same underlying CID (same hash)
+        Assert.Equal(result32[0].Cid.MultiHash, result58[0].Cid.MultiHash);
+    }
+
+    // Hash algorithm tests
+    [Fact]
+    public void CidValidation_Sha256Hash_Valid()
+    {
+        // SHA-256 is the standard and preferred hash
+        var cid = Cid.Create("sha256 test", MultibaseEncoding.Base32Lower);
+        var cidString = cid.ToString();
+        Assert.Equal(HashType.SHA2_256, cid.MultiHash.Code);
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    // Invalid CID format tests
+    [Fact]
+    public void CidValidation_TruncatedCid_Invalid()
+    {
+        var validCid = Cid.Create("test", MultibaseEncoding.Base32Lower).ToString();
+        var truncatedCid = validCid[..10]; // Truncate the CID
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{truncatedCid}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void CidValidation_GarbageData_Invalid()
+    {
+        var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "bafynotarealcidatall" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void CidValidation_EmptyCid_Invalid()
+    {
+        var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void CidValidation_SingleCharacter_Invalid()
+    {
+        var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "b" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void CidValidation_InvalidMultibasePrefix_Invalid()
+    {
+        // '!' is not a valid multibase prefix
+        var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "!invalidprefix" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void CidValidation_ValidPrefixInvalidContent_Invalid()
+    {
+        // 'b' is base32lower prefix but content is invalid
+        var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "b0123456789" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Empty(result);
+    }
+
+    // IPFS URL format tests (implementation supports /ipfs/ prefix)
+    [Fact]
+    public void CidValidation_IpfsUrlFormat_Valid()
+    {
+        var cid = Cid.Create("ipfs url test", MultibaseEncoding.Base32Lower);
+        var cidString = cid.ToString();
+        var ipfsUrl = $"/ipfs/{cid}";
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{ipfsUrl}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    [Fact]
+    public void CidValidation_IpfsUrlWithPath_Valid()
+    {
+        var cid = Cid.Create("ipfs with path", MultibaseEncoding.Base32Lower);
+        var cidString = cid.ToString();
+        var ipfsUrl = $"https://ipfs.io/ipfs/{cid}";
+        
+        var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{ipfsUrl}}" } }""";
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    // Edge cases
+    [Fact]
+    public void CidValidation_CidWithCorrectCodecInNestedBlob_Valid()
+    {
+        var cid = Cid.Create("nested blob cid", MultibaseEncoding.Base32Lower);
+        var cidString = cid.ToString();
+        var json = $$"""
+        {
+            "record": {
+                "image": {
+                    "$type": "blob",
+                    "mimeType": "image/jpeg",
+                    "size": 50000,
+                    "ref": { "$link": "{{cid}}" }
+                }
+            }
+        }
+        """;
+        
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Single(result);
+        Assert.Equal((ulong)MulticodecCode.Raw, result[0].Cid.Codec);
+        Assert.Equal(cidString, result[0].Cid.ToString());
+    }
+
+    [Fact]
+    public void CidValidation_MultipleBlobsWithDifferentEncodings_FindsAll()
+    {
+        var cid1 = Cid.Create("blob1", MultibaseEncoding.Base32Lower);
+        var cid2 = Cid.Create("blob2", MultibaseEncoding.Base58Btc);
+        var cid3 = Cid.Create("blob3", MultibaseEncoding.Base64);
+        var cidStrings = new[] { cid1.ToString(), cid2.ToString(), cid3.ToString() };
+        
+        var json = $$"""
+        {
+            "images": [
+                { "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid1}}" } },
+                { "$type": "blob", "mimeType": "image/jpeg", "size": 200, "ref": { "$link": "{{cid2}}" } },
+                { "$type": "blob", "mimeType": "image/gif", "size": 300, "ref": { "$link": "{{cid3}}" } }
+            ]
+        }
+        """;
+        
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        Assert.Equal(3, result.Length);
+        Assert.All(result, b => Assert.Equal((ulong)MulticodecCode.Raw, b.Cid.Codec));
+        // Each CID string should be preserved after encoding/decoding
+        Assert.Contains(result, b => b.Cid.ToString() == cidStrings[0]);
+        Assert.Contains(result, b => b.Cid.ToString() == cidStrings[1]);
+        Assert.Contains(result, b => b.Cid.ToString() == cidStrings[2]);
+    }
+
+    [Fact]
+    public void CidValidation_MixedValidAndInvalidCodecs_FindsOnlyRaw()
+    {
+        var rawCid = Cid.Create("raw codec", MultibaseEncoding.Base32Lower);
+        var hash = Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("dag-cbor codec"));
+        var dagCborCid = Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash, MultibaseEncoding.Base32Lower);
+        
+        var json = $$"""
+        {
+            "validBlob": { "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{rawCid}}" } },
+            "invalidBlob": { "$type": "blob", "mimeType": "image/jpeg", "size": 200, "ref": { "$link": "{{dagCborCid}}" } }
+        }
+        """;
+        
+        var result = Prepare.ExtractBlobReferences(json);
+        
+        // Should only find the blob with raw codec
+        Assert.Single(result);
+        Assert.Equal(rawCid.ToString(), result[0].Cid.ToString());
     }
     #endregion
 }

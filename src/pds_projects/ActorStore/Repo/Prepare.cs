@@ -9,6 +9,7 @@ using FishyFlip.Lexicon.App.Bsky.Graph;
 using FishyFlip.Lexicon.App.Bsky.Richtext;
 using FishyFlip.Models;
 using Handle;
+using Multiformats.Codec;
 using PeterO.Cbor;
 using Repo;
 
@@ -266,6 +267,9 @@ public class Prepare
             try
             {
                 var cid = Cid.FromString(cidStr);
+
+                if (cid.Codec != (ulong)MulticodecCode.Raw)
+                    return null;
                 // TODO: constraints
                 return new PreparedBlobRef(cid, mimeType, size, new(null, null));
             }
