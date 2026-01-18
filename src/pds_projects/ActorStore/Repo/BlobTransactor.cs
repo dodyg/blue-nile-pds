@@ -103,6 +103,7 @@ public class BlobTransactor
             .Where(b => newBlobCids.Contains(b.Cid) && b.Status == BlobStatus.Temporary)
             .ExecuteUpdateAsync(b => b.SetProperty(b => b.Status, BlobStatus.Permanent));
     
+        await Db.SaveChangesAsync();
         await tx.CommitAsync();
 
 
