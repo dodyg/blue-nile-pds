@@ -179,7 +179,7 @@ public class Prepare
             var cur = q.Dequeue();
 
             if (cur.level > MAX_LEVEL)
-                continue;
+                break;
 
             if (cur.elem.ValueKind == JsonValueKind.Array)
             {
