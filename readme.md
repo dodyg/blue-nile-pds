@@ -19,7 +19,6 @@ and should follow the same general structure.
 
 ## TODO
 
-- Blob storage, any writes that have a blob will explicitly throw currently
 - Test cases for all components
 - Proper lexicon validation
     - Note that I want to avoid implementing logic for each lexicon, a more generic approach based on the lexicon schema
