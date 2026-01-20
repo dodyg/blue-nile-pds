@@ -80,6 +80,17 @@ public class DiskBlobStore : IBlobStore
         return key;
     }
 
+    public async Task<long> GetTempSize(string key)
+    {
+        var path = GetTempPath(key);
+        if (!File.Exists(path))
+        {
+            throw new Exception("Temp blob not found");
+        }
+        var info = new FileInfo(path);
+        return info.Length;
+    }
+
 
     public async Task PutPermanent(Cid cid, byte[] bytes) =>
         await PutPermanent(cid, bytes, CancellationToken.None);

@@ -28,8 +28,12 @@ public class BlobTransactor
     {
         var stream = await BlobStore.GetTempStream(tempKey);
 
+        
         var cid = await CID.Util.CidForBlobs(stream);
-        var size = (int)stream.Length;
+
+        // let the blob store handle figuring out the size
+        // don't try to read the stream length here as it might not be seekable, so it will throw not supported exception
+        var size = await BlobStore.GetTempSize(tempKey);
         // TODO: content type sniffing 
 
         var blob = new BlobMetaData(
@@ -171,7 +175,7 @@ public class BlobTransactor
 
     public record BlobMetaData(
         string MimeType,
-        int Size,
+        long Size,
         Cid Cid
     );
 }

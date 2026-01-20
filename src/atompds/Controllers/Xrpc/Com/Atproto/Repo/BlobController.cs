@@ -105,7 +105,7 @@ public class BlobController(
                         b.Status = BlobStatus.Temporary;
                         b.TempKey = key;
                         b.MimeType = blobMetaData.MimeType;
-                        b.Size = blobMetaData.Size;
+                        b.Size = (int) blobMetaData.Size;
                         b.CreatedAt = DateTime.UtcNow;
                     });
                 }
@@ -122,7 +122,7 @@ public class BlobController(
             {
                 Cid = blobMetaData.Cid.ToString(),
                 MimeType = blobMetaData.MimeType,
-                Size = blobMetaData.Size,
+                Size = (int) blobMetaData.Size,
                 TempKey = key,
                 Status = BlobStatus.Temporary,
                 CreatedAt = DateTime.UtcNow
@@ -135,7 +135,7 @@ public class BlobController(
 
         return Ok(new BlobMetaDataResponse(
             MimeType: blobMetaData.MimeType,
-            Size: blobMetaData.Size,
+            Size: (int) blobMetaData.Size,
             Cid: blobMetaData.Cid.ToString()
         ));
     }

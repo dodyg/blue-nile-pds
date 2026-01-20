@@ -30,6 +30,7 @@ public interface IBlobStore
     public Task<string> PutTemp(byte[] bytes, CancellationToken ct);
     public Task<string> PutTemp(Stream stream);
     public Task<string> PutTemp(Stream stream, CancellationToken ct);
+    public Task<long> GetTempSize(string key);
 
     public Task PutPermanent(Cid cid, byte[] bytes, CancellationToken ct);
     public Task PutPermanent(Cid cid, byte[] bytes);

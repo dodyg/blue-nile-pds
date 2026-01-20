@@ -11,4 +11,8 @@
     <ProjectReference Include="../../projects/Repo/Repo.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.17.2" />
+  </ItemGroup>
+
 </Project>

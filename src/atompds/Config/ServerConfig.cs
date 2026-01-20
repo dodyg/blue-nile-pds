@@ -194,8 +194,8 @@ public record ServerConfig
         return new S3BlobstoreConfig
         {
             Bucket = env.PDS_BLOBSTORE_S3_BUCKET ?? throw new Exception("PDS_BLOBSTORE_S3_BUCKET is required for S3 blobstore"),
-            Region = env.PDS_BLOBSTORE_S3_REGION ?? throw new Exception("PDS_BLOBSTORE_S3_REGION is required for S3 blobstore"),
-            Endpoint = env.PDS_BLOBSTORE_S3_ENDPOINT ?? null,
+            Region = string.IsNullOrWhiteSpace(env.PDS_BLOBSTORE_S3_REGION) ? null : env.PDS_BLOBSTORE_S3_REGION,
+            Endpoint = string.IsNullOrWhiteSpace(env.PDS_BLOBSTORE_S3_ENDPOINT) ? null : env.PDS_BLOBSTORE_S3_ENDPOINT,
             ForcePathStyle = env.PDS_BLOBSTORE_S3_FORCE_PATH_STYLE,
             AccessKeyId = env.PDS_BLOBSTORE_S3_ACCESS_KEY_ID ?? throw new Exception("PDS_BLOBSTORE_S3_ACCESS_KEY_ID is required for S3 blobstore"),
             SecretAccessKey = env.PDS_BLOBSTORE_S3_SECRET_ACCESS_KEY ?? throw new Exception("PDS_BLOBSTORE_S3_SECRET_ACCESS_KEY is required for S3 blobstore"),
