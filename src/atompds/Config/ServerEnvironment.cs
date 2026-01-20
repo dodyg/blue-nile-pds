@@ -35,9 +35,20 @@ public class ServerEnvironment
     public long PDS_ACTOR_SCORE_CACHE_SIZE { get; set; } = 100;
 
     // Blobstore
-    [Required] public required string PDS_BLOBSTORE_DISK_LOCATION { get; set; }
+    public required string PDS_BLOBSTORE_DISK_LOCATION { get; set; }
 
-    [Required] public required string PDS_BLOBSTORE_DISK_TMP_LOCATION { get; set; }
+    public required string PDS_BLOBSTORE_DISK_TMP_LOCATION { get; set; }
+
+
+    // s3 blobstore
+    public string? PDS_BLOBSTORE_S3_BUCKET { get; set; }
+    public string? PDS_BLOBSTORE_S3_REGION { get; set; }
+    public string? PDS_BLOBSTORE_S3_ENDPOINT { get; set; }
+    public bool PDS_BLOBSTORE_S3_FORCE_PATH_STYLE { get; set; } = false;
+    public string? PDS_BLOBSTORE_S3_ACCESS_KEY_ID { get; set; }
+    public string? PDS_BLOBSTORE_S3_SECRET_ACCESS_KEY { get; set; }
+    public int PDS_BLOBSTORE_S3_UPLOAD_TIMEOUT_MS { get; set; } = 20000;
+
 
     public string PDS_DID_PLC_URL { get; set; } = "https://plc.directory";
     public int PDS_DID_CACHE_STALE_TTL { get; set; } = DAY;
@@ -85,4 +96,5 @@ public class ServerEnvironment
     public long? PDS_PROXY_MAX_RESPONSE_SIZE { get; set; }
     public int? PDS_PROXY_MAX_RETRIES { get; set; }
     public bool? PDS_PROXY_PREFER_COMPRESSED { get; set; }
+
 }

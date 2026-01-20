@@ -48,7 +48,9 @@ public record ServerConfig
         Subscription = MapSubscriptionConfig(env);
         Db = MapDatabaseConfig(env);
         ActorStore = MapActorStoreConfig(env);
-        Blobstore = MapDiskBlobstoreConfig(env);
+        Blobstore = string.IsNullOrWhiteSpace(env.PDS_BLOBSTORE_S3_BUCKET)
+            ? MapDiskBlobstoreConfig(env)
+            : MapS3BlobstoreConfig(env);
         Identity = MapIdentityConfig(env);
         Invites = MapInviteConfig(env);
         BskyAppView = MapBskyAppViewConfig(env);
@@ -61,7 +63,7 @@ public record ServerConfig
     public SubscriptionConfig Subscription { get; init; }
     public DatabaseConfig Db { get; init; }
     public ActorStoreConfig ActorStore { get; init; }
-    public DiskBlobstoreConfig Blobstore { get; init; }
+    public BlobStoreConfig Blobstore { get; init; }
     public IdentityConfig Identity { get; init; }
     public InvitesConfig Invites { get; init; }
     public IBskyAppViewConfig BskyAppView { get; init; }
@@ -184,6 +186,20 @@ public record ServerConfig
         {
             Location = env.PDS_BLOBSTORE_DISK_LOCATION,
             TempLocation = env.PDS_BLOBSTORE_DISK_TMP_LOCATION
+        };
+    }
+
+    public S3BlobstoreConfig MapS3BlobstoreConfig(ServerEnvironment env)
+    {
+        return new S3BlobstoreConfig
+        {
+            Bucket = env.PDS_BLOBSTORE_S3_BUCKET ?? throw new Exception("PDS_BLOBSTORE_S3_BUCKET is required for S3 blobstore"),
+            Region = env.PDS_BLOBSTORE_S3_REGION ?? throw new Exception("PDS_BLOBSTORE_S3_REGION is required for S3 blobstore"),
+            Endpoint = env.PDS_BLOBSTORE_S3_ENDPOINT ?? null,
+            ForcePathStyle = env.PDS_BLOBSTORE_S3_FORCE_PATH_STYLE,
+            AccessKeyId = env.PDS_BLOBSTORE_S3_ACCESS_KEY_ID ?? throw new Exception("PDS_BLOBSTORE_S3_ACCESS_KEY_ID is required for S3 blobstore"),
+            SecretAccessKey = env.PDS_BLOBSTORE_S3_SECRET_ACCESS_KEY ?? throw new Exception("PDS_BLOBSTORE_S3_SECRET_ACCESS_KEY is required for S3 blobstore"),
+            UploadTimeoutMs = env.PDS_BLOBSTORE_S3_UPLOAD_TIMEOUT_MS
         };
     }
 

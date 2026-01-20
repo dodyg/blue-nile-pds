@@ -5,16 +5,27 @@ using Repo;
 namespace BlobStore;
 
 public class BlobStoreFactory(
-    DiskBlobstoreConfig config
+    BlobStoreConfig config
 )
 {
-    public IBlobStore Create(string did)
+    public IBlobStore Create(string did) => config switch 
     {
-        // For now, only DiskBlobStore is supported
-        return new DiskBlobStore(
+        DiskBlobstoreConfig diskConfig => new DiskBlobStore(
             did,
-            config.TempLocation ?? Path.Join(config.Location, "temp"),
-            config.Location
-        );
-    }
+            diskConfig.TempLocation ?? "~/.pds_data/temp",
+            diskConfig.Location
+        ),
+        S3BlobstoreConfig s3Config => new S3BlobStore(
+            did,
+            s3Config.Bucket,
+            s3Config.Region,
+            s3Config.Endpoint,
+            s3Config.ForcePathStyle,
+            s3Config.AccessKeyId,
+            s3Config.SecretAccessKey,
+            TimeSpan.FromMilliseconds(s3Config.UploadTimeoutMs)
+        ),
+        _ => throw new NotSupportedException("Unsupported blobstore config type")
+    };
+
 }
