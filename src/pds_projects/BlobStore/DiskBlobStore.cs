@@ -80,19 +80,26 @@ public class DiskBlobStore : IBlobStore
         return key;
     }
 
-    public async Task PutPermanent(Cid cid, byte[] bytes)
+
+    public async Task PutPermanent(Cid cid, byte[] bytes) =>
+        await PutPermanent(cid, bytes, CancellationToken.None);
+
+    public async Task PutPermanent(Cid cid, byte[] bytes, CancellationToken ct)
     {
         EnsureDirectory();
         var path = GetStoredPath(cid);
-        await File.WriteAllBytesAsync(path, bytes);
+        await File.WriteAllBytesAsync(path, bytes, ct);
     }
 
-    public async Task PutPermanent(Cid cid, Stream stream)
+    public async Task PutPermanent(Cid cid, Stream stream) =>
+        await PutPermanent(cid, stream, CancellationToken.None);
+
+    public async Task PutPermanent(Cid cid, Stream stream, CancellationToken ct)
     {
         EnsureDirectory();
         var path = GetStoredPath(cid);
         using var fileStream = File.Create(path);
-        await stream.CopyToAsync(fileStream);
+        await stream.CopyToAsync(fileStream, ct);
     }
 
 
