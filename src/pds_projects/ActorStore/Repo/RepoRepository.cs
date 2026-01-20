@@ -43,7 +43,7 @@ public class RepoRepository
 
         await Storage.ApplyCommit(commit);
         await IndexWrites(writes.Cast<IPreparedWrite>().ToArray(), commit.Rev);
-        await Blob.ProcessWriteBlobs(commit.Rev, writes);
+        // await Blob.ProcessWriteBlobs(commit.Rev, writes);
 
         return commit;
     }
