@@ -4,6 +4,7 @@ using Config;
 using Crypto;
 using Crypto.Secp256k1;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Xrpc;
 
 namespace ActorStore;
@@ -12,11 +13,13 @@ public class ActorRepositoryProvider
 {
     private readonly ActorStoreConfig _config;
     private readonly BlobStoreFactory _blobStoreFactory;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public ActorRepositoryProvider(ActorStoreConfig config, BlobStoreFactory blobStoreFactory)
+    public ActorRepositoryProvider(ActorStoreConfig config, BlobStoreFactory blobStoreFactory, ILoggerFactory loggerFactory)
     {
         _config = config;
         _blobStoreFactory = blobStoreFactory;
+        _loggerFactory = loggerFactory;
     }
 
     public (string Directory, string DbLocation, string KeyLocation) GetLocation(string did)
@@ -66,9 +69,12 @@ public class ActorRepositoryProvider
 
         var options = new DbContextOptionsBuilder<ActorStoreDb>()
             .UseSqlite(connectionString)
-            .Options;
+            .UseLoggerFactory(_loggerFactory);
 
-        var actorStoreDb = new ActorStoreDb(options);
+        #if DEBUG
+            options = options.EnableSensitiveDataLogging();
+        #endif
+        var actorStoreDb = new ActorStoreDb(options.Options);
         try
         {
             var root = actorStoreDb.RepoRoots.AsNoTracking().FirstOrDefault();
@@ -107,9 +113,13 @@ public class ActorRepositoryProvider
 
         var options = new DbContextOptionsBuilder<ActorStoreDb>()
             .UseSqlite(connectionString)
-            .Options;
+            .UseLoggerFactory(_loggerFactory);
 
-        var actorStoreDb = new ActorStoreDb(options);
+        #if DEBUG
+            options = options.EnableSensitiveDataLogging();
+        #endif
+
+        var actorStoreDb = new ActorStoreDb(options.Options);
         actorStoreDb.Database.Migrate();
 
         var blobStore = _blobStoreFactory.Create(did);
