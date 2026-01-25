@@ -1,4 +1,7 @@
-﻿using CommonWeb;
+﻿using System.Text.Json;
+using CommonWeb;
+using FishyFlip.Lexicon;
+using FishyFlip.Models;
 using DidDoc = FishyFlip.Models.DidDoc;
 using Service = FishyFlip.Models.Service;
 using VerificationMethod = FishyFlip.Models.VerificationMethod;
@@ -33,6 +36,25 @@ public static class Extensions
         public  Service ToService()
         {
             return new Service(method.Id, method.Type, method.ServiceEndpoint);
+        }
+    }
+
+    extension(ATObject aTObject)
+    {
+        /// <summary>
+        ///    Normalizes an ATObject to an object suitable for JSON serialization. <br/>
+        ///    Avoids issues with UnknownATObject serialization as it uses the serilization of the underlying CBORObject. <br/>
+        ///    use it when returning ATObject in API responses. <br/>
+        ///    used along side options.JsonSerializerOptions.Converters.Add(new FishyFlip.Tools.Json.ATObjectJsonConverter()); <br/>
+        /// </summary>
+        /// <returns></returns>
+        public object ToObjectResult()
+        {
+            if (aTObject is UnknownATObject uao)
+            {
+                return JsonSerializer.Deserialize<JsonElement>(uao.ToJson());
+            }
+            return aTObject;
         }
     }
 }

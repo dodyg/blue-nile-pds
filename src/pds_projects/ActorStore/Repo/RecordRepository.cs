@@ -1,6 +1,7 @@
 ﻿using ActorStore.Db;
 using CID;
 using Crypto;
+using FishyFlip.Lexicon;
 using FishyFlip.Models;
 using Microsoft.EntityFrameworkCore;
 using PeterO.Cbor;
@@ -201,6 +202,60 @@ public class RecordRepository
         return [];
     }
 
+    public async Task<List<RecordForCollection>> ListRecordsForCollection(
+        string collection,
+        int limit,
+        bool reverse,
+        string? cursor,
+        bool includeSoftDeleted = false
+    )
+    {
+        var qb = _db.Records
+            .Join(_db.RepoBlocks,
+                record => record.Cid,
+                repoBlock => repoBlock.Cid,
+                (record, repoBlock) => new { Record = record, RepoBlock = repoBlock });
+
+        qb = qb.Where(x => x.Record.Collection == collection);
+
+        if (!includeSoftDeleted)
+            qb = qb.Where(x => x.Record.TakedownRef == null);
+
+        qb = reverse
+            ? qb.OrderByDescending(x => x.Record.Rkey)
+            : qb.OrderBy(x => x.Record.Rkey);
+
+
+        if (!string.IsNullOrEmpty(cursor))
+        {
+            if (reverse)
+            {
+                qb = qb.Where(x => string.Compare(x.Record.Rkey, cursor!) < 0);
+            }
+            else
+            {
+                qb = qb.Where(x => string.Compare(x.Record.Rkey, cursor!) > 0);
+            }
+        }
+
+        qb = qb.Take(limit);
+
+
+        var results = await qb.ToListAsync();
+
+        return results.Select(x => new RecordForCollection(
+            x.Record.Uri,
+            x.Record.Cid,
+            CBORObject.DecodeFromBytes(x.RepoBlock.Content).ToATObject()
+        )).ToList();
+    }
+
 
     public record GetRecordResult(string Uri, string Cid, CBORObject Value, DateTime IndexedAt, string? TakedownRef);
+
+    public record RecordForCollection(
+        string Uri,
+        string Cid,
+        ATObject Value
+    );
 }
