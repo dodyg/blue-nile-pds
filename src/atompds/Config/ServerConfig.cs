@@ -233,7 +233,13 @@ public record ServerConfig
 
         // AccountManager deps
         services.AddScoped<AccountRepository>();
-        services.AddDbContext<AccountManagerDb>(x => x.UseSqlite($"Data Source={config.Db.AccountDbLoc}"));
+        services.AddDbContext<AccountManagerDb>(x =>
+        {
+            x.UseSqlite($"Data Source={config.Db.AccountDbLoc}");
+#if DEBUG
+            x.EnableSensitiveDataLogging();
+#endif
+        });
         services.AddScoped<AccountStore>();
         services.AddScoped<PasswordStore>();
         services.AddScoped<RepoStore>();

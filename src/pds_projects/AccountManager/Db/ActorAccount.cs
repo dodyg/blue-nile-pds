@@ -1,6 +1,7 @@
 ﻿namespace AccountManager.Db;
 
-public record ActorAccount(string Did,
+public record ActorAccount(
+    string Did,
     string? Handle,
     DateTime CreatedAt,
     string? TakedownRef,

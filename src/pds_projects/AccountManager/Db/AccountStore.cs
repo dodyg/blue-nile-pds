@@ -181,4 +181,23 @@ public class AccountStore
         await _db.Accounts.Where(x => x.Did == did).ExecuteDeleteAsync();
         await _db.Actors.Where(x => x.Did == did).ExecuteDeleteAsync();
     }
+    public static (bool Active, AccountStore.AccountStatus Status) FormatAccountStatus(ActorAccount? account)
+    {
+        if (account == null)
+        {
+            return (false, AccountStore.AccountStatus.Deleted);
+        }
+
+        if (account.TakedownRef != null)
+        {
+            return (false, AccountStore.AccountStatus.Takendown);
+        }
+
+        if (account.DeactivatedAt != null)
+        {
+            return (false, AccountStore.AccountStatus.Deactivated);
+        }
+
+        return (true, AccountStore.AccountStatus.Active);
+    }
 }

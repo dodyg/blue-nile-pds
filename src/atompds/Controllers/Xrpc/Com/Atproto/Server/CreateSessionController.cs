@@ -42,7 +42,7 @@ public class CreateSessionController : ControllerBase
         var login = await _accountRepository.Login(request.Identifier, request.Password);
         var creds = await _accountRepository.CreateSession(login.Did);
         var didDoc = await DidDocForSession(login.Did);
-        var (active, status) = FormatAccountStatus(login);
+        var (active, status) = AccountStore.FormatAccountStatus(login);
 
         return Ok(new CreateSessionOutput(creds.AccessJwt,
             creds.RefreshJwt,
@@ -54,26 +54,6 @@ public class CreateSessionController : ControllerBase
             null,
             active,
             status.ToString()));
-    }
-
-    private (bool Active, AccountStore.AccountStatus Status) FormatAccountStatus(ActorAccount? account)
-    {
-        if (account == null)
-        {
-            return (false, AccountStore.AccountStatus.Deleted);
-        }
-
-        if (account.TakedownRef != null)
-        {
-            return (false, AccountStore.AccountStatus.Takendown);
-        }
-
-        if (account.DeactivatedAt != null)
-        {
-            return (false, AccountStore.AccountStatus.Deactivated);
-        }
-
-        return (true, AccountStore.AccountStatus.Active);
     }
 
     private async Task<DidDocument?> DidDocForSession(string did, bool forceRefresh = false)
