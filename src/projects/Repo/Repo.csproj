@@ -8,14 +8,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\CID\CID.csproj"/>
-        <ProjectReference Include="..\CommonWeb\CommonWeb.csproj"/>
-        <ProjectReference Include="..\Common\Common.csproj"/>
-        <ProjectReference Include="..\Crypto\Crypto.csproj"/>
+        <ProjectReference Include="..\CID\CID.csproj" />
+        <ProjectReference Include="..\CommonWeb\CommonWeb.csproj" />
+        <ProjectReference Include="..\Common\Common.csproj" />
+        <ProjectReference Include="..\Crypto\Crypto.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Ipfs.Core" Version="0.55.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Sync/" />
     </ItemGroup>
 
 </Project>

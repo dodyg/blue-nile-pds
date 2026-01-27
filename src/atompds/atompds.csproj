@@ -27,6 +27,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../pds_projects/BlobStore/BlobStore.csproj" />
+        <ProjectReference Include="../projects/Repo/Repo.csproj" />
         <ProjectReference Include="..\pds_projects\AccountManager\AccountManager.csproj" />
         <ProjectReference Include="..\pds_projects\ActorStore\ActorStore.csproj" />
         <ProjectReference Include="..\pds_projects\Config\Config.csproj" />
