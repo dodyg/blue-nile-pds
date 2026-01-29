@@ -54,7 +54,6 @@ public class GetRecordController(
         // maybe we can implement a stream instead of this
         foreach (var blockBytes in RepoUtil.BlockMapToCarEnumerable(rootCid, blocks))
         {
-            cancellationToken.ThrowIfCancellationRequested();
             await HttpContext.Response.Body.WriteAsync(blockBytes, cancellationToken);
         }
 
