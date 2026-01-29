@@ -29,13 +29,28 @@ public static class Util
     /// Yields CAR blocks for the given root and block map. <br/>
     /// Use it to stream CAR files without generating the entire file in memory.
     /// </summary>
-    public static IEnumerable<byte[]> BlocksToCarEnumerable(Cid root, BlockMap blocks)
+    public static IEnumerable<byte[]> BlockMapToCarEnumerable(Cid root, BlockMap blocks)
     {
         yield return CarEncoder.EncodeRoots(root);
 
         foreach (var block in blocks.Entries)
         {
             yield return CarEncoder.EncodeBlock(new CarBlock(block.Cid, block.Block));
+        }
+    }
+
+
+    /// <summary>
+    /// Yields CAR blocks for the given root and async block enumerable. <br/>
+    /// Use it to stream CAR files without generating the entire file in memory.
+    /// </summary>
+    public static async IAsyncEnumerable<byte[]> CarBlocksToCarAsyncEnumerable(Cid root, IAsyncEnumerable<CarBlock> blocks)
+    {
+        yield return CarEncoder.EncodeRoots(root);
+
+        await foreach (var block in blocks)
+        {
+            yield return CarEncoder.EncodeBlock(block);
         }
     }
 }
