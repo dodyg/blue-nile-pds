@@ -50,7 +50,7 @@ public class BlobController(
         var cancellationToken = Request.HttpContext.RequestAborted;
         var fileStream = Request.Body;
 
-        using var actorRepo = actorRepositoryProvider.Open(did);
+        await using var actorRepo = actorRepositoryProvider.Open(did);
 
         var key = await actorRepo.Repo.Blob.BlobStore.PutTemp(fileStream, cancellationToken);
 
