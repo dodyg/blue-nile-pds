@@ -4,29 +4,13 @@ using Cid = CID.Cid;
 
 namespace Repo.Car;
 
-public class CarEncoder : IDisposable, IAsyncDisposable
+public static class CarEncoder
 {
-    private readonly MemoryStream _buffer = new();
-    public ReadOnlySpan<byte> Bytes => _buffer.ToArray();
-
-    public async ValueTask DisposeAsync()
-    {
-        await _buffer.DisposeAsync();
-    }
-
-    public void Dispose()
-    {
-        _buffer.Dispose();
-    }
-
-    public async Task SetRoots(Cid root)
-    {
-        var bytes = CreateHeader(root);
-        await _buffer.WriteAsync(bytes);
-    }
+    public static byte[] EncodeRoots(Cid root) =>
+        CreateHeader(root);
 
     // Note: spec supports multiple roots
-    private byte[] CreateHeader(Cid root)
+    private static byte[] CreateHeader(Cid root)
     {
         var headerObj = CBORObject.NewMap();
         headerObj.Add("roots", new[] {root.ToCBORObject()});
@@ -36,11 +20,11 @@ public class CarEncoder : IDisposable, IAsyncDisposable
         return [..varIntBytes, ..headerBytes];
     }
 
-    public async Task WriteBlock(CarBlock block)
+    public static byte[] EncodeBlock(CarBlock block)
     {
         var cidBytes = block.Cid.ToBytes();
         var varIntBytes = Varint.Encode(cidBytes.Length + block.Bytes.Length);
         byte[] buffer = [..varIntBytes, ..cidBytes, ..block.Bytes];
-        await _buffer.WriteAsync(buffer);
+        return buffer;
     }
 }

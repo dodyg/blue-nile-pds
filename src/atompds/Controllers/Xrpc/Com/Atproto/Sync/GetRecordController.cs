@@ -44,7 +44,8 @@ public class GetRecordController(
             throw new XRPCError(new InvalidRequestErrorDetail($"could not find commit for did: {did}"));
 
         // WARNING: this could be very large
-        // TODO: Look into how to steam this
+        // TODO: Look into how to stream this
+        // but these come from the database not sure how to stream that
         var (rootCid, blocks) = await Provider.GetRecods(
             storage,
             commit.Value,
@@ -53,10 +54,16 @@ public class GetRecordController(
             ]
         );
 
-        // WARNING: this could be very large
-        // TODO: Look into how to steam this
-        var bytes = await Util.BlocksToCarFile(rootCid, blocks);
+        var cancellationToken = Request.HttpContext.RequestAborted;
+        HttpContext.Response.ContentType = "application/vnd.ipld.car";
 
-        return File(bytes, "application/vnd.ipld.car");
+        // maybe we can implement a stream instead of this
+        foreach (var blockBytes in Util.BlocksToCarEnumerable(rootCid, blocks))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await HttpContext.Response.Body.WriteAsync(blockBytes, cancellationToken);
+        }
+
+        return new EmptyResult();
     }
 }
