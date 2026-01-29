@@ -1,4 +1,5 @@
-﻿using Common;
+﻿using System.Runtime.CompilerServices;
+using Common;
 using Crypto;
 using Repo.Car;
 using Cid = CID.Cid;
@@ -44,11 +45,12 @@ public static class Util
     /// Yields CAR blocks for the given root and async block enumerable. <br/>
     /// Use it to stream CAR files without generating the entire file in memory.
     /// </summary>
-    public static async IAsyncEnumerable<byte[]> CarBlocksToCarAsyncEnumerable(Cid root, IAsyncEnumerable<CarBlock> blocks)
+    public static async IAsyncEnumerable<byte[]> CarBlocksToCarAsyncEnumerable(Cid root, IAsyncEnumerable<CarBlock> blocks,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         yield return CarEncoder.EncodeRoots(root);
 
-        await foreach (var block in blocks)
+        await foreach (var block in blocks.WithCancellation(cancellationToken))
         {
             yield return CarEncoder.EncodeBlock(block);
         }

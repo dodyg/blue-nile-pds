@@ -1,11 +1,15 @@
-﻿using ActorStore.Db;
+﻿using System.Runtime.CompilerServices;
+using ActorStore.Db;
 using CID;
 using Microsoft.EntityFrameworkCore;
 using PeterO.Cbor;
 using Repo;
+using Repo.Car;
 using Repo.MST;
 
 namespace ActorStore.Repo;
+
+public record RevCursor(Cid Cid, string Rev);
 
 public class SqlRepoTransactor : IRepoStorage
 {
@@ -215,4 +219,54 @@ public class SqlRepoTransactor : IRepoStorage
 
         await _db.SaveChangesAsync();
     }
+    public async IAsyncEnumerable<CarBlock> IterateCarBlocks(string? since,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        RevCursor? cursor = null;
+        // allow us to write to car while fetching the next page
+        do
+        {
+            var res = await GetBlockRange(since, cursor);
+            foreach (var row in res)
+            {
+                yield return new CarBlock(Cid.FromString(row.Cid), row.Content);
+            }
+            
+            var lastRow = res.LastOrDefault();
+            if (lastRow is not null)
+            {
+                cursor = new RevCursor(Cid.FromString(lastRow.Cid), lastRow.RepoRev);
+            }
+            else
+            {
+                cursor = null;
+            }
+        } while (cursor is not null);
+    }
+
+    public async Task<List<RepoBlock>> GetBlockRange(string? since = null, RevCursor? cursor = null)
+    {
+        var query = _db.RepoBlocks.AsNoTracking();
+
+        if (cursor is not null)
+        {
+            // Use composite cursor for pagination: (repoRev, cid) < (cursor.Rev, cursor.Cid)
+            var cursorCid = cursor.Cid.ToString();
+            query = query.Where(x => 
+                x.RepoRev.CompareTo(cursor.Rev) < 0 || 
+                (x.RepoRev == cursor.Rev && x.Cid.CompareTo(cursorCid) < 0));
+        }
+
+        if (since is not null)
+        {
+            query = query.Where(x => x.RepoRev.CompareTo(since) > 0);
+        }
+
+        return await query
+            .OrderByDescending(x => x.RepoRev)
+            .ThenByDescending(x => x.Cid)
+            .Take(500)
+            .ToListAsync();
+    }
+
 }
