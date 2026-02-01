@@ -5,6 +5,7 @@ using atompds.Middleware;
 using CID;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Xrpc;
 using static ActorStore.Repo.BlobTransactor;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Repo;
@@ -31,19 +32,21 @@ public class BlobController(
         var userSuppliedContentLength = Request.ContentLength;
         if (userSuppliedContentLength is null)
         {
-            return BadRequest("Content-Length header is required");
+            throw new XRPCError(new InvalidRequestErrorDetail("Content-Length header is required"));
         }
 
         if (userSuppliedContentLength > serverConfig.Service.BlobUploadLimitInBytes)
         {
-            return BadRequest($"Blob size exceeds maximum upload size of {serverConfig.Service.BlobUploadLimitInBytes} bytes");
+            throw new XRPCError(new InvalidRequestErrorDetail(
+                $"Blob size exceeds maximum upload size of {serverConfig.Service.BlobUploadLimitInBytes} bytes"
+            ));
         }
 
         var userSuppliedContentType = Request.ContentType;
 
         if (string.IsNullOrEmpty(userSuppliedContentType))
         {
-            return BadRequest("Content-Type header is required");
+            throw new XRPCError(new InvalidRequestErrorDetail("Content-Type header is required"));
         }
 
     
@@ -59,12 +62,14 @@ public class BlobController(
 
         if (blobMetaData.Size != userSuppliedContentLength)
         {
-            return BadRequest("Uploaded blob size does not match Content-Length header");
+            throw new XRPCError(new InvalidRequestErrorDetail("Uploaded blob size does not match Content-Length header"));
         }
 
         if (blobMetaData.Size > serverConfig.Service.BlobUploadLimitInBytes)
         {
-            return BadRequest($"Blob size exceeds maximum upload size of {serverConfig.Service.BlobUploadLimitInBytes} bytes");
+            throw new XRPCError(new InvalidRequestErrorDetail(
+                $"Blob size exceeds maximum upload size of {serverConfig.Service.BlobUploadLimitInBytes} bytes"
+            ));
         }
 
         
@@ -78,7 +83,7 @@ public class BlobController(
             {
                 if (!string.IsNullOrEmpty(alreadyExisting.TakedownRef))
                 {
-                    throw new Exception("Blob has been taken down and cannot be re-uploaded");
+                    throw new XRPCError(new InvalidRequestErrorDetail("BlobTakedown", "Blob has been taken down and cannot be re-uploaded"));
                 }
 
                 if (alreadyExisting.Status == BlobStatus.Permanent)
