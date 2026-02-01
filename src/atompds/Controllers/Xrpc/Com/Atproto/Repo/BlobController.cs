@@ -68,9 +68,11 @@ public class BlobController(
         }
 
         
-        var _ = await actorRepo.TransactRepo<Blob>(async repo =>
+        var (blob, shouldMoveToPermanent) = await actorRepo.TransactRepo<(Blob blob, bool shouldMoveToPermanent)>(async repo =>
         {
             var alreadyExisting = await actorRepo.Repo.Blob.GetBlob(blobMetaData.Cid);
+
+            var blobReferences = await actorRepo.Repo.Blob.GetRecordsForBlob(blobMetaData.Cid);
 
             if (alreadyExisting is not null)
             {
@@ -82,10 +84,9 @@ public class BlobController(
                 if (alreadyExisting.Status == BlobStatus.Permanent)
                 {
                     // we can remove the uploaded file here, or leave for garbage collection to do later
-                    return alreadyExisting;
+                    return (alreadyExisting, false);
                 }
-
-                if (alreadyExisting.Status == BlobStatus.Temporary)
+                else if (alreadyExisting.Status == BlobStatus.Temporary)
                 {
                     // we can update the tmp key here as the refernce implemntaion
                     // but I don't know how are we going to garbage collect the old temp file then
@@ -95,43 +96,45 @@ public class BlobController(
                     {
                         b.CreatedAt = DateTime.UtcNow;
                     });
-                    return alreadyExisting;
+                    return (alreadyExisting, false);
                 }
-
-                if (alreadyExisting.Status == BlobStatus.GarbageCollected)
+                else // BlobStatus.GarbageCollected
                 {
                     await actorRepo.Repo.Blob.UpdateBlob(blobMetaData.Cid, b =>
                     {
-                        b.Status = BlobStatus.Temporary;
+                        b.Status = blobReferences.Count > 0 ? BlobStatus.Permanent : BlobStatus.Temporary;
                         b.TempKey = key;
                         b.MimeType = blobMetaData.MimeType;
                         b.Size = (int) blobMetaData.Size;
                         b.CreatedAt = DateTime.UtcNow;
                     });
+                    return (alreadyExisting, blobReferences.Count > 0);
                 }
+            }
+            else
+            {
+                var blob = new Blob
+                {
+                    Cid = blobMetaData.Cid.ToString(),
+                    MimeType = blobMetaData.MimeType,
+                    Size = (int) blobMetaData.Size,
+                    TempKey = key,
+                    Status = blobReferences.Count > 0 ? BlobStatus.Permanent : BlobStatus.Temporary,
+                    CreatedAt = DateTime.UtcNow
+                };
 
+                await actorRepo.Repo.Blob.SaveBlobRecord(blob);
 
-                // TODO: need to check if the blob is referenced by any records
-                // from what I understand this can happen in the process of migrating users as the specs say
-                // in this case we need to move the blob to permanent storage
-
-
+                return (blob, blobReferences.Count > 0);
             }
 
-            var blob = new Blob
-            {
-                Cid = blobMetaData.Cid.ToString(),
-                MimeType = blobMetaData.MimeType,
-                Size = (int) blobMetaData.Size,
-                TempKey = key,
-                Status = BlobStatus.Temporary,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await actorRepo.Repo.Blob.SaveBlobRecord(blob);
-
-            return blob;
         });
+
+        // there is a chance of failure here after the transaction, status in db might be inconsistent with actual blob storage
+        if (shouldMoveToPermanent)
+        {
+            await actorRepo.Repo.Blob.BlobStore.MakePermanent(key, Cid.FromString(blob.Cid));
+        }
 
         return Ok(new BlobMetaDataResponse(
             MimeType: blobMetaData.MimeType,

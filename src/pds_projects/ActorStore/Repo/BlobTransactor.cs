@@ -23,6 +23,24 @@ public class BlobTransactor
         var blob = Db.Blobs.FirstOrDefault(b => b.Cid == cid.ToString());
         return blob;
     }
+    public async Task<List<string>> GetRecordsForBlob(Cid cid)
+    {
+        var recordUris = await Db.RecordBlobs
+            .Where(rb => rb.BlobCid == cid.ToString())
+            .Select(rb => rb.RecordUri)
+            .AsNoTracking()
+            .ToListAsync();
+        return recordUris;
+    }
+    public async Task<List<string>> GetRecordsForBlob(string cid)
+    {
+        var recordUris = await Db.RecordBlobs
+            .Where(rb => rb.BlobCid == cid.ToString())
+            .Select(rb => rb.RecordUri)
+            .AsNoTracking()
+            .ToListAsync();
+        return recordUris;
+    }
 
     public async Task<BlobMetaData> GenerateTempBlobMetadata(string tempKey, string userMimeType)
     {
