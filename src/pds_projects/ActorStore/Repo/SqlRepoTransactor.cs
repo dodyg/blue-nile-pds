@@ -145,18 +145,21 @@ public class SqlRepoTransactor : IRepoStorage
         var missing = new CidSet(cached.missing);
         var missingStr = cached.missing.Select(x => x.ToString()).ToArray();
         var blocks = new BlockMap();
-        // TODO: This should be chunked
-        foreach (var missingCid in missingStr)
+        
+        foreach (var batch in missingStr.Chunk(500))
         {
-            var res = await _db.RepoBlocks.Where(x => x.Cid == missingCid)
+            var res = await _db.RepoBlocks
+                .Where(x => batch.Contains(x.Cid))
                 .Select(x => new {x.Cid, x.Content})
-                .FirstOrDefaultAsync();
-            if (res == null)
+                .AsNoTracking()
+                .ToListAsync();
+            
+            foreach (var row in res)
             {
-                continue;
+                var cid = Cid.FromString(row.Cid);
+                blocks.Set(cid, row.Content);
+                missing.Delete(cid);
             }
-            blocks.Set(Cid.FromString(res.Cid), res.Content);
-            missing.Delete(Cid.FromString(res.Cid));
         }
 
         _cache.AddMap(blocks);
