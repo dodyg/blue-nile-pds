@@ -42,6 +42,39 @@ public class BlobTransactor
         return recordUris;
     }
 
+    public async Task<List<string>> ListBlobs(string? since, string? cursor, int limit)
+    {
+        var query = Db.RecordBlobs
+            .AsNoTracking()
+            .Select(x => x.BlobCid)
+            .OrderBy(x => x)
+            .Distinct()
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(since))
+        {
+            query = Db.RecordBlobs
+                .AsNoTracking()
+                .Join(Db.Records,
+                    rb => rb.RecordUri,
+                    r => r.Uri,
+                    (rb, r) => new { rb, r })
+                .Where(x => string.Compare(x.r.RepoRev, since) > 0)
+                .Select(x => x.rb.BlobCid)
+                .OrderBy(x => x)
+                .Distinct()
+                .AsQueryable();
+        }
+
+        if (!string.IsNullOrEmpty(cursor))
+        {
+            query = query.Where(x => string.Compare(x, cursor) > 0);
+        }
+
+        var res = await query.Take(limit).ToListAsync();
+        return res;
+    }
+
     public async Task<BlobMetaData> GenerateTempBlobMetadata(string tempKey, string userMimeType)
     {
         var stream = await BlobStore.GetTempStream(tempKey);
