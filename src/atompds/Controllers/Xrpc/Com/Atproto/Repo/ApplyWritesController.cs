@@ -148,12 +148,9 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.createRecord")]
     [AccessStandard(true, true)]
-    public async Task<IActionResult> ApplyWrites(JsonDocument json)
+    public async Task<IActionResult> createRecord(JsonDocument json)
     {
-        var tx = JsonSerializer.Deserialize<CreateRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
-        {
-            AllowOutOfOrderMetadataProperties = true
-        });
+        var tx = CreateRecordInput.FromJson(json.RootElement.ToString());
         _logger.LogInformation("CreateRecord: {tx}", tx);
         var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, [new Create(tx.Collection, tx.Rkey, tx.Record)]);
         var write = (PreparedCreate)writeArr[0];
