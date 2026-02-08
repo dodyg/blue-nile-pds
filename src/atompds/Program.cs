@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using AccountManager.Db;
 using atompds.Config;
+using atompds.ExceptionHandler;
 using atompds.Middleware;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,8 @@ public class Program
                                     HttpLoggingFields.RequestMethod;
             logging.CombineLogs = true;
         });
+
+        builder.Services.AddExceptionHandler<XRPCExceptionHandler>();
 
 
         var app = builder.Build();

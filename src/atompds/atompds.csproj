@@ -35,4 +35,8 @@
         <ProjectReference Include="..\pds_projects\Sequencer\Sequencer.csproj" />
         <ProjectReference Include="..\pds_projects\Xrpc\Xrpc.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="ExceptionHandler/" />
+    </ItemGroup>
 </Project>
