@@ -14,15 +14,18 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Sync;
 public class SubscribeReposController : ControllerBase
 {
     private readonly ILogger<SubscribeReposController> _logger;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly SequencerRepository _sequencer;
     private readonly SubscriptionConfig _subscriptionConfig;
     public SubscribeReposController(SubscriptionConfig subscriptionConfig,
         SequencerRepository sequencer,
-        ILogger<SubscribeReposController> logger)
+        ILogger<SubscribeReposController> logger,
+        ILoggerFactory loggerFactory)
     {
         _subscriptionConfig = subscriptionConfig;
         _sequencer = sequencer;
         _logger = logger;
+        _loggerFactory = loggerFactory;
     }
 
     [HttpGet("com.atproto.sync.subscribeRepos")]
@@ -40,7 +43,7 @@ public class SubscribeReposController : ControllerBase
         var cborOpts = new CBOREncodeOptions("useIndefLengthStrings=true;float64=true;allowduplicatekeys=true;allowEmpty=true");
         try
         {
-            var outbox = new Outbox(_sequencer, new OutboxOpts(_subscriptionConfig.MaxSubscriptionBuffer));
+            var outbox = new Outbox(_sequencer, new OutboxOpts(_subscriptionConfig.MaxSubscriptionBuffer), _loggerFactory.CreateLogger<Outbox>());
             var backfillTime = DateTime.UtcNow - TimeSpan.FromMilliseconds(_subscriptionConfig.RepoBackfillLimitMs);
             int? outboxCursor = null;
             if (cursor != null)
