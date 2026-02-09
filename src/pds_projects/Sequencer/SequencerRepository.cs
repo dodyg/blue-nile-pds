@@ -47,6 +47,7 @@ public class SequencerRepository : IDisposable
 
     private async Task PollTask()
     {
+        _logger.LogDebug("Starting poll task");
         while (_cts.Token.IsCancellationRequested == false)
             try
             {
@@ -62,15 +63,18 @@ public class SequencerRepository : IDisposable
     {
         try
         {
+            _logger.LogDebug("Polling db for new events since {LastSeen}", LastSeen);
             var evts = await GetRange(LastSeen, null, null, 1000, _pollDb);
             if (evts.Length > 0)
             {
+                _logger.LogInformation("Found {Count} new events", evts.Length);
                 TriesWithNoResults = 0;
                 OnEvents?.Invoke(this, evts);
                 LastSeen = evts.Max(x => x.Seq);
             }
             else
             {
+                _logger.LogDebug("No new events found");
                 await ExponentialBackoff();
             }
         }
@@ -85,6 +89,7 @@ public class SequencerRepository : IDisposable
         TriesWithNoResults++;
         var delay = Math.Pow(2, TriesWithNoResults);
         var delayLength = Math.Min(1000, (int)delay);
+        _logger.LogDebug("Waiting {DelayLength}ms before next poll", delayLength);
         await Task.Delay(delayLength);
     }
 
