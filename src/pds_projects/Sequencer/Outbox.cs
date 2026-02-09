@@ -1,5 +1,8 @@
-﻿using System.Net.WebSockets;
+﻿using System.Collections.Concurrent;
+using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 using Sequencer.Types;
 using Xrpc;
 
@@ -9,22 +12,24 @@ public record OutboxOpts(int MaxBufferSize);
 
 public class Outbox
 {
+    private readonly ILogger<Outbox> _logger;
     private readonly OutboxOpts _opts;
     private readonly SequencerRepository _sequencer;
     private bool _caughtUp;
 
-    public Outbox(SequencerRepository sequencer, OutboxOpts opts)
+    public Outbox(SequencerRepository sequencer, OutboxOpts opts, ILogger<Outbox> logger)
     {
         _sequencer = sequencer;
         _opts = opts;
+        _logger = logger;
+        OutBuffer = Channel.CreateBounded<ISeqEvt>(opts.MaxBufferSize);
     }
     public int LastSeen { get; private set; } = -1;
-    public Queue<ISeqEvt> OutBuffer { get; } = new();
-    public Queue<ISeqEvt> CutoverBuffer { get; } = new();
+    public Channel<ISeqEvt> OutBuffer { get; private init; }
+    public ConcurrentQueue<ISeqEvt> CutoverBuffer { get; } = new();
 
     public async IAsyncEnumerable<ISeqEvt> Events(int? backfillCursor, [EnumeratorCancellation] CancellationToken token, WebSocket webSocket)
     {
-        var returned = new List<ISeqEvt>();
         if (backfillCursor != null)
         {
             await foreach (var evt in GetBackfill(backfillCursor.Value, token))
@@ -34,7 +39,6 @@ public class Outbox
                     yield break;
                 }
                 LastSeen = evt.Seq;
-                returned.Add(evt);
                 yield return evt;
             }
         }
@@ -46,37 +50,29 @@ public class Outbox
         _sequencer.OnEvents += OnEvents;
         _sequencer.OnClose += (sender, args) => _sequencer.OnEvents -= OnEvents;
 
-        await Cutover(backfillCursor);
-
-        while (true)
+        try
         {
-            if (token.IsCancellationRequested)
+            await Cutover(backfillCursor);
+
+            // there is a potential problem here as the channel will only throw the too slow exception only when the consumer consumes to the end 
+            // it will now throw when it gets full immediately
+            await foreach (var evt in OutBuffer.Reader.ReadAllAsync(token))
             {
-                yield break;
-            }
-            if (webSocket.State != WebSocketState.Open)
-            {
-                yield break;
-            }
-            while (OutBuffer.TryDequeue(out var evt))
-            {
-                if (token.IsCancellationRequested)
+                if (webSocket.State != WebSocketState.Open)
                 {
                     yield break;
                 }
                 if (evt.Seq > LastSeen)
                 {
+                    _logger.LogDebug("Yielding event with seq {Seq}", evt.Seq);
                     LastSeen = evt.Seq;
-                    returned.Add(evt);
                     yield return evt;
                 }
-
-                if (OutBuffer.Count > _opts.MaxBufferSize)
-                {
-                    throw new XRPCError(new ErrorDetail("ConsumerTooSlow", "Stream consumer too slow"));
-                }
             }
-            await Task.Delay(100);
+        }
+        finally
+        {
+            _sequencer.OnEvents -= OnEvents;
         }
     }
 
@@ -88,12 +84,12 @@ public class Outbox
             var cutoverEvts = await _sequencer.GetRange(LastSeen > -1 ? LastSeen : backfillCursor.Value, null, null, null);
             foreach (var evt in cutoverEvts)
             {
-                OutBuffer.Enqueue(evt);
+                TryWriteOutput(evt);
             }
             // dont worry about dupes, we ensure order on yield
             foreach (var evt in CutoverBuffer)
             {
-                OutBuffer.Enqueue(evt);
+                TryWriteOutput(evt);
             }
             _caughtUp = true;
             CutoverBuffer.Clear();
@@ -134,19 +130,31 @@ public class Outbox
 
     private void OnEvents(object? sender, ISeqEvt[] e)
     {
+        // there is probalby still a race condition here as _caughtUp could be set to true after the if check but before the events are written to the cutover buffer
         if (_caughtUp)
         {
             foreach (var evt in e)
             {
-                OutBuffer.Enqueue(evt);
+                _logger.LogDebug("Trying to write event with seq {Seq} to OutBuffer", evt.Seq);
+                TryWriteOutput(evt);
             }
         }
         else
         {
             foreach (var evt in e)
             {
+                _logger.LogDebug("Buffering event with seq {Seq} to CutoverBuffer", evt.Seq);
                 CutoverBuffer.Enqueue(evt);
             }
+        }
+    }
+
+
+    void TryWriteOutput(ISeqEvt evt)
+    {
+        if (!OutBuffer.Writer.TryWrite(evt))
+        {
+            OutBuffer.Writer.TryComplete(new XRPCError(new ErrorDetail("ConsumerTooSlow", "Stream consumer too slow")));
         }
     }
 }

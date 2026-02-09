@@ -146,17 +146,17 @@ public class SubscribeReposController : ControllerBase
                 }
             }
         }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Subscription cancelled by client.");
+        }
         catch (Exception e)
         {
             _logger.LogError(e, "Subscription error.");
         }
         finally
         {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                _logger.LogInformation("Subscription cancelled.");
-            }
-            else
+            if (!cancellationToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Subscription ended.");
             }
