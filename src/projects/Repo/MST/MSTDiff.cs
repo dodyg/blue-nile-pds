@@ -227,7 +227,7 @@ public class DataDiff
         }
 
         Updates[key] = new DataUpdate(key, prev, cid);
-        RemovedCids.Add(cid);
+        RemovedCids.Add(prev);
         NewLeafCids.Add(cid);
     }
 

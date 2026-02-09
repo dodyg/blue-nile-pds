@@ -132,10 +132,18 @@ public class MSTWalker
                 throw new InvalidOperationException("Tried to step into a node with no children");
             }
 
-            _stack.Push(Status);
-            progress.Walking = curr;
-            progress.Current = next;
-            progress.Index = 0;
+            _stack.Push(new WalkerStatusProgress
+            {
+                Current = progress.Current,
+                Walking = progress.Walking,
+                Index = progress.Index
+            });
+            Status = new WalkerStatusProgress
+            {
+                Current = next,
+                Walking = curr,
+                Index = 0
+            };
         }
     }
 
