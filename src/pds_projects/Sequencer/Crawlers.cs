@@ -56,7 +56,8 @@ public class Crawlers
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("Failed to request crawl from {Host}", lh);
+            _logger.LogWarning("Failed to request crawl from {RelayHost} to {Host}", lh, _config.Hostname);
+            _logger.LogWarning("Response: {StatusCode} - {Content}", response.StatusCode, await response.Content.ReadAsStringAsync());
         }
     }
 }
