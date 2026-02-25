@@ -136,6 +136,11 @@ public class AccountRepository
         return _passwordStore.VerifyAccountPassword(did, appPassword);
     }
 
+    public Task<bool> RevokeRefreshToken(string jti)
+    {
+        return _auth.RevokeRefreshToken(jti);
+    }
+
     public async Task<ActorAccount> Login(string identifier, string password)
     {
         var start = DateTime.UtcNow;

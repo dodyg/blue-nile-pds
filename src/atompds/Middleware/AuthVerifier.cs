@@ -92,7 +92,8 @@ public class AuthVerifier
             Did = result.Did,
             Scope = result.Scope,
             Audience = result.Audience,
-            IsPrivileged = false
+            IsPrivileged = false,
+            TokenId = value.ToString()!
         }, result.Token);
     }
 
@@ -368,6 +369,7 @@ public class AuthVerifier
         public required string Scope { get; init; }
         public required string? Audience { get; init; }
         public required bool IsPrivileged { get; init; }
+        public required string TokenId { get; init; }
         public string Type => "refresh";
     }
 
