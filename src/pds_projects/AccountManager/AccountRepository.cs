@@ -141,6 +141,11 @@ public class AccountRepository
         return _auth.RevokeRefreshToken(jti);
     }
 
+    public async Task<(string AccessJwt, string RefreshJwt)?> RotateRefreshToken(string tokenId)
+    {
+        return await _auth.RotateRefreshToken(tokenId, _secretsConfig.JwtSecret, _serviceConfig.Did);
+    }
+
     public async Task<ActorAccount> Login(string identifier, string password)
     {
         var start = DateTime.UtcNow;

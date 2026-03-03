@@ -142,6 +142,61 @@ public class Auth
         }
     }
 
+    public async Task<RefreshToken?> GetRefreshToken(string id)
+    {
+        return await _accountDb.RefreshTokens.FirstOrDefaultAsync(t => t.Id == id);
+    }
+
+    public async Task<(string AccessJwt, string RefreshJwt)?> RotateRefreshToken(string id, string jwtKey, string serviceDid)
+    {
+        var token = await GetRefreshToken(id);
+        if (token == null) return null;
+
+        var now = DateTime.UtcNow;
+
+        // take the chance to tidy all of a user's expired tokens
+        // does not need to be transactional since this is just best-effort
+        await DeleteExpiredRefreshTokens(token.Did, new DateTimeOffset(now));
+
+        // Shorten the refresh token lifespan down from its
+        // original expiration time to its revocation grace period.
+        var prevExpiresAt = token.ExpiresAt;
+        var refreshGrace = TimeSpan.FromHours(2);
+        var graceExpiresAt = now.Add(refreshGrace);
+
+        var expiresAt = graceExpiresAt < prevExpiresAt ? graceExpiresAt : prevExpiresAt;
+
+        if (expiresAt <= now)
+        {
+            return null;
+        }
+
+        // Determine the next refresh token id: upon refresh token
+        // reuse you always receive a refresh token with the same id.
+        var nextId = token.NextId ?? GetRefreshTokenId();
+
+        var tokens = CreateTokens(token.Did, jwtKey, serviceDid, ACCESS_TOKEN_SCOPE, nextId);
+        var refreshPayload = DecodeRefreshTokenUnsafe(tokens.RefreshToken, jwtKey);
+
+        try
+        {
+            await AddRefreshGracePeriod(id, new DateTimeOffset(expiresAt), nextId);
+            var stored = await StoreRefreshToken(refreshPayload, token.AppPasswordName);
+            if (!stored)
+            {
+                // Concurrent refresh — retry
+                return await RotateRefreshToken(id, jwtKey, serviceDid);
+            }
+        }
+        catch
+        {
+            // Concurrent refresh — retry
+            return await RotateRefreshToken(id, jwtKey, serviceDid);
+        }
+
+        return (tokens.AccessToken, tokens.RefreshToken);
+    }
+
     public async Task<bool> RevokeRefreshToken(string jti)
     {
         _accountDb.RefreshTokens.RemoveRange(_accountDb.RefreshTokens.Where(t => t.Id == jti));
