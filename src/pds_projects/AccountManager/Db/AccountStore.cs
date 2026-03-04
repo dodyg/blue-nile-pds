@@ -200,4 +200,26 @@ public class AccountStore
 
         return (true, AccountStore.AccountStatus.Active);
     }
+
+    public async Task ActivateAccount(string did)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.DeactivatedAt = null;
+            actor.DeleteAfter = null;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task DeactivateAccount(string did, string? deleteAfter)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.DeactivatedAt = DateTime.UtcNow;
+            actor.DeleteAfter = deleteAfter != null ? DateTime.Parse(deleteAfter).ToUniversalTime() : null;
+            await _db.SaveChangesAsync();
+        }
+    }
 }

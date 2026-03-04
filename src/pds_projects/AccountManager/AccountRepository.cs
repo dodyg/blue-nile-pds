@@ -146,6 +146,21 @@ public class AccountRepository
         return await _auth.RotateRefreshToken(tokenId, _secretsConfig.JwtSecret, _serviceConfig.Did);
     }
 
+    public async Task ActivateAccount(string did)
+    {
+        await _accountStore.ActivateAccount(did);
+    }
+
+    public async Task DeactivateAccount(string did, string? deleteAfter)
+    {
+        await _accountStore.DeactivateAccount(did, deleteAfter);
+    }
+
+    public async Task<AccountStore.AccountStatus> GetAccountStatus(string did)
+    {
+        return await _accountStore.GetAccountStatus(did);
+    }
+
     public async Task<ActorAccount> Login(string identifier, string password)
     {
         var start = DateTime.UtcNow;
