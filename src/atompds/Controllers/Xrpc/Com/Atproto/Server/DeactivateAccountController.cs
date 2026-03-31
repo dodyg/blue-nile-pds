@@ -25,15 +25,15 @@ public class DeactivateAccountController : ControllerBase
 
     [HttpPost("com.atproto.server.deactivateAccount")]
     [AccessFull]
-    public async Task<IActionResult> DeactivateAccount([FromBody] DeactivateAccountInput? input)
+    public async Task<IActionResult> DeactivateAccountAsync([FromBody] DeactivateAccountInput? input)
     {
         var auth = HttpContext.GetAuthOutput();
         var requester = auth.AccessCredentials.Did;
 
-        await _accountRepository.DeactivateAccount(requester, input?.DeleteAfter);
+        await _accountRepository.DeactivateAccountAsync(requester, input?.DeleteAfter);
 
-        var status = await _accountRepository.GetAccountStatus(requester);
-        await _sequencer.SequenceAccountEvent(requester, status);
+        var status = await _accountRepository.GetAccountStatusAsync(requester);
+        await _sequencer.SequenceAccountEventAsync(requester, status);
 
         return Ok();
     }

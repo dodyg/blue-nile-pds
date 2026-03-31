@@ -29,7 +29,7 @@ public class SequencerRepository : IDisposable
         _pollDb = seqDbFactory.CreateDbContext();
         _crawlers = crawlers;
         _logger = logger;
-        _pollTask = Task.Run(PollTask, _cts.Token);
+        _pollTask = Task.Run(PollTaskAsync, _cts.Token);
     }
     public int? LastSeen { get; private set; }
     private int TriesWithNoResults { get; set; }
@@ -45,13 +45,13 @@ public class SequencerRepository : IDisposable
     public event EventHandler<ISeqEvt[]>? OnEvents;
     public event EventHandler<CloseEvt>? OnClose;
 
-    private async Task PollTask()
+    private async Task PollTaskAsync()
     {
         _logger.LogDebug("Starting poll task");
         while (_cts.Token.IsCancellationRequested == false)
             try
             {
-                await PollDb();
+                await PollDbAsync();
             }
             catch (Exception e)
             {
@@ -59,12 +59,12 @@ public class SequencerRepository : IDisposable
             }
     }
 
-    private async Task PollDb()
+    private async Task PollDbAsync()
     {
         try
         {
             _logger.LogDebug("Polling db for new events since {LastSeen}", LastSeen);
-            var evts = await GetRange(LastSeen, null, null, 1000, _pollDb);
+            var evts = await GetRangeAsync(LastSeen, null, null, 1000, _pollDb);
             if (evts.Length > 0)
             {
                 _logger.LogInformation("Found {Count} new events", evts.Length);
@@ -75,16 +75,16 @@ public class SequencerRepository : IDisposable
             else
             {
                 _logger.LogDebug("No new events found");
-                await ExponentialBackoff();
+                await ExponentialBackoffAsync();
             }
         }
         catch (Exception)
         {
-            await ExponentialBackoff();
+            await ExponentialBackoffAsync();
         }
     }
 
-    private async Task ExponentialBackoff()
+    private async Task ExponentialBackoffAsync()
     {
         TriesWithNoResults++;
         var delay = Math.Pow(2, TriesWithNoResults);
@@ -93,7 +93,7 @@ public class SequencerRepository : IDisposable
         await Task.Delay(delayLength);
     }
 
-    public async Task<int?> Current()
+    public async Task<int?> CurrentAsync()
     {
         var seq = await _db.RepoSeqs
             .OrderByDescending(x => x.Seq)
@@ -102,7 +102,7 @@ public class SequencerRepository : IDisposable
         return seq?.Seq;
     }
 
-    public async Task<RepoSeq?> Next(int cursor)
+    public async Task<RepoSeq?> NextAsync(int cursor)
     {
         var seq = await _db.RepoSeqs
             .Where(x => x.Seq > cursor)
@@ -112,7 +112,7 @@ public class SequencerRepository : IDisposable
         return seq;
     }
 
-    public async Task<RepoSeq?> EarliestAfterTime(DateTime time)
+    public async Task<RepoSeq?> EarliestAfterTimeAsync(DateTime time)
     {
         var seq = await _db.RepoSeqs
             .Where(x => x.SequencedAt > time)
@@ -123,7 +123,7 @@ public class SequencerRepository : IDisposable
     }
 
     // TODO: This should be private, dboverride is here just so we're using a separate dbcontext for the poll task as it runs on a separate thread
-    public async Task<ISeqEvt[]> GetRange(int? earliestSeq, int? latestSeq, DateTime? earliestTime, int? limit, SequencerDb? dbOverride = null)
+    public async Task<ISeqEvt[]> GetRangeAsync(int? earliestSeq, int? latestSeq, DateTime? earliestTime, int? limit, SequencerDb? dbOverride = null)
     {
         var seqs = (dbOverride ?? _db).RepoSeqs.AsQueryable()
             .OrderBy(x => x.Seq)
@@ -220,52 +220,52 @@ public class SequencerRepository : IDisposable
         return seqEvents.ToArray();
     }
 
-    public async Task DeleteAllForUser(string did, int[] excludingSeq)
+    public async Task DeleteAllForUserAsync(string did, int[] excludingSeq)
     {
         await _db.RepoSeqs
             .Where(x => x.Did == did && !excludingSeq.Contains(x.Seq))
             .ExecuteDeleteAsync();
     }
 
-    public async Task<int> SequenceEvent(RepoSeq evt)
+    public async Task<int> SequenceEventAsync(RepoSeq evt)
     {
         _db.RepoSeqs.Add(evt);
         await _db.SaveChangesAsync();
-        await _crawlers.NotifyOfUpdate();
+        await _crawlers.NotifyOfUpdateAsync();
         return evt.Seq;
     }
 
-    public async Task<int> SequenceCommit(string did, CommitData commitData, IPreparedWrite[] writes)
+    public async Task<int> SequenceCommitAsync(string did, CommitData commitData, IPreparedWrite[] writes)
     {
-        var evt = await FormatSeqCommit(did, commitData, writes);
-        return await SequenceEvent(evt);
+        var evt = await FormatSeqCommitAsync(did, commitData, writes);
+        return await SequenceEventAsync(evt);
     }
 
-    public async Task<int> SequenceHandleUpdate(string did, string handle)
+    public async Task<int> SequenceHandleUpdateAsync(string did, string handle)
     {
         var evt = FormatSeqHandleUpdate(did, handle);
-        return await SequenceEvent(evt);
+        return await SequenceEventAsync(evt);
     }
 
-    public async Task<int> SequenceIdentityEvent(string did, string? handle)
+    public async Task<int> SequenceIdentityEventAsync(string did, string? handle)
     {
         var evt = FormatSeqIdentityEvent(did, handle);
-        return await SequenceEvent(evt);
+        return await SequenceEventAsync(evt);
     }
 
-    public async Task<int> SequenceAccountEvent(string did, AccountStore.AccountStatus status)
+    public async Task<int> SequenceAccountEventAsync(string did, AccountStore.AccountStatus status)
     {
         var evt = FormatSeqAccountEvent(did, status);
-        return await SequenceEvent(evt);
+        return await SequenceEventAsync(evt);
     }
 
-    public async Task<int> SequenceTombstoneEvent(string did)
+    public async Task<int> SequenceTombstoneEventAsync(string did)
     {
         var evt = FormatSeqTombstoneEvent(did);
-        return await SequenceEvent(evt);
+        return await SequenceEventAsync(evt);
     }
 
-    private async Task<RepoSeq> FormatSeqCommit(string did, CommitData commitData, IPreparedWrite[] writes)
+    private async Task<RepoSeq> FormatSeqCommitAsync(string did, CommitData commitData, IPreparedWrite[] writes)
     {
         var ops = new List<CommitEvtOp>();
         var blobs = new CidSet();
@@ -282,7 +282,7 @@ public class SequencerRepository : IDisposable
                 justRoot.Set(commitData.Cid, rootBlock);
             }
 
-            carSlice = await Util.BlocksToCarFile(commitData.Cid, justRoot);
+            carSlice = await Util.BlocksToCarFileAsync(commitData.Cid, justRoot);
         }
         else
         {
@@ -319,7 +319,7 @@ public class SequencerRepository : IDisposable
                 });
             }
 
-            carSlice = await Util.BlocksToCarFile(commitData.Cid, commitData.NewBlocks);
+            carSlice = await Util.BlocksToCarFileAsync(commitData.Cid, commitData.NewBlocks);
         }
 
         return new RepoSeq

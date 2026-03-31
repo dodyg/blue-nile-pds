@@ -1,4 +1,4 @@
-﻿using System.Buffers.Text;
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using Crypto;
 using PeterO.Cbor;
@@ -8,7 +8,7 @@ namespace DidLib;
 
 public static class Operations
 {
-    public static Task<string> GetSignature(CBORObject obj, IKeyPair keyPair)
+    public static Task<string> GetSignatureAsync(CBORObject obj, IKeyPair keyPair)
     {
         var memBuf = obj.EncodeToBytes();
         var sig = keyPair.Sign(memBuf);
@@ -16,10 +16,10 @@ public static class Operations
         return Task.FromResult(b64Url);
     }
 
-    public static async Task<SignedOp<AtProtoOp>> AtProtoOp(string signingKey, string handle, string pds, string[] rotationKeys, string? cid, IKeyPair keyPair)
+    public static async Task<SignedOp<AtProtoOp>> AtProtoOpAsync(string signingKey, string handle, string pds, string[] rotationKeys, string? cid, IKeyPair keyPair)
     {
         var op = FormatAtProtoOp(signingKey, handle, pds, rotationKeys, cid);
-        var sig = await GetSignature(op.ToCborObject(), keyPair);
+        var sig = await GetSignatureAsync(op.ToCborObject(), keyPair);
 
         return new SignedOp<AtProtoOp>
         {
@@ -28,18 +28,18 @@ public static class Operations
         };
     }
 
-    public static async Task<(string Did, SignedOp<AtProtoOp> Op)> CreateOp(string signingKey, string handle, string pds, string[] rotationKeys, IKeyPair keyPair)
+    public static async Task<(string Did, SignedOp<AtProtoOp> Op)> CreateOpAsync(string signingKey, string handle, string pds, string[] rotationKeys, IKeyPair keyPair)
     {
-        var op = await AtProtoOp(signingKey, handle, pds, rotationKeys, null, keyPair);
-        var did = await DidForCreateOp(op);
+        var op = await AtProtoOpAsync(signingKey, handle, pds, rotationKeys, null, keyPair);
+        var did = await DidForCreateOpAsync(op);
         return (did, op);
     }
 
-    public static Task<string> DidForCreateOp(SignedOp<AtProtoOp> op)
+    public static Task<string> DidForCreateOpAsync(SignedOp<AtProtoOp> op)
     {
         var memBuf = op.ToCborObject().EncodeToBytes();
         var hashOfGenesis = SHA256.HashData(memBuf);
-        var hashB32 = Base32.Rfc4648.Encode(hashOfGenesis);
+        var hashB32 = Base32.Rfc4648.Encode(hashOfGenesis, false);
         var truncated = hashB32[..24].ToLower();
         return Task.FromResult($"did:plc:{truncated}");
     }

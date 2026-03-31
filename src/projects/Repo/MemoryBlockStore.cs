@@ -18,33 +18,33 @@ public class MemoryBlockStore : IRepoStorage
         }
     }
 
-    public Task<Cid?> GetRoot()
+    public Task<Cid?> GetRootAsync()
     {
         return Task.FromResult(_root);
     }
 
-    public Task PutBlock(Cid cid, byte[] block, string rev)
+    public Task PutBlockAsync(Cid cid, byte[] block, string rev)
     {
         _blocks.Set(cid, block);
         _rev = rev;
         return Task.CompletedTask;
     }
 
-    public Task PutMany(BlockMap blocks, string rev)
+    public Task PutManyAsync(BlockMap blocks, string rev)
     {
         _blocks.AddMap(blocks);
         _rev = rev;
         return Task.CompletedTask;
     }
 
-    public Task UpdateRoot(Cid cid, string rev)
+    public Task UpdateRootAsync(Cid cid, string rev)
     {
         _root = cid;
         _rev = rev;
         return Task.CompletedTask;
     }
 
-    public Task ApplyCommit(CommitData commit)
+    public Task ApplyCommitAsync(CommitData commit)
     {
         _root = commit.Cid;
         _rev = commit.Rev;
@@ -60,7 +60,7 @@ public class MemoryBlockStore : IRepoStorage
         return Task.CompletedTask;
     }
 
-    public Task<byte[]> GetBytes(Cid cid)
+    public Task<byte[]> GetBytesAsync(Cid cid)
     {
         if (!_blocks.Has(cid))
         {
@@ -69,12 +69,12 @@ public class MemoryBlockStore : IRepoStorage
         return Task.FromResult(_blocks.Get(cid)!);
     }
 
-    public Task<bool> Has(Cid cid)
+    public Task<bool> HasAsync(Cid cid)
     {
         return Task.FromResult(_blocks.Has(cid));
     }
 
-    public Task<(BlockMap blocks, Cid[] missing)> GetBlocks(Cid[] cids)
+    public Task<(BlockMap blocks, Cid[] missing)> GetBlocksAsync(Cid[] cids)
     {
         var missing = cids.Where(c => !_blocks.Has(c)).ToArray();
         var blocks = new BlockMap();
@@ -88,9 +88,9 @@ public class MemoryBlockStore : IRepoStorage
         return Task.FromResult((blocks, missing));
     }
 
-    public async Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytes(Cid cid)
+    public async Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytesAsync(Cid cid)
     {
-        var result = await AttemptRead(cid);
+        var result = await AttemptReadAsync(cid);
         if (result == null)
         {
             throw new Exception("Block not found");
@@ -98,11 +98,11 @@ public class MemoryBlockStore : IRepoStorage
 
         return result.Value;
     }
-    public async Task<(CBORObject obj, byte[] bytes)?> AttemptRead(Cid cid)
+    public async Task<(CBORObject obj, byte[] bytes)?> AttemptReadAsync(Cid cid)
     {
         try
         {
-            var bytes = await GetBytes(cid);
+            var bytes = await GetBytesAsync(cid);
             var obj = CBORObject.DecodeFromBytes(bytes);
             return (obj, bytes);
         }

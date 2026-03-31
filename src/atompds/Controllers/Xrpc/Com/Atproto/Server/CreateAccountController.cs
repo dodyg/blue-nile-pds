@@ -68,20 +68,20 @@ public class CreateAccountController : ControllerBase
 
     // TODO: Optional auth used to validate DID transfer
     [HttpPost("com.atproto.server.createAccount")]
-    public async Task<IActionResult> CreateAccount([FromBody] CreateAccountInput request)
+    public async Task<IActionResult> CreateAccountAsync([FromBody] CreateAccountInput request)
     {
         string? validatedDid = null;
         SqliteConnection? conn = null;
         try
         {
-            var validatedInputs = await ValidateInputsForLocalPds(request);
+            var validatedInputs = await ValidateInputsForLocalPdsAsync(request);
             validatedDid = validatedInputs.did;
 
             await using var actorStoreDb = _actorRepositoryProvider.Create(validatedInputs.did, validatedInputs.signingKey);
             conn = actorStoreDb.Connection;
-            var commit = await actorStoreDb.TransactRepo(async repo =>
+            var commit = await actorStoreDb.TransactRepoAsync(async repo =>
             {
-                var commit = await repo.Repo.CreateRepo([]);
+                var commit = await repo.Repo.CreateRepoAsync([]);
                 return commit;
             });
 
@@ -89,7 +89,7 @@ public class CreateAccountController : ControllerBase
             {
                 try
                 {
-                    await _plcClient.SendOperation(validatedDid, validatedInputs.plcOp);
+                    await _plcClient.SendOperationAsync(validatedDid, validatedInputs.plcOp);
                 }
                 catch (Exception e)
                 {
@@ -98,8 +98,8 @@ public class CreateAccountController : ControllerBase
                 }
             }
 
-            var didDoc = await SafeResolveDidDoc(validatedInputs.did, true);
-            var creds = await _accountRepository.CreateAccount(validatedInputs.did,
+            var didDoc = await SafeResolveDidDocAsync(validatedInputs.did, true);
+            var creds = await _accountRepository.CreateAccountAsync(validatedInputs.did,
                 validatedInputs.handle,
                 validatedInputs.Email,
                 validatedInputs.Password,
@@ -110,12 +110,12 @@ public class CreateAccountController : ControllerBase
 
             if (!validatedInputs.deactivated)
             {
-                await _sequencer.SequenceIdentityEvent(validatedInputs.did, validatedInputs.handle);
-                await _sequencer.SequenceAccountEvent(validatedInputs.did, AccountStore.AccountStatus.Active);
-                await _sequencer.SequenceCommit(validatedInputs.did, commit, []);
+                await _sequencer.SequenceIdentityEventAsync(validatedInputs.did, validatedInputs.handle);
+                await _sequencer.SequenceAccountEventAsync(validatedInputs.did, AccountStore.AccountStatus.Active);
+                await _sequencer.SequenceCommitAsync(validatedInputs.did, commit, []);
             }
 
-            await _accountRepository.UpdateRepoRoot(validatedInputs.did, commit.Cid, commit.Rev);
+            await _accountRepository.UpdateRepoRootAsync(validatedInputs.did, commit.Cid, commit.Rev);
             // TODO: clear reserved keypair
 
             return Ok(new CreateAccountOutput
@@ -143,11 +143,11 @@ public class CreateAccountController : ControllerBase
         }
     }
 
-    private async Task<DidDocument?> SafeResolveDidDoc(string did, bool forceRefresh = false)
+    private async Task<DidDocument?> SafeResolveDidDocAsync(string did, bool forceRefresh = false)
     {
         try
         {
-            var didDoc = await _idResolver.DidResolver.Resolve(did, forceRefresh);
+            var didDoc = await _idResolver.DidResolver.ResolveAsync(did, forceRefresh);
             return didDoc;
         }
         catch (Exception e)
@@ -158,7 +158,7 @@ public class CreateAccountController : ControllerBase
     }
 
     private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, SignedOp<AtProtoOp>? plcOp, bool
-        deactivated)> ValidateInputsForLocalPds(CreateAccountInput createAccountInput)
+        deactivated)> ValidateInputsForLocalPdsAsync(CreateAccountInput createAccountInput)
     {
         if (createAccountInput.PlcOp != null)
         {
@@ -174,20 +174,20 @@ public class CreateAccountController : ControllerBase
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Email is required"));
         }
-        if (!IsValidEmail(createAccountInput.Email) || await IsDisposableEmail(createAccountInput.Email))
+        if (!IsValidEmail(createAccountInput.Email) || await IsDisposableEmailAsync(createAccountInput.Email))
         {
             throw new XRPCError(new InvalidRequestErrorDetail("This email address is not supported, please use a different email."));
         }
 
-        var handle = await _handle.NormalizeAndValidateHandle(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
+        var handle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
 
         if (_invitesConfig.Required && createAccountInput.InviteCode != null)
         {
-            await _accountRepository.EnsureInviteIsAvailable(createAccountInput.InviteCode);
+            await _accountRepository.EnsureInviteIsAvailableAsync(createAccountInput.InviteCode);
         }
 
-        var handleAcct = await _accountRepository.GetAccount(handle);
-        var emailAcct = await _accountRepository.GetAccount(createAccountInput.Email);
+        var handleAcct = await _accountRepository.GetAccountAsync(handle);
+        var emailAcct = await _accountRepository.GetAccountAsync(createAccountInput.Email);
         if (handleAcct != null)
         {
             throw new XRPCError(new HandleNotAvailableErrorDetail($"Handle already taken: {handle}"));
@@ -208,12 +208,12 @@ public class CreateAccountController : ControllerBase
             deactivated = true;
             throw new XRPCError(new InvalidRequestErrorDetail("This PDS does not support DID transfer"));
         }
-        (did, plcOp) = await FormatDidAndPlcOp(handle, createAccountInput, signingKey);
+        (did, plcOp) = await FormatDidAndPlcOpAsync(handle, createAccountInput, signingKey);
 
         return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, deactivated);
     }
 
-    private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOp(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
+    private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOpAsync(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
     {
         string[] rotationKeys = [_secretsConfig.PlcRotationKey.Did()];
         if (_identityConfig.RecoveryDidKey != null)
@@ -225,7 +225,7 @@ public class CreateAccountController : ControllerBase
             rotationKeys = [createAccountInput.RecoveryKey, ..rotationKeys];
         }
 
-        var plcCreate = await Operations.CreateOp(signingKey.Did(), handle, _serviceConfig.PublicUrl, rotationKeys, _secretsConfig.PlcRotationKey);
+        var plcCreate = await Operations.CreateOpAsync(signingKey.Did(), handle, _serviceConfig.PublicUrl, rotationKeys, _secretsConfig.PlcRotationKey);
         return (plcCreate.Did, plcCreate.Op);
     }
 
@@ -241,7 +241,7 @@ public class CreateAccountController : ControllerBase
             return false;
         }
     }
-    private async Task<bool> IsDisposableEmail(string email)
+    private async Task<bool> IsDisposableEmailAsync(string email)
     {
         try
         {

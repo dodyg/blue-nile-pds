@@ -28,11 +28,11 @@ public class Outbox
     public Channel<ISeqEvt> OutBuffer { get; private init; }
     public ConcurrentQueue<ISeqEvt> CutoverBuffer { get; } = new();
 
-    public async IAsyncEnumerable<ISeqEvt> Events(int? backfillCursor, [EnumeratorCancellation] CancellationToken token, WebSocket webSocket)
+    public async IAsyncEnumerable<ISeqEvt> EventsAsync(int? backfillCursor, [EnumeratorCancellation] CancellationToken token, WebSocket webSocket)
     {
         if (backfillCursor != null)
         {
-            await foreach (var evt in GetBackfill(backfillCursor.Value, token))
+            await foreach (var evt in GetBackfillAsync(backfillCursor.Value, token))
             {
                 if (token.IsCancellationRequested)
                 {
@@ -52,7 +52,7 @@ public class Outbox
 
         try
         {
-            await Cutover(backfillCursor);
+            await CutoverAsync(backfillCursor);
 
             // there is a potential problem here as the channel will only throw the too slow exception only when the consumer consumes to the end 
             // it will now throw when it gets full immediately
@@ -76,12 +76,12 @@ public class Outbox
         }
     }
 
-    private async Task Cutover(int? backfillCursor)
+    private async Task CutoverAsync(int? backfillCursor)
     {
         // only need to perform cutover if we've been backfilling
         if (backfillCursor != null)
         {
-            var cutoverEvts = await _sequencer.GetRange(LastSeen > -1 ? LastSeen : backfillCursor.Value, null, null, null);
+            var cutoverEvts = await _sequencer.GetRangeAsync(LastSeen > -1 ? LastSeen : backfillCursor.Value, null, null, null);
             foreach (var evt in cutoverEvts)
             {
                 TryWriteOutput(evt);
@@ -100,7 +100,7 @@ public class Outbox
         }
     }
 
-    public async IAsyncEnumerable<ISeqEvt> GetBackfill(int backfillCursor, [EnumeratorCancellation] CancellationToken token)
+    public async IAsyncEnumerable<ISeqEvt> GetBackfillAsync(int backfillCursor, [EnumeratorCancellation] CancellationToken token)
     {
         const int PAGE_SIZE = 500;
         while (true)
@@ -110,7 +110,7 @@ public class Outbox
                 yield break;
             }
 
-            var evts = await _sequencer.GetRange(LastSeen > -1 ? LastSeen : backfillCursor, null, null, PAGE_SIZE);
+            var evts = await _sequencer.GetRangeAsync(LastSeen > -1 ? LastSeen : backfillCursor, null, null, PAGE_SIZE);
             foreach (var t in evts)
             {
                 yield return t;

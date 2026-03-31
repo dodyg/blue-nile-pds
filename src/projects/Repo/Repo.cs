@@ -22,7 +22,7 @@ public class Repo
     public Commit Commit { get; set; }
     public Cid Cid { get; set; }
 
-    public static async Task<CommitData> FormatInitCommit(IRepoStorage storage, string did, IKeyPair keypair, RecordCreateOp[]? initialWrites = null)
+    public static async Task<CommitData> FormatInitCommitAsync(IRepoStorage storage, string did, IKeyPair keypair, RecordCreateOp[]? initialWrites = null)
     {
         initialWrites ??= [];
         var newBlocks = new BlockMap();
@@ -31,11 +31,11 @@ public class Repo
         {
             var cid = newBlocks.Add(record.Record);
             var dataKey = MST.Util.FormatDataKey(record.Collection, record.RKey);
-            data = await data.Add(dataKey, cid);
+            data = await data.AddAsync(dataKey, cid);
         }
 
-        var dataCid = await data.GetPointer();
-        var diff = await DataDiff.Of(data, null);
+        var dataCid = await data.GetPointerAsync();
+        var diff = await DataDiff.OfAsync(data, null);
         newBlocks.AddMap(diff.NewMstBlocks);
 
         var rev = TID.NextStr();
@@ -44,33 +44,33 @@ public class Repo
         return new CommitData(commitCid, rev, null, null, newBlocks, diff.RemovedCids);
     }
 
-    public static async Task<Repo> CreateFromCommit(IRepoStorage storage, CommitData commit)
+    public static async Task<Repo> CreateFromCommitAsync(IRepoStorage storage, CommitData commit)
     {
-        await storage.ApplyCommit(commit);
-        return await Load(storage, commit.Cid);
+        await storage.ApplyCommitAsync(commit);
+        return await LoadAsync(storage, commit.Cid);
     }
 
-    public static async Task<Repo> Create(IRepoStorage storage, string did, IKeyPair keypair, RecordCreateOp[]? initialWrites = null)
+    public static async Task<Repo> CreateAsync(IRepoStorage storage, string did, IKeyPair keypair, RecordCreateOp[]? initialWrites = null)
     {
-        var commit = await FormatInitCommit(storage, did, keypair, initialWrites);
-        return await CreateFromCommit(storage, commit);
+        var commit = await FormatInitCommitAsync(storage, did, keypair, initialWrites);
+        return await CreateFromCommitAsync(storage, commit);
     }
 
-    public static async Task<Repo> Load(IRepoStorage storage, Cid? cid)
+    public static async Task<Repo> LoadAsync(IRepoStorage storage, Cid? cid)
     {
-        var commitCid = cid ?? await storage.GetRoot();
+        var commitCid = cid ?? await storage.GetRootAsync();
         if (commitCid == null)
         {
             throw new Exception("No root commit found");
         }
 
-        var (obj, bytes) = await storage.ReadObjAndBytes(commitCid.Value);
+        var (obj, bytes) = await storage.ReadObjAndBytesAsync(commitCid.Value);
         var commit = Commit.FromCborObject(obj);
         var data = MST.MST.Load(storage, commit.Data);
         return new Repo(new Params(storage, data, commit, commitCid.Value));
     }
 
-    public async Task<CommitData> FormatCommit(IRecordWriteOp[] toWrite, IKeyPair keypair)
+    public async Task<CommitData> FormatCommitAsync(IRecordWriteOp[] toWrite, IKeyPair keypair)
     {
         var leaves = new BlockMap();
         var data = Data;
@@ -80,24 +80,24 @@ public class Repo
             {
                 var cid = leaves.Add(create.Record);
                 var dataKey = $"{create.Collection}/{create.RKey}";
-                data = await data.Add(dataKey, cid);
+                data = await data.AddAsync(dataKey, cid);
                 //data = await data.Update(dataKey, cid);
             }
             else if (write is RecordUpdateOp update)
             {
                 var cid = leaves.Add(update.Record);
                 var dataKey = $"{update.Collection}/{update.RKey}";
-                data = await data.Update(dataKey, cid);
+                data = await data.UpdateAsync(dataKey, cid);
             }
             else if (write is RecordDeleteOp delete)
             {
                 var dataKey = $"{delete.Collection}/{delete.RKey}";
-                data = await data.Delete(dataKey);
+                data = await data.DeleteAsync(dataKey);
             }
         }
 
-        var dataCid = await data.GetPointer();
-        var diff = await DataDiff.Of(data, Data);
+        var dataCid = await data.GetPointerAsync();
+        var diff = await DataDiff.OfAsync(data, Data);
         var newBlocks = diff.NewMstBlocks;
         var removedCids = diff.RemovedCids;
 
@@ -125,16 +125,16 @@ public class Repo
         return new CommitData(commitCid, rev, commit.Rev, Cid, newBlocks, removedCids);
     }
 
-    public async Task<Repo> ApplyCommit(CommitData commit)
+    public async Task<Repo> ApplyCommitAsync(CommitData commit)
     {
-        await _storage.ApplyCommit(commit);
-        return await Load(_storage, commit.Cid);
+        await _storage.ApplyCommitAsync(commit);
+        return await LoadAsync(_storage, commit.Cid);
     }
 
-    public async Task<Repo> ApplyWrites(IRecordWriteOp[] toWrite, IKeyPair keypair)
+    public async Task<Repo> ApplyWritesAsync(IRecordWriteOp[] toWrite, IKeyPair keypair)
     {
-        var commit = await FormatCommit(toWrite, keypair);
-        return await ApplyCommit(commit);
+        var commit = await FormatCommitAsync(toWrite, keypair);
+        return await ApplyCommitAsync(commit);
     }
     public record Params(IRepoStorage Storage, MST.MST Data, Commit Commit, Cid Cid);
 }

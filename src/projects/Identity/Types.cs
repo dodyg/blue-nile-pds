@@ -6,11 +6,11 @@ public record AtprotoData(string Did, string SigningKey, string Handle, string P
 
 public interface IDidCache
 {
-    public Task CacheDid(string did, DidDocument doc, CacheResult? prevResult = null);
-    public Task<CacheResult?> CheckCache(string did);
-    public Task RefreshCache(string did, Func<Task<DidDocument?>> getDoc, CacheResult? prevResult = null);
-    public Task ClearEntry(string did);
-    public Task Clear();
+    public Task CacheDidAsync(string did, DidDocument doc, CacheResult? prevResult = null);
+    public Task<CacheResult?> CheckCacheAsync(string did);
+    public Task RefreshCacheAsync(string did, Func<Task<DidDocument?>> getDoc, CacheResult? prevResult = null);
+    public Task ClearEntryAsync(string did);
+    public Task ClearAsync();
 }
 
 public class CacheResult

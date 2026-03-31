@@ -57,9 +57,9 @@ public class ApplyWritesController : ControllerBase
     }
 
     [HttpGet("com.atproto.repo.getRecord")]
-    public async Task<IActionResult> GetRecord([FromQuery] string repo, [FromQuery] string collection, [FromQuery] string rkey, [FromQuery] string? cid)
+    public async Task<IActionResult> GetRecordAsync([FromQuery] string repo, [FromQuery] string collection, [FromQuery] string rkey, [FromQuery] string? cid)
     {
-        var did = await _accountRepository.GetDidForActor(repo);
+        var did = await _accountRepository.GetDidForActorAsync(repo);
         if (did == null)
         {
             if (_bskyAppViewConfig is BskyAppViewConfig)
@@ -72,7 +72,7 @@ public class ApplyWritesController : ControllerBase
 
         await using var db = _actorRepositoryProvider.Open(did);
         var uri = ATUri.Create(did, collection, rkey);
-        var record = await db.Record.GetRecord(uri, cid);
+        var record = await db.Record.GetRecordAsync(uri, cid);
         if (record == null || record.TakedownRef != null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("RecordNotFound", $"Could not locate record: {uri}"));
@@ -88,23 +88,23 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.putRecord")]
     [AccessStandard(true, true)]
-    public async Task<IActionResult> PutRecord(JsonDocument json)
+    public async Task<IActionResult> PutRecordAsync(JsonDocument json)
     {
         var tx = PutRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid record payload."));
         _logger.LogInformation("PutRecord: {tx}", tx);
 
-        var did = await CheckAccount(tx.Repo);
+        var did = await CheckAccountAsync(tx.Repo);
         var uri = ATUri.Create(did, tx.Collection, tx.Rkey);
 
         await using var actorStore = _actorRepositoryProvider.Open(did);
-        var current = await actorStore.Record.GetRecord(uri, null, true);
+        var current = await actorStore.Record.GetRecordAsync(uri, null, true);
         var isUpdate = current != null;
 
         IApplyWritesInputWrites write = isUpdate
             ? new ApplyWritesUpdate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }
             : new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record };
 
-        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write]);
+        var (commit, writeArr) = await HandleAsync(tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write]);
         var commitMeta = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev };
 
         if (isUpdate)
@@ -131,12 +131,12 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.deleteRecord")]
     [AccessStandard(true, true)]
-    public async Task<IActionResult> DeleteRecord(JsonDocument json)
+    public async Task<IActionResult> DeleteRecordAsync(JsonDocument json)
     {
         var tx = DeleteRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete payload."));
 
         _logger.LogInformation("DeleteRecord: {tx}", tx);
-        var (commit, _) = await Handle(tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new ApplyWritesDelete { Collection = tx.Collection, Rkey = tx.Rkey }]);
+        var (commit, _) = await HandleAsync(tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new ApplyWritesDelete { Collection = tx.Collection, Rkey = tx.Rkey }]);
         return Ok(new DeleteRecordOutput
         {
             Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev }
@@ -145,11 +145,11 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.createRecord")]
     [AccessStandard(true, true)]
-    public async Task<IActionResult> createRecord(JsonDocument json)
+    public async Task<IActionResult> createRecordAsync(JsonDocument json)
     {
         var tx = CreateRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid create payload."));
         _logger.LogInformation("CreateRecord: {tx}", tx);
-        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, [new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }]);
+        var (commit, writeArr) = await HandleAsync(tx.Repo, tx.Validate, tx.SwapCommit, null, [new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }]);
         var write = (PreparedCreate)writeArr[0];
         return Ok(new CreateRecordOutput
         {
@@ -162,12 +162,12 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.applyWrites")]
     [AccessStandard(true, true)]
-    public async Task<IActionResult> ApplyWrites(JsonDocument json)
+    public async Task<IActionResult> ApplyWritesAsync(JsonDocument json)
     {
         var tx = JsonSerializer.Deserialize<ApplyWritesInput>(json.RootElement.GetRawText(), ApplyWritesJsonOptions)
                  ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid applyWrites payload."));
         _logger.LogInformation("ApplyWrites: {tx}", tx);
-        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, tx.Writes);
+        var (commit, writeArr) = await HandleAsync(tx.Repo, tx.Validate, tx.SwapCommit, null, tx.Writes);
         return Ok(new ApplyWritesOutput
         {
             Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev },
@@ -175,11 +175,11 @@ public class ApplyWritesController : ControllerBase
         });
     }
 
-    private async Task<string> CheckAccount(ATIdentifier repo)
+    private async Task<string> CheckAccountAsync(ATIdentifier repo)
     {
         var handleOrDid = repo.Value;
         var auth = HttpContext.GetAuthOutput();
-        var account = await _accountRepository.GetAccount(handleOrDid, new AvailabilityFlags(IncludeDeactivated: true));
+        var account = await _accountRepository.GetAccountAsync(handleOrDid, new AvailabilityFlags(IncludeDeactivated: true));
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail($"Could not find repo: {repo}"));
@@ -198,14 +198,14 @@ public class ApplyWritesController : ControllerBase
         return did;
     }
 
-    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(
+    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> HandleAsync(
         ATIdentifier repo,
         bool? validate,
         string? swapCommit,
         string? swapRecord,
         IReadOnlyList<IApplyWritesInputWrites>? writeOps)
     {
-        var did = await CheckAccount(repo);
+        var did = await CheckAccountAsync(repo);
         if (writeOps == null || writeOps.Count > 200)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Invalid writes."));
@@ -257,10 +257,10 @@ public class ApplyWritesController : ControllerBase
 
         var writeArr = writes.ToArray();
         await using var db = _actorRepositoryProvider.Open(did);
-        var commit = await db.Repo.ProcessWrites(writeArr, swapCommitCid);
+        var commit = await db.Repo.ProcessWritesAsync(writeArr, swapCommitCid);
 
-        await _sequencer.SequenceCommit(did, commit, writeArr);
-        await _accountRepository.UpdateRepoRoot(did, commit.Cid, commit.Rev);
+        await _sequencer.SequenceCommitAsync(did, commit, writeArr);
+        await _accountRepository.UpdateRepoRootAsync(did, commit.Cid, commit.Rev);
 
         return (commit, writeArr);
     }

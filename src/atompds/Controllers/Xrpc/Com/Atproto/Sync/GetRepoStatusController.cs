@@ -14,11 +14,11 @@ public class GetRepoStatusController(
 ) : ControllerBase
 {
     [HttpGet("com.atproto.sync.getRepoStatus")]
-    public async Task<IActionResult> GetRepoStatus(
+    public async Task<IActionResult> GetRepoStatusAsync(
         [FromQuery] string did
     )
     {
-        var account = await accountRepository.GetAccount(did, new(true, true));
+        var account = await accountRepository.GetAccountAsync(did, new(true, true));
 
         if (account is null)
             throw new XRPCError(new InvalidRequestErrorDetail($"could not find account for did: {did}"));
@@ -35,7 +35,7 @@ public class GetRepoStatusController(
         if (active)
         {
             await using var actorRepo = actorRepositoryProvider.Open(did);
-            var root = await actorRepo.Repo.Storage.GetRootDetailed();
+            var root = await actorRepo.Repo.Storage.GetRootDetailedAsync();
             rev = root.Rev;
         }
 

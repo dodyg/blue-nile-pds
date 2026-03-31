@@ -18,14 +18,14 @@ public class GetRecordController(
 ) : ControllerBase
 {
     [HttpGet("com.atproto.sync.getRecord")]
-    public async Task<IActionResult> GetRecord(
+    public async Task<IActionResult> GetRecordAsync(
         [FromQuery] string did,
         [FromQuery] string collection,
         [FromQuery] string rkey
     )
     {
         // TODO: there is some self and admin stuff that I'm skipping
-        var account = await accountRepository.GetAccount(did, new(true, true));
+        var account = await accountRepository.GetAccountAsync(did, new(true, true));
 
         if (account is null)
             throw new XRPCError(new InvalidRequestErrorDetail($"could not find account for did: {did}"));
@@ -41,11 +41,11 @@ public class GetRecordController(
         await using (var actorRepo = actorRepositoryProvider.Open(did))
         {
             var storage = actorRepo.Repo.Storage;
-            var commit = await storage.GetRoot();
+            var commit = await storage.GetRootAsync();
             if (commit is null)
                 throw new XRPCError(new InvalidRequestErrorDetail($"could not find commit for did: {did}"));
             
-            (rootCid, blocks) = await Provider.GetRecods(storage, commit.Value, [(collection, rkey)]);
+            (rootCid, blocks) = await Provider.GetRecodsAsync(storage, commit.Value, [(collection, rkey)]);
         } 
 
         var cancellationToken = Request.HttpContext.RequestAborted;

@@ -15,7 +15,7 @@ public class ListBlobsController(
 {
 
     [HttpGet("com.atproto.sync.listBlobs")]
-    public async Task<IActionResult> ListBlobs(
+    public async Task<IActionResult> ListBlobsAsync(
         [FromQuery] string did,
         [FromQuery] string? since,
         [FromQuery] int limit = 500,
@@ -23,7 +23,7 @@ public class ListBlobsController(
     )
     {
         // TODO: there is some self and admin stuff that I'm skipping
-        var account = await accountRepository.GetAccount(did, new(true, true));
+        var account = await accountRepository.GetAccountAsync(did, new(true, true));
 
         if (account is null)
             throw new XRPCError(new InvalidRequestErrorDetail($"could not find account for did: {did}"));
@@ -38,7 +38,7 @@ public class ListBlobsController(
         List<string> blobCids = [];
         await using (var actorRepo = actorRepositoryProvider.Open(did))
         {
-            blobCids = await actorRepo.Repo.Blob.ListBlobs(
+            blobCids = await actorRepo.Repo.Blob.ListBlobsAsync(
                 since,
                 cursor,
                 limit

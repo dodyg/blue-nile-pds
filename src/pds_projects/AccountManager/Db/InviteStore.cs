@@ -11,7 +11,7 @@ public class InviteStore
         _db = db;
     }
 
-    public async Task EnsureInviteIsAvailable(string code)
+    public async Task EnsureInviteIsAvailableAsync(string code)
     {
         var inviteActors = _db.InviteCodes.GroupJoin(_db.Actors,
             invite => invite.ForAccount,
@@ -38,7 +38,7 @@ public class InviteStore
         }
     }
 
-    public async Task RecordInviteUse(string did, string? inviteCode, DateTime now)
+    public async Task RecordInviteUseAsync(string did, string? inviteCode, DateTime now)
     {
         if (inviteCode == null)
         {

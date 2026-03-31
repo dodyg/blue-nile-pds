@@ -15,13 +15,13 @@ public class MemoryCache : IDidCache
         _maxTtl = maxTtl ?? TimeSpan.FromDays(1);
     }
 
-    public Task CacheDid(string did, DidDocument doc, CacheResult? prevResult = null)
+    public Task CacheDidAsync(string did, DidDocument doc, CacheResult? prevResult = null)
     {
         _cache[did] = new CacheVal(doc, DateTime.UtcNow);
         return Task.CompletedTask;
     }
 
-    public Task<CacheResult?> CheckCache(string did)
+    public Task<CacheResult?> CheckCacheAsync(string did)
     {
         if (!_cache.TryGetValue(did, out var val))
         {
@@ -40,23 +40,23 @@ public class MemoryCache : IDidCache
         });
     }
 
-    public async Task RefreshCache(string did, Func<Task<DidDocument?>> getDoc, CacheResult? prevResult = null)
+    public async Task RefreshCacheAsync(string did, Func<Task<DidDocument?>> getDoc, CacheResult? prevResult = null)
     {
         var doc = await getDoc();
         if (doc == null)
         {
             return;
         }
-        await CacheDid(did, doc);
+        await CacheDidAsync(did, doc);
     }
 
-    public Task ClearEntry(string did)
+    public Task ClearEntryAsync(string did)
     {
         _cache.TryRemove(did, out _);
         return Task.CompletedTask;
     }
 
-    public Task Clear()
+    public Task ClearAsync()
     {
         _cache.Clear();
         return Task.CompletedTask;

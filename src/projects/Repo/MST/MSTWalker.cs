@@ -54,7 +54,7 @@ public class MSTWalker
 
 
     // move to the next node in the subtree, skipping over the subtree
-    public async Task StepOver()
+    public async Task StepOverAsync()
     {
         while (true)
         {
@@ -71,7 +71,7 @@ public class MSTWalker
                 return;
             }
 
-            var entries = await progress.Walking.GetEntries();
+            var entries = await progress.Walking.GetEntriesAsync();
             progress.Index++;
             var next = entries.Length > progress.Index ? entries[progress.Index] : null;
             if (next == null)
@@ -94,7 +94,7 @@ public class MSTWalker
         }
     }
 
-    public async Task StepInto()
+    public async Task StepIntoAsync()
     {
         if (Status is WalkerStatusDone)
         {
@@ -109,7 +109,7 @@ public class MSTWalker
                 throw new InvalidOperationException("The root of the tree is not an MST");
             }
 
-            var next = await curr.AtIndex(0);
+            var next = await curr.AtIndexAsync(0);
             if (next == null)
             {
                 Status = new WalkerStatusDone();
@@ -126,7 +126,7 @@ public class MSTWalker
                 throw new InvalidOperationException("No tree at pointer, cannot step into");
             }
 
-            var next = await curr.AtIndex(0);
+            var next = await curr.AtIndexAsync(0);
             if (next == null)
             {
                 throw new InvalidOperationException("Tried to step into a node with no children");
@@ -150,7 +150,7 @@ public class MSTWalker
 
     // advance the pointer to the next node in the tree,
     // stepping into the current node if necessary
-    public async Task Advance()
+    public async Task AdvanceAsync()
     {
         if (Status is WalkerStatusDone)
         {
@@ -160,11 +160,11 @@ public class MSTWalker
         var progress = (WalkerStatusProgress)Status;
         if (progress.Current is not MST)
         {
-            await StepOver();
+            await StepOverAsync();
         }
         else
         {
-            await StepInto();
+            await StepIntoAsync();
         }
     }
 }

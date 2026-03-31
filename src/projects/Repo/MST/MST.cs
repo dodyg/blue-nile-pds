@@ -47,14 +47,14 @@ public record MST : INodeEntry
         };
     }
 
-    public async Task<INodeEntry[]> GetEntries()
+    public async Task<INodeEntry[]> GetEntriesAsync()
     {
         if (_entries != null)
         {
             return _entries;
         }
 
-        var data = await Storage.ReadObjAndBytes(Pointer);
+        var data = await Storage.ReadObjAndBytesAsync(Pointer);
         var nodeData = NodeData.FromCborObject(data.obj);
         TreeEntry? firstLeaf = nodeData.Entries.Count > 0 ? nodeData.Entries[0] : null;
         int? layer = firstLeaf != null ? Util.LeadingZerosOnHash(firstLeaf.Value.Key) : null;
@@ -63,33 +63,33 @@ public record MST : INodeEntry
         return _entries;
     }
 
-    public async Task<Cid> GetPointer()
+    public async Task<Cid> GetPointerAsync()
     {
         if (!OutdatedPointer)
         {
             return Pointer;
         }
 
-        var (cid, bytes) = await Serialize();
+        var (cid, bytes) = await SerializeAsync();
         Pointer = cid;
         OutdatedPointer = false;
         return Pointer;
     }
 
-    public async Task<int> GetLayer()
+    public async Task<int> GetLayerAsync()
     {
-        Layer = await AttemptGetLayer() ?? 0;
+        Layer = await AttemptGetLayerAsync() ?? 0;
         return Layer.Value;
     }
 
-    public async Task<int?> AttemptGetLayer()
+    public async Task<int?> AttemptGetLayerAsync()
     {
         if (Layer != null)
         {
             return Layer.Value;
         }
 
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         var layer = Util.LayerForEntries(entries);
         if (layer == null)
         {
@@ -97,7 +97,7 @@ public record MST : INodeEntry
             {
                 if (entry is MST mst)
                 {
-                    var childLayer = await mst.AttemptGetLayer();
+                    var childLayer = await mst.AttemptGetLayerAsync();
                     if (childLayer != null)
                     {
                         layer = childLayer + 1;
@@ -115,17 +115,17 @@ public record MST : INodeEntry
         return layer;
     }
 
-    public async Task<(Cid cid, byte[] bytes)> Serialize()
+    public async Task<(Cid cid, byte[] bytes)> SerializeAsync()
     {
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         var outdated = entries.OfType<MST>().Where(x => x.OutdatedPointer).ToArray();
         if (outdated.Length > 0)
         {
             foreach (var mst in outdated)
             {
-                await mst.GetPointer();
+                await mst.GetPointerAsync();
             }
-            entries = await GetEntries();
+            entries = await GetEntriesAsync();
         }
 
         var data = Util.SerializeNodeData(entries);
@@ -138,75 +138,75 @@ public record MST : INodeEntry
         return new MST(storage, pointer, null, opts?.Layer);
     }
 
-    public async Task<(Cid root, BlockMap blocks)> GetUnstoredBlocks()
+    public async Task<(Cid root, BlockMap blocks)> GetUnstoredBlocksAsync()
     {
         var blocks = new BlockMap();
-        var pointer = await GetPointer();
-        var alreadyHas = await Storage.Has(pointer);
+        var pointer = await GetPointerAsync();
+        var alreadyHas = await Storage.HasAsync(pointer);
         if (alreadyHas)
         {
             return (pointer, blocks);
         }
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         var data = Util.SerializeNodeData(entries);
         blocks.Add(data.ToCborObject());
         foreach (var entry in entries)
         {
             if (entry is MST mst)
             {
-                var (root, childBlocks) = await mst.GetUnstoredBlocks();
+                var (root, childBlocks) = await mst.GetUnstoredBlocksAsync();
                 blocks.AddMap(childBlocks);
             }
         }
         return (pointer, blocks);
     }
 
-    public async Task<MST> Add(string key, Cid value, int? knownZeros = null)
+    public async Task<MST> AddAsync(string key, Cid value, int? knownZeros = null)
     {
         Util.EnsureValidMstKey(key);
         var keyZeroes = knownZeros ??= Util.LeadingZerosOnHash(Encoding.UTF8.GetBytes(key));
-        var layer = await GetLayer();
+        var layer = await GetLayerAsync();
         var newLeaf = new Leaf(key, value);
         if (keyZeroes == layer)
         {
             // it belongs in this layer
-            var index = await FindGtOrEqualLeafIndex(key);
-            var first = await AtIndex(index);
+            var index = await FindGtOrEqualLeafIndexAsync(key);
+            var first = await AtIndexAsync(index);
             if (first is Leaf leaf && leaf.Key == key)
             {
                 throw new Exception($"There is already a value at key: {key} with value: {leaf.Value}");
             }
-            var prevNode = await AtIndex(index - 1);
+            var prevNode = await AtIndexAsync(index - 1);
             if (prevNode is null or Leaf)
             {
                 // if entry before is a leaf, (or we're on far left) we can just splice in
-                return await SpliceIn(newLeaf, index);
+                return await SpliceInAsync(newLeaf, index);
             }
             if (prevNode is MST mst)
             {
                 // else we try to split the subtree around the key
-                var splitSubTree = await mst.SplitAround(key);
-                return await ReplaceWithSplit(index - 1, splitSubTree.left, newLeaf, splitSubTree.right);
+                var splitSubTree = await mst.SplitAroundAsync(key);
+                return await ReplaceWithSplitAsync(index - 1, splitSubTree.left, newLeaf, splitSubTree.right);
             }
             throw new Exception("Invalid node type");
         }
         if (keyZeroes < layer)
         {
             // it belongs on a lower layer
-            var index = await FindGtOrEqualLeafIndex(key);
-            var prevNode = await AtIndex(index - 1);
+            var index = await FindGtOrEqualLeafIndexAsync(key);
+            var prevNode = await AtIndexAsync(index - 1);
             if (prevNode is MST mst)
             {
                 // if entry before is a tree, we add it to that tree
-                var newSubtree = await mst.Add(key, value, keyZeroes);
-                return await UpdateEntry(index - 1, newSubtree);
+                var newSubtree = await mst.AddAsync(key, value, keyZeroes);
+                return await UpdateEntryAsync(index - 1, newSubtree);
             }
-            var subTree = await CreateChild();
-            var newSubTree = await subTree.Add(key, value, keyZeroes);
-            return await SpliceIn(newSubTree, index);
+            var subTree = await CreateChildAsync();
+            var newSubTree = await subTree.AddAsync(key, value, keyZeroes);
+            return await SpliceInAsync(newSubTree, index);
         }
         // it belongs on a higher layer & we must push the rest of the tree down
-        var (left, right) = await SplitAround(key);
+        var (left, right) = await SplitAroundAsync(key);
         // if the newly added key has >=2 more leading zeros than the current highest layer
         // then we need to add in structural nodes in between as well
         var extraLayersToAdd = keyZeroes - layer;
@@ -215,11 +215,11 @@ public record MST : INodeEntry
         {
             if (left != null)
             {
-                left = await left.CreateParent();
+                left = await left.CreateParentAsync();
             }
             if (right != null)
             {
-                right = await right.CreateParent();
+                right = await right.CreateParentAsync();
             }
         }
 
@@ -241,107 +241,107 @@ public record MST : INodeEntry
     /// <summary>
     /// Gets the value at the given key
     /// </summary>
-    public async Task<Cid?> Get(string key)
+    public async Task<Cid?> GetAsync(string key)
     {
-        var index = await FindGtOrEqualLeafIndex(key);
-        var found = await AtIndex(index);
+        var index = await FindGtOrEqualLeafIndexAsync(key);
+        var found = await AtIndexAsync(index);
         if (found is Leaf leaf && leaf.Key == key)
         {
             return leaf.Value;
         }
-        var prev = await AtIndex(index - 1);
+        var prev = await AtIndexAsync(index - 1);
         if (prev is MST mst)
         {
-            return await mst.Get(key);
+            return await mst.GetAsync(key);
         }
         return null;
     }
 
-    public async Task<MST> Update(string key, Cid value)
+    public async Task<MST> UpdateAsync(string key, Cid value)
     {
         Util.EnsureValidMstKey(key);
-        var index = await FindGtOrEqualLeafIndex(key);
-        var entry = await AtIndex(index);
+        var index = await FindGtOrEqualLeafIndexAsync(key);
+        var entry = await AtIndexAsync(index);
         if (entry is Leaf leaf && leaf.Key == key)
         {
-            return await UpdateEntry(index, new Leaf(key, value));
+            return await UpdateEntryAsync(index, new Leaf(key, value));
         }
-        var prev = await AtIndex(index - 1);
+        var prev = await AtIndexAsync(index - 1);
         if (prev is MST mst)
         {
-            var updatedTree = await mst.Update(key, value);
-            return await UpdateEntry(index - 1, updatedTree);
+            var updatedTree = await mst.UpdateAsync(key, value);
+            return await UpdateEntryAsync(index - 1, updatedTree);
         }
 
         throw new Exception($"Could not find a record with key: {key}");
     }
 
-    public async Task<MST> Delete(string key)
+    public async Task<MST> DeleteAsync(string key)
     {
-        var altered = await DeleteRecurse(key);
-        return await altered.TrimTop();
+        var altered = await DeleteRecurseAsync(key);
+        return await altered.TrimTopAsync();
     }
 
-    public async Task<MST> TrimTop()
+    public async Task<MST> TrimTopAsync()
     {
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         if (entries is [MST mst])
         {
-            return await mst.TrimTop();
+            return await mst.TrimTopAsync();
         }
 
         return this;
     }
 
-    public async Task<MST> DeleteRecurse(string key)
+    public async Task<MST> DeleteRecurseAsync(string key)
     {
-        var index = await FindGtOrEqualLeafIndex(key);
-        var found = await AtIndex(index);
+        var index = await FindGtOrEqualLeafIndexAsync(key);
+        var found = await AtIndexAsync(index);
 
         if (found is Leaf leaf && leaf.Key == key)
         {
-            var prev = await AtIndex(index - 1);
-            var next = await AtIndex(index + 1);
+            var prev = await AtIndexAsync(index - 1);
+            var next = await AtIndexAsync(index + 1);
             if (prev is MST prevMst && next is MST nextMst)
             {
-                var merged = await prevMst.AppendMerge(nextMst);
+                var merged = await prevMst.AppendMergeAsync(nextMst);
                 return NewTree([
-                    ..await Slice(0, index - 1),
+                    ..await SliceAsync(0, index - 1),
                     merged,
-                    ..await Slice(index + 2, null)
+                    ..await SliceAsync(index + 2, null)
                 ]);
             }
-            return await RemoveEntry(index);
+            return await RemoveEntryAsync(index);
         }
 
-        var prevNode = await AtIndex(index - 1);
+        var prevNode = await AtIndexAsync(index - 1);
         if (prevNode is MST mst)
         {
-            var subtree = await mst.DeleteRecurse(key);
-            var subtreeEntries = await subtree.GetEntries();
+            var subtree = await mst.DeleteRecurseAsync(key);
+            var subtreeEntries = await subtree.GetEntriesAsync();
             if (subtreeEntries.Length == 0)
             {
-                return await RemoveEntry(index - 1);
+                return await RemoveEntryAsync(index - 1);
             }
-            return await UpdateEntry(index - 1, subtree);
+            return await UpdateEntryAsync(index - 1, subtree);
         }
         throw new Exception($"Could not find a record with key: {key}");
     }
 
-    public async Task<MST> AppendMerge(MST toMerge)
+    public async Task<MST> AppendMergeAsync(MST toMerge)
     {
-        if (await GetLayer() != await toMerge.GetLayer())
+        if (await GetLayerAsync() != await toMerge.GetLayerAsync())
         {
             throw new Exception("Cannot merge trees of different layers");
         }
 
-        var entries = await GetEntries();
-        var toMergeEntries = await toMerge.GetEntries();
+        var entries = await GetEntriesAsync();
+        var toMergeEntries = await toMerge.GetEntriesAsync();
         var last = entries[^1];
         var first = toMergeEntries[0];
         if (last is MST lastMst && first is MST firstMst)
         {
-            var merged = await lastMst.AppendMerge(firstMst);
+            var merged = await lastMst.AppendMergeAsync(firstMst);
             return NewTree([
                 ..entries[..^1],
                 merged,
@@ -351,15 +351,15 @@ public record MST : INodeEntry
         return NewTree([..entries, ..toMergeEntries]);
     }
 
-    public async IAsyncEnumerable<INodeEntry> Walk()
+    public async IAsyncEnumerable<INodeEntry> WalkAsync()
     {
         yield return this;
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         foreach (var entry in entries)
         {
             if (entry is MST mst)
             {
-                await foreach (var subEntry in mst.Walk())
+                await foreach (var subEntry in mst.WalkAsync())
                 {
                     yield return subEntry;
                 }
@@ -374,11 +374,11 @@ public record MST : INodeEntry
     /// <summary>
     /// Walk tree starting at key
     /// </summary>
-    public async IAsyncEnumerable<INodeEntry> WalkFrom(string key)
+    public async IAsyncEnumerable<INodeEntry> WalkFromAsync(string key)
     {
         yield return this;
-        var index = await FindGtOrEqualLeafIndex(key);
-        var entries = await GetEntries();
+        var index = await FindGtOrEqualLeafIndexAsync(key);
+        var entries = await GetEntriesAsync();
         var found = index < entries.Length ? entries[index] : null;
         if (found is Leaf foundLeaf && foundLeaf.Key == key)
         {
@@ -395,7 +395,7 @@ public record MST : INodeEntry
                 }
                 else if (prev is MST prevMst)
                 {
-                    await foreach (var subEntry in prevMst.WalkFrom(key))
+                    await foreach (var subEntry in prevMst.WalkFromAsync(key))
                     {
                         yield return subEntry;
                     }
@@ -412,7 +412,7 @@ public record MST : INodeEntry
             }
             else if (entry is MST mst)
             {
-                await foreach (var subEntry in mst.WalkFrom(key))
+                await foreach (var subEntry in mst.WalkFromAsync(key))
                 {
                     yield return subEntry;
                 }
@@ -423,9 +423,9 @@ public record MST : INodeEntry
     /// <summary>
     /// Walk leaves starting at key
     /// </summary>
-    public async IAsyncEnumerable<Leaf> WalkLeavesFrom(string key)
+    public async IAsyncEnumerable<Leaf> WalkLeavesFromAsync(string key)
     {
-        await foreach (var node in WalkFrom(key))
+        await foreach (var node in WalkFromAsync(key))
         {
             if (node is Leaf leaf)
             {
@@ -437,10 +437,10 @@ public record MST : INodeEntry
     /// <summary>
     /// List leaves with optional count, after, and before filters
     /// </summary>
-    public async Task<List<Leaf>> List(int count = int.MaxValue, string? after = null, string? before = null)
+    public async Task<List<Leaf>> ListAsync(int count = int.MaxValue, string? after = null, string? before = null)
     {
         var vals = new List<Leaf>();
-        await foreach (var leaf in WalkLeavesFrom(after ?? ""))
+        await foreach (var leaf in WalkLeavesFromAsync(after ?? ""))
         {
             if (leaf.Key == after) continue;
             if (vals.Count >= count) break;
@@ -453,10 +453,10 @@ public record MST : INodeEntry
     /// <summary>
     /// List leaves with a specific prefix
     /// </summary>
-    public async Task<List<Leaf>> ListWithPrefix(string prefix, int count = int.MaxValue)
+    public async Task<List<Leaf>> ListWithPrefixAsync(string prefix, int count = int.MaxValue)
     {
         var vals = new List<Leaf>();
-        await foreach (var leaf in WalkLeavesFrom(prefix))
+        await foreach (var leaf in WalkLeavesFromAsync(prefix))
         {
             if (vals.Count >= count || !leaf.Key.StartsWith(prefix)) break;
             vals.Add(leaf);
@@ -467,9 +467,9 @@ public record MST : INodeEntry
     /// <summary>
     /// Get all paths in the tree
     /// </summary>
-    public async Task<List<List<INodeEntry>>> Paths()
+    public async Task<List<List<INodeEntry>>> PathsAsync()
     {
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         var paths = new List<List<INodeEntry>>();
         foreach (var entry in entries)
         {
@@ -479,7 +479,7 @@ public record MST : INodeEntry
             }
             if (entry is MST mst)
             {
-                var subPaths = await mst.Paths();
+                var subPaths = await mst.PathsAsync();
                 foreach (var p in subPaths)
                 {
                     var newPath = new List<INodeEntry> { mst };
@@ -494,10 +494,10 @@ public record MST : INodeEntry
     /// <summary>
     /// Walks tree and returns all nodes
     /// </summary>
-    public async Task<List<INodeEntry>> AllNodes()
+    public async Task<List<INodeEntry>> AllNodesAsync()
     {
         var nodes = new List<INodeEntry>();
-        await foreach (var entry in Walk())
+        await foreach (var entry in WalkAsync())
         {
             nodes.Add(entry);
         }
@@ -507,10 +507,10 @@ public record MST : INodeEntry
     /// <summary>
     /// Walks tree and returns all leaves
     /// </summary>
-    public async Task<List<Leaf>> Leaves()
+    public async Task<List<Leaf>> LeavesAsync()
     {
         var leaves = new List<Leaf>();
-        await foreach (var entry in Walk())
+        await foreach (var entry in WalkAsync())
         {
             if (entry is Leaf leaf)
             {
@@ -523,19 +523,19 @@ public record MST : INodeEntry
     /// <summary>
     /// Returns total leaf count
     /// </summary>
-    public async Task<int> LeafCount()
+    public async Task<int> LeafCountAsync()
     {
-        var leaves = await Leaves();
+        var leaves = await LeavesAsync();
         return leaves.Count;
     }
 
     /// <summary>
     /// Walks tree and returns all CIDs
     /// </summary>
-    public async Task<HashSet<Cid>> AllCids()
+    public async Task<HashSet<Cid>> AllCidsAsync()
     {
         var cids = new HashSet<Cid>();
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         foreach (var entry in entries)
         {
             if (entry is Leaf leaf)
@@ -544,55 +544,55 @@ public record MST : INodeEntry
             }
             else if (entry is MST mst)
             {
-                var subtreeCids = await mst.AllCids();
+                var subtreeCids = await mst.AllCidsAsync();
                 foreach (var cid in subtreeCids)
                 {
                     cids.Add(cid);
                 }
             }
         }
-        cids.Add(await GetPointer());
+        cids.Add(await GetPointerAsync());
         return cids;
     }
 
     /// <summary>
     /// Get CIDs for path to a key
     /// </summary>
-    public async Task<List<Cid>> CidsForPath(string key)
+    public async Task<List<Cid>> CidsForPathAsync(string key)
     {
-        var cids = new List<Cid> { await GetPointer() };
-        var index = await FindGtOrEqualLeafIndex(key);
-        var found = await AtIndex(index);
+        var cids = new List<Cid> { await GetPointerAsync() };
+        var index = await FindGtOrEqualLeafIndexAsync(key);
+        var found = await AtIndexAsync(index);
         if (found is Leaf leaf && leaf.Key == key)
         {
             cids.Add(leaf.Value);
             return cids;
         }
-        var prev = await AtIndex(index - 1);
+        var prev = await AtIndexAsync(index - 1);
         if (prev is MST mst)
         {
-            cids.AddRange(await mst.CidsForPath(key));
+            cids.AddRange(await mst.CidsForPathAsync(key));
         }
         return cids;
     }
 
-    public async Task<MST> CreateChild()
+    public async Task<MST> CreateChildAsync()
     {
-        var layer = await GetLayer();
+        var layer = await GetLayerAsync();
         return Create(Storage, [], new MstOpts(layer - 1));
     }
 
-    public async Task<MST> CreateParent()
+    public async Task<MST> CreateParentAsync()
     {
-        var layer = await GetLayer();
+        var layer = await GetLayerAsync();
         var parent = Create(Storage, [this], new MstOpts(layer + 1));
         parent.OutdatedPointer = true;
         return parent;
     }
 
-    public async Task<MST> ReplaceWithSplit(int index, MST? left, Leaf leaf, MST? right)
+    public async Task<MST> ReplaceWithSplitAsync(int index, MST? left, Leaf leaf, MST? right)
     {
-        var update = (await Slice(0, index)).ToList();
+        var update = (await SliceAsync(0, index)).ToList();
         if (left != null)
         {
             update.Add(left);
@@ -602,67 +602,67 @@ public record MST : INodeEntry
         {
             update.Add(right);
         }
-        update.AddRange(await Slice(index + 1, null));
+        update.AddRange(await SliceAsync(index + 1, null));
         return NewTree(update.ToArray());
     }
 
-    public async Task<MST> UpdateEntry(int index, INodeEntry entry)
+    public async Task<MST> UpdateEntryAsync(int index, INodeEntry entry)
     {
-        var before = await Slice(0, index);
-        var after = await Slice(index + 1, null);
+        var before = await SliceAsync(0, index);
+        var after = await SliceAsync(index + 1, null);
         return NewTree([..before, entry, ..after]);
     }
 
-    public async Task<MST> RemoveEntry(int index)
+    public async Task<MST> RemoveEntryAsync(int index)
     {
-        var before = await Slice(0, index);
-        var after = await Slice(index + 1, null);
+        var before = await SliceAsync(0, index);
+        var after = await SliceAsync(index + 1, null);
         return NewTree([..before, ..after]);
     }
 
-    public async Task<MST> Prepend(INodeEntry entry)
+    public async Task<MST> PrependAsync(INodeEntry entry)
     {
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         return NewTree([entry, ..entries]);
     }
 
-    public async Task<MST> Append(INodeEntry entry)
+    public async Task<MST> AppendAsync(INodeEntry entry)
     {
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         return NewTree([..entries, entry]);
     }
 
-    public async Task<(MST? left, MST? right)> SplitAround(string key)
+    public async Task<(MST? left, MST? right)> SplitAroundAsync(string key)
     {
-        var index = await FindGtOrEqualLeafIndex(key);
-        var leftData = await Slice(0, index);
-        var rightData = await Slice(index, null);
+        var index = await FindGtOrEqualLeafIndexAsync(key);
+        var leftData = await SliceAsync(0, index);
+        var rightData = await SliceAsync(index, null);
         var left = NewTree(leftData);
         var right = NewTree(rightData);
 
         var lastInLeft = leftData.Length > 0 ? leftData[^1] : null;
         if (lastInLeft is MST mst)
         {
-            left = await left.RemoveEntry(leftData.Length - 1);
-            var split = await mst.SplitAround(key);
+            left = await left.RemoveEntryAsync(leftData.Length - 1);
+            var split = await mst.SplitAroundAsync(key);
             if (split.left != null)
             {
-                left = await left.Append(split.left);
+                left = await left.AppendAsync(split.left);
             }
             if (split.right != null)
             {
-                right = await right.Prepend(split.right);
+                right = await right.PrependAsync(split.right);
             }
         }
 
-        var outLeft = (await left.GetEntries()).Length > 0 ? left : null;
-        var outRight = (await right.GetEntries()).Length > 0 ? right : null;
+        var outLeft = (await left.GetEntriesAsync()).Length > 0 ? left : null;
+        var outRight = (await right.GetEntriesAsync()).Length > 0 ? right : null;
         return (outLeft, outRight);
     }
 
-    public async Task<int> FindGtOrEqualLeafIndex(string key)
+    public async Task<int> FindGtOrEqualLeafIndexAsync(string key)
     {
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         var maybeIndex = entries.Select((entry, i) => (entry, i))
             .Where(x => x.entry is Leaf leaf && string.CompareOrdinal(leaf.Key, key) >= 0)
             .Select(x => x.i)
@@ -670,24 +670,24 @@ public record MST : INodeEntry
         return maybeIndex >= 0 ? maybeIndex : entries.Length;
     }
 
-    public async Task<INodeEntry?> AtIndex(int index)
+    public async Task<INodeEntry?> AtIndexAsync(int index)
     {
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         return index < entries.Length && index >= 0 ? entries[index] : null;
     }
 
-    public async Task<INodeEntry[]> Slice(int? start, int? end)
+    public async Task<INodeEntry[]> SliceAsync(int? start, int? end)
     {
-        var entries = await GetEntries();
+        var entries = await GetEntriesAsync();
         start ??= 0;
         end ??= entries.Length;
         return entries[start.Value..end.Value];
     }
 
-    public async Task<MST> SpliceIn(INodeEntry entry, int index)
+    public async Task<MST> SpliceInAsync(INodeEntry entry, int index)
     {
-        var before = await Slice(0, index);
-        var after = await Slice(index, null);
+        var before = await SliceAsync(0, index);
+        var after = await SliceAsync(index, null);
         return NewTree([..before, entry, ..after]);
     }
 }

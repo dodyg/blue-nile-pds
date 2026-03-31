@@ -14,7 +14,7 @@ public class Secp256k1Keypair : IExportableKeyPair
 
     public Secp256k1Keypair(byte[] privateKey, bool exportable)
     {
-        if (privateKey.Length != Secp256k1Net.Secp256k1.PRIVKEY_LENGTH)
+        if (privateKey.Length != Secp256k1Net.Secp256k1.SECRET_KEY_LENGTH)
         {
             throw new ArgumentException("Invalid private key length");
         }
@@ -24,15 +24,9 @@ public class Secp256k1Keypair : IExportableKeyPair
             throw new ArgumentException("Invalid private key");
         }
 
-        var publicKey = new byte[Secp256k1Net.Secp256k1.PUBKEY_LENGTH];
-        if (!Secp256k1Wrapper.PublicKeyCreate(publicKey, privateKey))
-        {
-            throw new Exception("Failed to create public key");
-        }
-
         _privateKey = privateKey;
         _exportable = exportable;
-        _publicKey = publicKey;
+        _publicKey = Secp256k1Wrapper.PublicKeyCreate(privateKey);
     }
 
     public byte[] Export()
@@ -49,19 +43,7 @@ public class Secp256k1Keypair : IExportableKeyPair
     public byte[] Sign(byte[] data)
     {
         var msgHash = SHA256.HashData(data);
-        var signature = new byte[Secp256k1Net.Secp256k1.SIGNATURE_LENGTH];
-        if (!Secp256k1Wrapper.Sign(signature, msgHash, _privateKey))
-        {
-            throw new Exception("Failed to sign data");
-        }
-
-        var compactSig = new byte[Secp256k1Net.Secp256k1.SIGNATURE_LENGTH];
-        if (!Secp256k1Wrapper.SignatureSerializeCompact(compactSig, signature))
-        {
-            throw new Exception("Failed to sign data");
-        }
-
-        return compactSig;
+        return Secp256k1Wrapper.Sign(msgHash, _privateKey);
     }
 
     public string Did()
@@ -71,7 +53,7 @@ public class Secp256k1Keypair : IExportableKeyPair
 
     public static Secp256k1Keypair Create(bool exportable)
     {
-        var privateKey = new byte[Secp256k1Net.Secp256k1.PRIVKEY_LENGTH];
+        var privateKey = new byte[Secp256k1Net.Secp256k1.SECRET_KEY_LENGTH];
         var rnd = RandomNumberGenerator.Create();
         do
         {

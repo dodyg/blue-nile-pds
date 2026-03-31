@@ -23,7 +23,7 @@ public class Crawlers
     }
     public DateTime LastNotified { get; private set; }
 
-    public async Task NotifyOfUpdate()
+    public async Task NotifyOfUpdateAsync()
     {
         if (DateTime.UtcNow - LastNotified < NotifyThreshold)
         {
@@ -33,14 +33,14 @@ public class Crawlers
         var crawlTasks = new List<Task>();
         foreach (var host in _config.Crawlers)
         {
-            crawlTasks.Add(RequestCrawl(host));
+            crawlTasks.Add(RequestCrawlAsync(host));
         }
 
         await Task.WhenAll(crawlTasks);
         LastNotified = DateTime.UtcNow;
     }
 
-    private async Task RequestCrawl(string host)
+    private async Task RequestCrawlAsync(string host)
     {
         var lh = host.Trim();
         _logger.LogInformation("Requesting crawl from {Host}", lh);

@@ -12,7 +12,7 @@ public class PasswordStore
         _db = db;
     }
 
-    public async Task<bool> VerifyAccountPassword(string did, string password)
+    public async Task<bool> VerifyAccountPasswordAsync(string did, string password)
     {
         var found = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
         if (found == null)

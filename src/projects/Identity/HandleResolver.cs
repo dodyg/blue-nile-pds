@@ -14,15 +14,15 @@ public class HandleResolver
         _httpClient = httpClient;
     }
 
-    public async Task<string?> Resolve(string handle, CancellationToken cancellationToken)
+    public async Task<string?> ResolveAsync(string handle, CancellationToken cancellationToken)
     {
-        var dnsResult = await ResolveDns(handle);
+        var dnsResult = await ResolveDnsAsync(handle);
         if (dnsResult != null)
         {
             return dnsResult;
         }
 
-        var httpResult = await ResolveHttp(handle, cancellationToken);
+        var httpResult = await ResolveHttpAsync(handle, cancellationToken);
         if (httpResult != null)
         {
             return httpResult;
@@ -31,7 +31,7 @@ public class HandleResolver
         return null;
     }
 
-    public async Task<string?> ResolveDns(string handle)
+    public async Task<string?> ResolveDnsAsync(string handle)
     {
         try
         {
@@ -60,7 +60,7 @@ public class HandleResolver
         }
     }
 
-    public async Task<string?> ResolveHttp(string handle, CancellationToken cancellationToken)
+    public async Task<string?> ResolveHttpAsync(string handle, CancellationToken cancellationToken)
     {
         try
         {

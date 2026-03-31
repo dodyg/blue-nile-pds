@@ -34,13 +34,13 @@ public class RefreshSessionController : ControllerBase
 
     [HttpPost("com.atproto.server.refreshSession")]
     [Refresh]
-    public async Task<IActionResult> RefreshSession()
+    public async Task<IActionResult> RefreshSessionAsync()
     {
         var auth = HttpContext.GetRefreshOutput();
         var did = auth.RefreshCredentials.Did;
         var tokenId = auth.RefreshCredentials.TokenId;
 
-        var user = await _accountRepository.GetAccount(did, new AvailabilityFlags(true, true));
+        var user = await _accountRepository.GetAccountAsync(did, new AvailabilityFlags(true, true));
         if (user == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail($"Could not find user info for account: {did}"));
@@ -51,8 +51,8 @@ public class RefreshSessionController : ControllerBase
             throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
         }
 
-        var didDocTask = DidDocForSession(did);
-        var rotateTask = _accountRepository.RotateRefreshToken(tokenId);
+        var didDocTask = DidDocForSessionAsync(did);
+        var rotateTask = _accountRepository.RotateRefreshTokenAsync(tokenId);
         await Task.WhenAll(didDocTask, rotateTask);
 
         var didDoc = didDocTask.Result;
@@ -77,20 +77,20 @@ public class RefreshSessionController : ControllerBase
         });
     }
 
-    private async Task<DidDocument?> DidDocForSession(string did, bool forceRefresh = false)
+    private async Task<DidDocument?> DidDocForSessionAsync(string did, bool forceRefresh = false)
     {
         if (!_identityConfig.EnableDidDocWithSession)
         {
             return null;
         }
-        return await SafeResolveDidDoc(did, forceRefresh);
+        return await SafeResolveDidDocAsync(did, forceRefresh);
     }
 
-    private async Task<DidDocument?> SafeResolveDidDoc(string did, bool forceRefresh = false)
+    private async Task<DidDocument?> SafeResolveDidDocAsync(string did, bool forceRefresh = false)
     {
         try
         {
-            var didDoc = await _idResolver.DidResolver.Resolve(did, forceRefresh);
+            var didDoc = await _idResolver.DidResolver.ResolveAsync(did, forceRefresh);
             return didDoc;
         }
         catch (Exception e)

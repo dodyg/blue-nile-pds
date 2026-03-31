@@ -17,12 +17,12 @@ public class BlobTransactor
     }
 
 
-    public async Task<Db.Blob?> GetBlob(Cid cid)
+    public async Task<Db.Blob?> GetBlobAsync(Cid cid)
     {
         var blob = Db.Blobs.FirstOrDefault(b => b.Cid == cid.ToString());
         return blob;
     }
-    public async Task<List<string>> GetRecordsForBlob(Cid cid)
+    public async Task<List<string>> GetRecordsForBlobAsync(Cid cid)
     {
         var recordUris = await Db.RecordBlobs
             .Where(rb => rb.BlobCid == cid.ToString())
@@ -31,7 +31,7 @@ public class BlobTransactor
             .ToListAsync();
         return recordUris;
     }
-    public async Task<List<string>> GetRecordsForBlob(string cid)
+    public async Task<List<string>> GetRecordsForBlobAsync(string cid)
     {
         var recordUris = await Db.RecordBlobs
             .Where(rb => rb.BlobCid == cid.ToString())
@@ -41,7 +41,7 @@ public class BlobTransactor
         return recordUris;
     }
 
-    public async Task<List<string>> ListBlobs(string? since, string? cursor, int limit)
+    public async Task<List<string>> ListBlobsAsync(string? since, string? cursor, int limit)
     {
         var query = Db.RecordBlobs
             .AsNoTracking()
@@ -74,16 +74,16 @@ public class BlobTransactor
         return res;
     }
 
-    public async Task<BlobMetaData> GenerateTempBlobMetadata(string tempKey, string userMimeType)
+    public async Task<BlobMetaData> GenerateTempBlobMetadataAsync(string tempKey, string userMimeType)
     {
-        var stream = await BlobStore.GetTempStream(tempKey);
+        var stream = await BlobStore.GetTempStreamAsync(tempKey);
 
         
-        var cid = await CID.Util.CidForBlobs(stream);
+        var cid = await CID.Util.CidForBlobsAsync(stream);
 
         // let the blob store handle figuring out the size
         // don't try to read the stream length here as it might not be seekable, so it will throw not supported exception
-        var size = await BlobStore.GetTempSize(tempKey);
+        var size = await BlobStore.GetTempSizeAsync(tempKey);
         // TODO: content type sniffing 
 
         var blob = new BlobMetaData(
@@ -94,15 +94,15 @@ public class BlobTransactor
         return blob;
     }
 
-    public async Task SaveBlobRecord(Db.Blob blob)
+    public async Task SaveBlobRecordAsync(Db.Blob blob)
     {
         await Db.Blobs.AddAsync(blob);
         await Db.SaveChangesAsync();
     }
 
-    public async Task UpdateBlob(Cid cid, Action<Db.Blob> updateAction)
+    public async Task UpdateBlobAsync(Cid cid, Action<Db.Blob> updateAction)
     {
-        var blob = await GetBlob(cid);
+        var blob = await GetBlobAsync(cid);
         if (blob is not null)
         {
             updateAction(blob);
@@ -110,7 +110,7 @@ public class BlobTransactor
         }
     }
 
-    public async Task ProcessWriteBlobs(string rev, IPreparedWrite[] preparedWrites)
+    public async Task ProcessWriteBlobsAsync(string rev, IPreparedWrite[] preparedWrites)
     {
         await using var tx = await Db.Database.BeginTransactionAsync();
 
@@ -131,7 +131,7 @@ public class BlobTransactor
         if (difference.Any())
             throw new InvalidOperationException($"Attempting to write records with blobs that have not been uploaded {string.Join(", ", difference.Select(d => d))}, upload blobs before writing records.");
 
-        var cidsToDelete = await DeleteDereferencedBlobs(preparedWrites);
+        var cidsToDelete = await DeleteDereferencedBlobsAsync(preparedWrites);
 
         var newBlobReferences = preparedWrites
             .Where(pw => pw is PreparedCreate or PreparedUpdate)
@@ -165,18 +165,18 @@ public class BlobTransactor
         // what if blob store operation fails? it might get out of sync with db
 
         // do sequentially for now
-        await BlobStore.DeleteMany(cidsToDelete.Select(cid => Cid.FromString(cid)).ToArray());
+        await BlobStore.DeleteManyAsync(cidsToDelete.Select(cid => Cid.FromString(cid)).ToArray());
 
         foreach (var blob in toMakePermanent)
         {
             // TODO: add blob validation (verifyBlob method)
-            await BlobStore.MakePermanent(blob.TempKey!, Cid.FromString(blob.Cid));
+            await BlobStore.MakePermanentAsync(blob.TempKey!, Cid.FromString(blob.Cid));
         }
 
 
     }
 
-    async Task<HashSet<string>> DeleteDereferencedBlobs(IPreparedWrite[] preparedWrites)
+    async Task<HashSet<string>> DeleteDereferencedBlobsAsync(IPreparedWrite[] preparedWrites)
     {
         var deletes = preparedWrites.Where(pw => pw is PreparedDelete).ToArray();
         var updates = preparedWrites.Where(pw => pw is PreparedUpdate).ToArray();

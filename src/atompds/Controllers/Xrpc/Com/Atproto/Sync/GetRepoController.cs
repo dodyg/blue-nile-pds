@@ -14,13 +14,13 @@ public class GetRepoController(
 ) : ControllerBase
 {
     [HttpGet("com.atproto.sync.getRepo")]
-    public async Task<IActionResult> GetRepo(
+    public async Task<IActionResult> GetRepoAsync(
         [FromQuery] string did,
         [FromQuery] string? since = null
     )
     {
         // TODO: there is some self and admin stuff that I'm skipping
-        var account = await accountRepository.GetAccount(did, new(true, true));
+        var account = await accountRepository.GetAccountAsync(did, new(true, true));
 
         if (account is null)
             throw new XRPCError(new InvalidRequestErrorDetail($"could not find account for did: {did}"));
@@ -35,13 +35,13 @@ public class GetRepoController(
         await using var actorRepo = actorRepositoryProvider.Open(did);
         
         var storage = actorRepo.Repo.Storage;
-        var root = await storage.GetRootDetailed();
+        var root = await storage.GetRootDetailedAsync();
         
-        var carBlocks = storage.IterateCarBlocks(since);
+        var carBlocks = storage.IterateCarBlocksAsync(since);
         
         var cancellationToken = Request.HttpContext.RequestAborted;
         HttpContext.Response.ContentType = "application/vnd.ipld.car";
-        await foreach (var blockBytes in RepoUtil.CarBlocksToCarAsyncEnumerable(root.Cid, carBlocks).WithCancellation(cancellationToken))
+        await foreach (var blockBytes in RepoUtil.CarBlocksToCarAsyncEnumerableAsync(root.Cid, carBlocks).WithCancellation(cancellationToken))
         {
             await HttpContext.Response.Body.WriteAsync(blockBytes, cancellationToken);
         }

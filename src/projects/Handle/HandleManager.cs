@@ -43,7 +43,7 @@ public partial class HandleManager
         _idResolver = idResolver;
     }
 
-    public async Task<string> NormalizeAndValidateHandle(string inputHandle, string? did, bool? allowReserved)
+    public async Task<string> NormalizeAndValidateHandleAsync(string inputHandle, string? did, bool? allowReserved)
     {
         var handle = NormalizeAndEnsureValidHandle(inputHandle);
 
@@ -68,7 +68,7 @@ public partial class HandleManager
                 throw new XRPCError(new InvalidHandleErrorDetail("Not a supported handle domain"));
             }
 
-            var resolvedDid = await _idResolver.HandleResolver.Resolve(handle, CancellationToken.None);
+            var resolvedDid = await _idResolver.HandleResolver.ResolveAsync(handle, CancellationToken.None);
             if (resolvedDid == null || resolvedDid != did)
             {
                 throw new XRPCError(new InvalidHandleErrorDetail("External handle did not resolve to DID"));

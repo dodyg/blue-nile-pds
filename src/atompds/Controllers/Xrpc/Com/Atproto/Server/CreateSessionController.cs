@@ -32,16 +32,16 @@ public class CreateSessionController : ControllerBase
     }
 
     [HttpPost("com.atproto.server.createSession")]
-    public async Task<IActionResult> CreateSession([FromBody] CreateSessionInput request)
+    public async Task<IActionResult> CreateSessionAsync([FromBody] CreateSessionInput request)
     {
         if (request.Identifier == null || request.Password == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Identifier and password are required"));
         }
 
-        var login = await _accountRepository.Login(request.Identifier, request.Password);
-        var creds = await _accountRepository.CreateSession(login.Did);
-        var didDoc = await DidDocForSession(login.Did);
+        var login = await _accountRepository.LoginAsync(request.Identifier, request.Password);
+        var creds = await _accountRepository.CreateSessionAsync(login.Did);
+        var didDoc = await DidDocForSessionAsync(login.Did);
         var (active, status) = AccountStore.FormatAccountStatus(login);
 
         return Ok(new CreateSessionOutput
@@ -59,20 +59,20 @@ public class CreateSessionController : ControllerBase
         });
     }
 
-    private async Task<DidDocument?> DidDocForSession(string did, bool forceRefresh = false)
+    private async Task<DidDocument?> DidDocForSessionAsync(string did, bool forceRefresh = false)
     {
         if (!_identityConfig.EnableDidDocWithSession)
         {
             return null;
         }
-        return await SafeResolveDidDoc(did, forceRefresh);
+        return await SafeResolveDidDocAsync(did, forceRefresh);
     }
 
-    private async Task<DidDocument?> SafeResolveDidDoc(string did, bool forceRefresh = false)
+    private async Task<DidDocument?> SafeResolveDidDocAsync(string did, bool forceRefresh = false)
     {
         try
         {
-            var didDoc = await _idResolver.DidResolver.Resolve(did, forceRefresh);
+            var didDoc = await _idResolver.DidResolver.ResolveAsync(did, forceRefresh);
             return didDoc;
         }
         catch (Exception e)

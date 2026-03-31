@@ -80,25 +80,25 @@ public class S3BlobStore : IBlobStore
         await transferUtility.UploadAsync(putRequest, cts.Token);
     }
 
-    public Task<string> PutTemp(byte[] bytes) =>
-        PutTemp(bytes, CancellationToken.None);
-    public async Task<string> PutTemp(byte[] bytes, CancellationToken ct)
+    public Task<string> PutTempAsync(byte[] bytes) =>
+        PutTempAsync(bytes, CancellationToken.None);
+    public async Task<string> PutTempAsync(byte[] bytes, CancellationToken ct)
     {
         var key = GenKey();
         await PutObjectAsync(GetTempPath(key), new MemoryStream(bytes), ct);
         return key;
     }
 
-    public Task<string> PutTemp(Stream stream) =>
-        PutTemp(stream, CancellationToken.None);
-    public async Task<string> PutTemp(Stream stream, CancellationToken ct)
+    public Task<string> PutTempAsync(Stream stream) =>
+        PutTempAsync(stream, CancellationToken.None);
+    public async Task<string> PutTempAsync(Stream stream, CancellationToken ct)
     {
         var key = GenKey();
         await PutObjectAsync(GetTempPath(key), stream, ct);
         return key;
     }
 
-    public async Task<long> GetTempSize(string key)
+    public async Task<long> GetTempSizeAsync(string key)
     {
         try
         {
@@ -112,23 +112,23 @@ public class S3BlobStore : IBlobStore
     }
 
 
-    public async Task PutPermanent(Cid cid, byte[] bytes) =>
-        await PutPermanent(cid, bytes, CancellationToken.None);
+    public async Task PutPermanentAsync(Cid cid, byte[] bytes) =>
+        await PutPermanentAsync(cid, bytes, CancellationToken.None);
 
-    public async Task PutPermanent(Cid cid, byte[] bytes, CancellationToken ct)
+    public async Task PutPermanentAsync(Cid cid, byte[] bytes, CancellationToken ct)
     {
         await PutObjectAsync(GetStoredPath(cid), new MemoryStream(bytes), ct);
     }
 
-    public async Task PutPermanent(Cid cid, Stream stream) =>
-        await PutPermanent(cid, stream, CancellationToken.None);
+    public async Task PutPermanentAsync(Cid cid, Stream stream) =>
+        await PutPermanentAsync(cid, stream, CancellationToken.None);
 
-    public async Task PutPermanent(Cid cid, Stream stream, CancellationToken ct)
+    public async Task PutPermanentAsync(Cid cid, Stream stream, CancellationToken ct)
     {
         await PutObjectAsync(GetStoredPath(cid), stream, ct);
     }
 
-    async Task Move(string sourceKey, string destKey)
+    async Task MoveAsync(string sourceKey, string destKey)
     {
         try
         {
@@ -163,14 +163,14 @@ public class S3BlobStore : IBlobStore
         }
     }
 
-    public async Task MakePermanent(string key, Cid cid)
+    public async Task MakePermanentAsync(string key, Cid cid)
     {
         try
         {
             // We normally call this method when we know the file is temporary.
             // Because of this, we optimistically move the file, allowing to make
             // fewer network requests in the happy path.
-            await Move(GetTempPath(key), GetStoredPath(cid));
+            await MoveAsync(GetTempPath(key), GetStoredPath(cid));
         }
         catch (BlobNotFoundException)
         {
@@ -178,19 +178,19 @@ public class S3BlobStore : IBlobStore
             // check if the permanent file already exists. If it does, we can assume
             // that another process made the file permanent concurrently, and we can
             // no-op.
-            var alreadyHas = await HasStored(cid);
+            var alreadyHas = await HasStoredAsync(cid);
             if (alreadyHas) return;
 
             throw;
         }
     }
 
-    public async Task<bool> HasStored(Cid cid)
+    public async Task<bool> HasStoredAsync(Cid cid)
     {
-        return await HasKey(GetStoredPath(cid));
+        return await HasKeyAsync(GetStoredPath(cid));
     }
 
-    private async Task<bool> HasKey(string key)
+    private async Task<bool> HasKeyAsync(string key)
     {
         try
         {
@@ -203,7 +203,7 @@ public class S3BlobStore : IBlobStore
         }
     }
 
-    private async Task<Amazon.S3.Model.GetObjectResponse> GetObject(string key)
+    private async Task<Amazon.S3.Model.GetObjectResponse> GetObjectAsync(string key)
     {
         var response = await client.GetObjectAsync(bucket, key);
         if (response.ResponseStream == null)
@@ -213,32 +213,32 @@ public class S3BlobStore : IBlobStore
         return response;
     }
 
-    public async Task<byte[]> GetBytes(Cid cid)
+    public async Task<byte[]> GetBytesAsync(Cid cid)
     {
-        var response = await GetObject(GetStoredPath(cid));
+        var response = await GetObjectAsync(GetStoredPath(cid));
         using var ms = new MemoryStream();
         await response.ResponseStream.CopyToAsync(ms);
         return ms.ToArray();
     }
 
-    public async Task<Stream> GetStream(Cid cid)
+    public async Task<Stream> GetStreamAsync(Cid cid)
     {
-        var response = await GetObject(GetStoredPath(cid));
+        var response = await GetObjectAsync(GetStoredPath(cid));
         return response.ResponseStream;
     }
 
-    public async Task<Stream> GetTempStream(string key)
+    public async Task<Stream> GetTempStreamAsync(string key)
     {
-        var response = await GetObject(GetTempPath(key));
+        var response = await GetObjectAsync(GetTempPath(key));
         return response.ResponseStream;
     }
 
-    public async Task Delete(Cid cid)
+    public async Task DeleteAsync(Cid cid)
     {
-        await DeleteKey(GetStoredPath(cid));
+        await DeleteKeyAsync(GetStoredPath(cid));
     }
 
-    public async Task DeleteMany(Cid[] cids)
+    public async Task DeleteManyAsync(Cid[] cids)
     {
         var errors = new List<Exception>();
         
@@ -248,7 +248,7 @@ public class S3BlobStore : IBlobStore
             try
             {
                 var keys = chunk.Select(cid => GetStoredPath(cid)).ToList();
-                await DeleteManyKeys(keys);
+                await DeleteManyKeysAsync(keys);
             }
             catch (Exception ex)
             {
@@ -262,12 +262,12 @@ public class S3BlobStore : IBlobStore
         }
     }
 
-    private async Task DeleteKey(string key)
+    private async Task DeleteKeyAsync(string key)
     {
         await client.DeleteObjectAsync(bucket, key);
     }
 
-    private async Task DeleteManyKeys(List<string> keys)
+    private async Task DeleteManyKeysAsync(List<string> keys)
     {
         var deleteRequest = new Amazon.S3.Model.DeleteObjectsRequest
         {

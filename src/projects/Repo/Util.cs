@@ -15,12 +15,12 @@ public static class Util
         return new Commit(unsigned.Did, unsigned.Data, unsigned.Rev, unsigned.Prev, sig);
     }
 
-    public static async Task<byte[]> BlocksToCarFile(Cid? root, BlockMap blocks)
+    public static async Task<byte[]> BlocksToCarFileAsync(Cid? root, BlockMap blocks)
     {
-        await using var writer = await CarMemoryWriter.Create(root);
+        await using var writer = await CarMemoryWriter.CreateAsync(root);
         foreach (var entry in blocks.Entries)
         {
-            await writer.Put(new CarBlock(entry.Cid, entry.Block));
+            await writer.PutAsync(new CarBlock(entry.Cid, entry.Block));
         }
 
         return writer.Bytes.ToArray();
@@ -45,7 +45,7 @@ public static class Util
     /// Yields CAR blocks for the given root and async block enumerable. <br/>
     /// Use it to stream CAR files without generating the entire file in memory.
     /// </summary>
-    public static async IAsyncEnumerable<byte[]> CarBlocksToCarAsyncEnumerable(Cid? root, IAsyncEnumerable<CarBlock> blocks,
+    public static async IAsyncEnumerable<byte[]> CarBlocksToCarAsyncEnumerableAsync(Cid? root, IAsyncEnumerable<CarBlock> blocks,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         yield return CarEncoder.EncodeRoots(root);

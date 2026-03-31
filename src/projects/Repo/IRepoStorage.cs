@@ -6,44 +6,44 @@ namespace Repo;
 public interface IRepoStorage
 {
     // Writable
-    public Task<Cid?> GetRoot();
-    public Task PutBlock(Cid cid, byte[] block, string rev);
-    public Task PutMany(BlockMap blocks, string rev);
-    public Task UpdateRoot(Cid cid, string rev);
-    public Task ApplyCommit(CommitData commit);
+    public Task<Cid?> GetRootAsync();
+    public Task PutBlockAsync(Cid cid, byte[] block, string rev);
+    public Task PutManyAsync(BlockMap blocks, string rev);
+    public Task UpdateRootAsync(Cid cid, string rev);
+    public Task ApplyCommitAsync(CommitData commit);
 
     // Readable
-    public Task<byte[]?> GetBytes(Cid cid);
-    public Task<bool> Has(Cid cid);
-    public Task<(BlockMap blocks, Cid[] missing)> GetBlocks(Cid[] cids);
+    public Task<byte[]?> GetBytesAsync(Cid cid);
+    public Task<bool> HasAsync(Cid cid);
+    public Task<(BlockMap blocks, Cid[] missing)> GetBlocksAsync(Cid[] cids);
 
     // Blockstore stuff
-    public Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytes(Cid cid);
-    public Task<(CBORObject obj, byte[] bytes)?> AttemptRead(Cid cid);
+    public Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytesAsync(Cid cid);
+    public Task<(CBORObject obj, byte[] bytes)?> AttemptReadAsync(Cid cid);
 }
 
 
 
 public interface IBlobStore
 {
-    public Task<string> PutTemp(byte[] bytes);
-    public Task<string> PutTemp(byte[] bytes, CancellationToken ct);
-    public Task<string> PutTemp(Stream stream);
-    public Task<string> PutTemp(Stream stream, CancellationToken ct);
-    public Task<long> GetTempSize(string key);
+    public Task<string> PutTempAsync(byte[] bytes);
+    public Task<string> PutTempAsync(byte[] bytes, CancellationToken ct);
+    public Task<string> PutTempAsync(Stream stream);
+    public Task<string> PutTempAsync(Stream stream, CancellationToken ct);
+    public Task<long> GetTempSizeAsync(string key);
 
-    public Task PutPermanent(Cid cid, byte[] bytes, CancellationToken ct);
-    public Task PutPermanent(Cid cid, byte[] bytes);
+    public Task PutPermanentAsync(Cid cid, byte[] bytes, CancellationToken ct);
+    public Task PutPermanentAsync(Cid cid, byte[] bytes);
 
-    public Task PutPermanent(Cid cid, Stream stream, CancellationToken ct);
-    public Task PutPermanent(Cid cid, Stream stream);
+    public Task PutPermanentAsync(Cid cid, Stream stream, CancellationToken ct);
+    public Task PutPermanentAsync(Cid cid, Stream stream);
 
-    public Task MakePermanent(string tmpKey, Cid cid);
-    public Task<byte[]> GetBytes(Cid cid);
-    public Task<Stream> GetStream(Cid cid);
+    public Task MakePermanentAsync(string tmpKey, Cid cid);
+    public Task<byte[]> GetBytesAsync(Cid cid);
+    public Task<Stream> GetStreamAsync(Cid cid);
 
-    public Task<Stream> GetTempStream(string key);
+    public Task<Stream> GetTempStreamAsync(string key);
 
-    public Task Delete(Cid cid);
-    public Task DeleteMany(Cid[] cid);
+    public Task DeleteAsync(Cid cid);
+    public Task DeleteManyAsync(Cid[] cid);
 }

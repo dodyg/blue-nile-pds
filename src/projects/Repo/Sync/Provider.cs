@@ -7,17 +7,17 @@ namespace Repo.Sync;
 public class Provider
 {
 
-    public static async Task<(Cid root, BlockMap blocks)> GetRecods(
+    public static async Task<(Cid root, BlockMap blocks)> GetRecodsAsync(
         IRepoStorage storage,
         Cid commitCid,
         List<(string collection, string rkey)> paths)
     {
-        var (obj, _) = await storage.ReadObjAndBytes(commitCid);
+        var (obj, _) = await storage.ReadObjAndBytesAsync(commitCid);
         var commit = Commit.FromCborObject(obj);
         var mst = MST.MST.Load(storage, commit.Data);
 
         var cidForPaths = await Task.WhenAll(
-            paths.Select(p => mst.CidsForPath(MST.Util.FormatDataKey(p.collection, p.rkey)))
+            paths.Select(p => mst.CidsForPathAsync(MST.Util.FormatDataKey(p.collection, p.rkey)))
         );
 
         var allCids = new CidSet();
@@ -27,7 +27,7 @@ public class Provider
             allCids.AddSet(new CidSet(cidForPath.ToArray()));
         }
 
-        var found = await storage.GetBlocks(allCids.ToArray());
+        var found = await storage.GetBlocksAsync(allCids.ToArray());
         if (found.missing.Length > 0)
             throw new Exception("Missing blocks error: " + string.Join(", ", found.missing));
 

@@ -20,11 +20,11 @@ public class DeleteSessionController : ControllerBase
 
     [HttpPost("com.atproto.server.deleteSession")]
     [Refresh]
-    public async Task<IActionResult> DeleteSession()
+    public async Task<IActionResult> DeleteSessionAsync()
     {
         var auth = HttpContext.GetRefreshOutput();
         var tokenId = auth.RefreshCredentials.TokenId;
-        await _accountRepository.RevokeRefreshToken(tokenId);
+        await _accountRepository.RevokeRefreshTokenAsync(tokenId);
         return Ok();
     }
 }

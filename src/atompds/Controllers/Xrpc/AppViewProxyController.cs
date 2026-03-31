@@ -96,11 +96,11 @@ public class AppViewProxyController : ControllerBase
     [HttpGet("chat.bsky.convo.listConvos")]
     [HttpGet("app.bsky.feed.getRepostedBy")]
     [AccessStandard]
-    public async Task<IActionResult> Method()
+    public async Task<IActionResult> MethodAsync()
     {
         try
         {
-            return await Inner();
+            return await InnerAsync();
         }
         catch (Exception e)
         {
@@ -109,7 +109,7 @@ public class AppViewProxyController : ControllerBase
         }
     }
 
-    private async Task<IActionResult> Inner()
+    private async Task<IActionResult> InnerAsync()
     {
         if (_config is not BskyAppViewConfig config)
         {
@@ -227,7 +227,7 @@ public class AppViewProxyController : ControllerBase
         return $"{toSignStr}.{Base64Url.Encode(sig)}";
     }
 
-    private async Task AssertValidJwt(string jwtStr, string? ownDid, string? lxm)
+    private async Task AssertValidJwtAsync(string jwtStr, string? ownDid, string? lxm)
     {
         Dictionary<string, string> parseHeader(string b64)
         {
@@ -291,7 +291,7 @@ public class AppViewProxyController : ControllerBase
 
         var msgBytes = Encoding.UTF8.GetBytes(parts[0] + "." + parts[1]);
         var sigBytes = Base64Url.Decode(sig);
-        var signingKey = await _idResolver.DidResolver.ResolveAtproto(payload["iss"], true);
+        var signingKey = await _idResolver.DidResolver.ResolveAtprotoAsync(payload["iss"], true);
 
         var alg = header["alg"];
 

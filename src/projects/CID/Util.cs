@@ -23,7 +23,7 @@ public static class Util
         var hash = SHA256.HashData(bytes);
         return Multihash.Encode(hash, HashType.SHA2_256);
     }
-    public static async Task<Multihash> Sha2_256Digest(Stream stream)
+    public static async Task<Multihash> Sha2_256DigestAsync(Stream stream)
     {
         var hash = await SHA256.HashDataAsync(stream);
         return Multihash.Encode(hash, HashType.SHA2_256);
@@ -40,9 +40,9 @@ public static class Util
     /// Generates a CID with the 'blessed' format for blobs
     /// <para> https://atproto.com/specs/blob#blob-metadata </para>
     /// </summary>
-    public static async Task<Cid> CidForBlobs(Stream blobStream)
+    public static async Task<Cid> CidForBlobsAsync(Stream blobStream)
     {
-        var multiHash = await Sha2_256Digest(blobStream);
+        var multiHash = await Sha2_256DigestAsync(blobStream);
         return Cid.NewV1((ulong) MulticodecCode.Raw, multiHash, Multiformats.Base.MultibaseEncoding.Base32Lower);
     }
     /// <summary>

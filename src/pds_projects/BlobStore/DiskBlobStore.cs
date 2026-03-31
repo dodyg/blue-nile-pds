@@ -52,10 +52,10 @@ public class DiskBlobStore : IBlobStore
     private string GenKey() => Path.GetRandomFileName();
 
 
-    public Task<string> PutTemp(byte[] bytes) =>
-        PutTemp(bytes, CancellationToken.None);
+    public Task<string> PutTempAsync(byte[] bytes) =>
+        PutTempAsync(bytes, CancellationToken.None);
 
-    public async Task<string> PutTemp(byte[] bytes, CancellationToken ct)
+    public async Task<string> PutTempAsync(byte[] bytes, CancellationToken ct)
     {
         EnsureTemp();
         var key = GenKey();
@@ -65,10 +65,10 @@ public class DiskBlobStore : IBlobStore
         return key;
     }
 
-    public Task<string> PutTemp(Stream stream) =>
-        PutTemp(stream, CancellationToken.None);
+    public Task<string> PutTempAsync(Stream stream) =>
+        PutTempAsync(stream, CancellationToken.None);
 
-    public async Task<string> PutTemp(Stream stream, CancellationToken ct)
+    public async Task<string> PutTempAsync(Stream stream, CancellationToken ct)
     {
         EnsureTemp();
         var key = GenKey();
@@ -80,7 +80,7 @@ public class DiskBlobStore : IBlobStore
         return key;
     }
 
-    public async Task<long> GetTempSize(string key)
+    public async Task<long> GetTempSizeAsync(string key)
     {
         var path = GetTempPath(key);
         if (!File.Exists(path))
@@ -92,20 +92,20 @@ public class DiskBlobStore : IBlobStore
     }
 
 
-    public async Task PutPermanent(Cid cid, byte[] bytes) =>
-        await PutPermanent(cid, bytes, CancellationToken.None);
+    public async Task PutPermanentAsync(Cid cid, byte[] bytes) =>
+        await PutPermanentAsync(cid, bytes, CancellationToken.None);
 
-    public async Task PutPermanent(Cid cid, byte[] bytes, CancellationToken ct)
+    public async Task PutPermanentAsync(Cid cid, byte[] bytes, CancellationToken ct)
     {
         EnsureDirectory();
         var path = GetStoredPath(cid);
         await File.WriteAllBytesAsync(path, bytes, ct);
     }
 
-    public async Task PutPermanent(Cid cid, Stream stream) =>
-        await PutPermanent(cid, stream, CancellationToken.None);
+    public async Task PutPermanentAsync(Cid cid, Stream stream) =>
+        await PutPermanentAsync(cid, stream, CancellationToken.None);
 
-    public async Task PutPermanent(Cid cid, Stream stream, CancellationToken ct)
+    public async Task PutPermanentAsync(Cid cid, Stream stream, CancellationToken ct)
     {
         EnsureDirectory();
         var path = GetStoredPath(cid);
@@ -114,7 +114,7 @@ public class DiskBlobStore : IBlobStore
     }
 
 
-    public async Task MakePermanent(string tmpKey, Cid cid)
+    public async Task MakePermanentAsync(string tmpKey, Cid cid)
     {
         EnsureTemp();
         var tempPath = GetTempPath(tmpKey);
@@ -143,7 +143,7 @@ public class DiskBlobStore : IBlobStore
         await Task.CompletedTask;
     }
 
-    public async Task<byte[]> GetBytes(Cid cid)
+    public async Task<byte[]> GetBytesAsync(Cid cid)
     {
         var path = GetStoredPath(cid);
         if (!File.Exists(path))
@@ -154,7 +154,7 @@ public class DiskBlobStore : IBlobStore
         return await File.ReadAllBytesAsync(path);
     }
 
-    public async Task<Stream> GetStream(Cid cid)
+    public async Task<Stream> GetStreamAsync(Cid cid)
     {
         var path = GetStoredPath(cid);
         if (!File.Exists(path))
@@ -165,7 +165,7 @@ public class DiskBlobStore : IBlobStore
         return File.OpenRead(path);
     }
 
-    public async Task<Stream> GetTempStream(string key)
+    public async Task<Stream> GetTempStreamAsync(string key)
     {
         var path = GetTempPath(key);
         if (!File.Exists(path))
@@ -176,7 +176,7 @@ public class DiskBlobStore : IBlobStore
         return File.OpenRead(path);
     }
 
-    public async Task Delete(Cid cid)
+    public async Task DeleteAsync(Cid cid)
     {
         var path = GetStoredPath(cid);
         if (File.Exists(path))
@@ -185,7 +185,7 @@ public class DiskBlobStore : IBlobStore
         }
     }
 
-    public async Task DeleteMany(Cid[] cids)
+    public async Task DeleteManyAsync(Cid[] cids)
     {
         // might need to optimize
         var exceptions = new List<Exception>();
@@ -194,7 +194,7 @@ public class DiskBlobStore : IBlobStore
         {
             try
             {
-                await Delete(cid);
+                await DeleteAsync(cid);
             }
             catch (Exception ex)
             {

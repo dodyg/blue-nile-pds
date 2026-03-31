@@ -16,7 +16,7 @@ public class NotFoundMiddleware
         _next = next;
     }
 
-    public async Task Invoke(HttpContext context)
+    public async Task InvokeAsync(HttpContext context)
     {
         await _next(context);
         if (context.Response.StatusCode == 404)

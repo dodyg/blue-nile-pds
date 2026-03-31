@@ -1,4 +1,4 @@
-﻿namespace Common.Test;
+namespace Common.Test;
 
 public class TIDTests
 {
@@ -34,6 +34,34 @@ public class TIDTests
         var prevStr = prev.ToString();
         var nextStr = TID.NextStr(prevStr);
         Assert.True(string.CompareOrdinal(prevStr, nextStr) < 0);
+    }
+
+    [Fact]
+    public void S32EncodingRoundTripsAndPreservesOrdering()
+    {
+        const long smaller = 32;
+        const long larger = 33;
+
+        var smallerEncoded = S32.Encode(smaller);
+        var largerEncoded = S32.Encode(larger);
+
+        Assert.Equal(smaller, S32.Decode(smallerEncoded));
+        Assert.Equal(larger, S32.Decode(largerEncoded));
+        Assert.True(string.CompareOrdinal(smallerEncoded, largerEncoded) < 0);
+    }
+
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(31)]
+    public void FromTimeRoundTripsTimestampAndClockId(long clockId)
+    {
+        var timestamp = (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 5000) * 1000;
+        var tid = TID.FromTime(timestamp, clockId);
+
+        Assert.Equal(timestamp, tid.GetTimestamp());
+        Assert.Equal(clockId, tid.GetClockId());
     }
 
     [Fact]

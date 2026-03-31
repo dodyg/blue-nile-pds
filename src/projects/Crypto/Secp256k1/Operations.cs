@@ -25,21 +25,9 @@ public class Operations
             return false;
         }
 
-        // fix pkey length
-        if (publicKey.Length == 33)
-        {
-            var buf = new byte[64];
-            if (!Secp256k1Wrapper.PublicKeyParse(buf, publicKey))
-            {
-                return false;
-            }
-
-            publicKey = buf;
-        }
-
         if (IsCompactFormat(sig))
         {
-            var outBuf = new byte[64];
+            var outBuf = new byte[Secp256k1Net.Secp256k1.UNSERIALIZED_SIGNATURE_LENGTH];
             if (!Secp256k1Wrapper.SignatureParseCompact(outBuf, sig))
             {
                 return false;
@@ -53,13 +41,13 @@ public class Operations
 
     public static bool IsCompactFormat(byte[] sig)
     {
-        var outBuf = new byte[64];
+        var outBuf = new byte[Secp256k1Net.Secp256k1.UNSERIALIZED_SIGNATURE_LENGTH];
         if (!Secp256k1Wrapper.SignatureParseCompact(outBuf, sig))
         {
             return false;
         }
 
-        var compactBuf = new byte[64];
+        var compactBuf = new byte[Secp256k1Net.Secp256k1.SERIALIZED_SIGNATURE_SIZE];
         if (!Secp256k1Wrapper.SignatureSerializeCompact(compactBuf, outBuf))
         {
             return false;
