@@ -1,4 +1,4 @@
-﻿using System.Buffers.Text;
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using Crypto;
 using PeterO.Cbor;
@@ -39,7 +39,7 @@ public static class Operations
     {
         var memBuf = op.ToCborObject().EncodeToBytes();
         var hashOfGenesis = SHA256.HashData(memBuf);
-        var hashB32 = Base32.Rfc4648.Encode(hashOfGenesis);
+        var hashB32 = Base32.Rfc4648.Encode(hashOfGenesis, false);
         var truncated = hashB32[..24].ToLower();
         return Task.FromResult($"did:plc:{truncated}");
     }

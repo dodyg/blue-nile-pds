@@ -1,4 +1,4 @@
-﻿using Secp256k1Net;
+using Secp256k1Net;
 
 namespace Crypto.Secp256k1;
 
@@ -7,75 +7,67 @@ public static class Secp256k1Wrapper
     private static readonly Secp256k1Net.Secp256k1 Secp256K1 = new();
     private static readonly object _lock = new();
 
-    /// <inheritdoc cref="Secp256k1Net.Secp256k1.PublicKeyParse" />
-    public static bool PublicKeyParse(byte[] output, byte[] input)
+    public static byte[] CompressPublicKey(byte[] input)
     {
         lock (_lock)
         {
-            return Secp256K1.PublicKeyParse(output, input);
+            return Secp256k1Net.Secp256k1.CompressPublicKey(input);
         }
     }
 
-    /// <inheritdoc cref="Secp256k1Net.Secp256k1.SignatureParseCompact" />
+    public static byte[] DecompressPublicKey(byte[] input)
+    {
+        lock (_lock)
+        {
+            return Secp256k1Net.Secp256k1.DecompressPublicKey(input);
+        }
+    }
+
     public static bool SignatureParseCompact(byte[] output, byte[] input)
     {
         lock (_lock)
         {
-            return Secp256K1.SignatureParseCompact(output, input);
+            return Secp256K1.EcdsaSignatureParseCompact(output, input);
         }
     }
 
-    /// <inheritdoc cref="Secp256k1Net.Secp256k1.Verify" />
     public static bool Verify(byte[] sig, byte[] msgHash, byte[] publicKey)
     {
         lock (_lock)
         {
-            return Secp256K1.Verify(sig, msgHash, publicKey);
+            return Secp256k1Net.Secp256k1.Verify(sig, msgHash, publicKey);
         }
     }
 
-    /// <inheritdoc cref="Secp256k1Net.Secp256k1.SignatureSerializeCompact" />
     public static bool SignatureSerializeCompact(byte[] output, byte[] input)
     {
         lock (_lock)
         {
-            return Secp256K1.SignatureSerializeCompact(output, input);
+            return Secp256K1.EcdsaSignatureSerializeCompact(output, input);
         }
     }
 
-    /// <inheritdoc cref="Secp256k1Net.Secp256k1.PublicKeySerialize" />
-    public static bool PublicKeySerialize(byte[] output, byte[] input, Flags flags)
-    {
-        lock (_lock)
-        {
-            return Secp256K1.PublicKeySerialize(output, input, flags);
-        }
-    }
-
-    /// <inheritdoc cref="Secp256k1Net.Secp256k1.SecretKeyVerify" />
     public static bool SecretKeyVerify(byte[] secretKey)
     {
         lock (_lock)
         {
-            return Secp256K1.SecretKeyVerify(secretKey);
+            return Secp256k1Net.Secp256k1.IsValidSecretKey(secretKey);
         }
     }
 
-    /// <inheritdoc cref="Secp256k1Net.Secp256k1.PublicKeyCreate" />
-    public static bool PublicKeyCreate(byte[] publicKey, byte[] secretKey)
+    public static byte[] PublicKeyCreate(byte[] secretKey)
     {
         lock (_lock)
         {
-            return Secp256K1.PublicKeyCreate(publicKey, secretKey);
+            return Secp256k1Net.Secp256k1.CreatePublicKey(secretKey, compressed: false);
         }
     }
 
-    /// <inheritdoc cref="Secp256k1Net.Secp256k1.Sign" />
-    public static bool Sign(byte[] signature, byte[] msgHash, byte[] secretKey)
+    public static byte[] Sign(byte[] msgHash, byte[] secretKey)
     {
         lock (_lock)
         {
-            return Secp256K1.Sign(signature, msgHash, secretKey);
+            return Secp256k1Net.Secp256k1.Sign(msgHash, secretKey);
         }
     }
 }

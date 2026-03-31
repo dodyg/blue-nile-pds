@@ -42,7 +42,7 @@ public class SubscribeReposController : ControllerBase
 
         _logger.LogInformation("Subscribing to repos, cursor: {Cursor}", cursor);
         using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-        var cborOpts = CBOREncodeOptions.None;
+        var cborOpts = CBOREncodeOptions.Default;
         try
         {
             var outbox = new Outbox(_sequencer, new OutboxOpts(_subscriptionConfig.MaxSubscriptionBuffer), _loggerFactory.CreateLogger<Outbox>());
