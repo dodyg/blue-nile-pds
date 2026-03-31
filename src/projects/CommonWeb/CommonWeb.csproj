@@ -5,10 +5,18 @@
     <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <CarpaNet_SourceGen_RootNamespace>CommonWeb.Generated</CarpaNet_SourceGen_RootNamespace>
+        <CarpaNet_JsonContextName>CommonWebJsonContext</CarpaNet_JsonContextName>
+        <CarpaNet_CborContextName>CommonWebCborContext</CarpaNet_CborContextName>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FishyFlip" Version="4.2.0" />
+        <PackageReference Include="CarpaNet" Version="1.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <LexiconFiles Include="lexicons/*.json" />
     </ItemGroup>
 
     <ItemGroup>

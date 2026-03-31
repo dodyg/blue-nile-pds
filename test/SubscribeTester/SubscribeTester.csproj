@@ -9,20 +9,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FishyFlip" Version="4.2.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\projects\CommonWeb\CommonWeb.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <None Update="pdsenv.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Reference Include="Microsoft.Extensions.Logging.Debug">
-            <HintPath>C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\9.0.0\Microsoft.Extensions.Logging.Debug.dll</HintPath>
-        </Reference>
     </ItemGroup>
 
 </Project>

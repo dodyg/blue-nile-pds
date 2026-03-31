@@ -2,9 +2,9 @@
 using AccountManager.Db;
 using ActorStore;
 using atompds.Utils;
+using CarpaNet;
 using CommonWeb;
-using FishyFlip.Lexicon.Com.Atproto.Repo;
-using FishyFlip.Models;
+using ComAtproto.Repo;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -49,12 +49,20 @@ public class DescribeRepoController : ControllerBase
         }
 
         var handle = DidDoc.GetHandle(didDoc);
+        var responseHandle = handle ?? account.Handle ?? Constants.INVALID_HANDLE;
         var handleIsCorrect = handle == account.Handle;
 
         await using var actorDb = _actorRepositoryProvider.Open(account.Did);
         var collections = await actorDb.Repo.GetCollections();
 
-        return Ok(new DescribeRepoOutput(new ATHandle(handle), new ATDid(account.Did), didDoc.ToDidDoc(), collections.ToList(), handleIsCorrect));
+        return Ok(new DescribeRepoOutput
+        {
+            Handle = new ATHandle(responseHandle),
+            Did = new ATDid(account.Did),
+            DidDoc = didDoc.ToJsonElement(),
+            Collections = collections.ToList(),
+            HandleIsCorrect = handleIsCorrect
+        });
     }
 
     private async Task<ActorAccount> AssertRepoAvailability(string did, bool isAdminOrSelf = false)

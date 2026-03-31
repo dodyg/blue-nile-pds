@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
 using AccountManager;
+using CarpaNet;
+using ComAtproto.Identity;
 using Config;
-using FishyFlip.Lexicon.Com.Atproto.Identity;
-using FishyFlip.Models;
 using Handle;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -64,7 +64,10 @@ public class ResolveHandleController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("Unable to resolve handle"));
         }
 
-        return Ok(new ResolveHandleOutput(new ATDid(did)));
+        return Ok(new ResolveHandleOutput
+        {
+            Did = new ATDid(did)
+        });
     }
 
     private async Task<string?> TryResolveFromAppView(string handle)

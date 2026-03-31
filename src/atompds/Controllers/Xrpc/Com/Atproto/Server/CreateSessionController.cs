@@ -1,10 +1,10 @@
 ﻿using AccountManager;
 using AccountManager.Db;
 using atompds.Utils;
+using CarpaNet;
 using CommonWeb;
+using ComAtproto.Server;
 using Config;
-using FishyFlip.Lexicon.Com.Atproto.Server;
-using FishyFlip.Models;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -44,16 +44,19 @@ public class CreateSessionController : ControllerBase
         var didDoc = await DidDocForSession(login.Did);
         var (active, status) = AccountStore.FormatAccountStatus(login);
 
-        return Ok(new CreateSessionOutput(creds.AccessJwt,
-            creds.RefreshJwt,
-            new ATHandle(login.Handle ?? Constants.INVALID_HANDLE),
-            new ATDid(login.Did),
-            didDoc?.ToDidDoc(),
-            login.Email,
-            login.EmailConfirmedAt != null,
-            null,
-            active,
-            status.ToString()));
+        return Ok(new CreateSessionOutput
+        {
+            AccessJwt = creds.AccessJwt,
+            RefreshJwt = creds.RefreshJwt,
+            Handle = new ATHandle(login.Handle ?? Constants.INVALID_HANDLE),
+            Did = new ATDid(login.Did),
+            DidDoc = didDoc?.ToJsonElement(),
+            Email = login.Email,
+            EmailConfirmed = login.EmailConfirmedAt != null,
+            EmailAuthFactor = null,
+            Active = active,
+            Status = status.ToString()
+        });
     }
 
     private async Task<DidDocument?> DidDocForSession(string did, bool forceRefresh = false)

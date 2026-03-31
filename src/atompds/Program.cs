@@ -28,8 +28,6 @@ public class Program
         builder.Services.AddControllers().AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
-            // Add FishyFlip's ATObject converter for proper serialization
-            options.JsonSerializerOptions.Converters.Add(new FishyFlip.Tools.Json.ATObjectJsonConverter());
         });
 
         builder.Services.AddHttpLogging(logging =>

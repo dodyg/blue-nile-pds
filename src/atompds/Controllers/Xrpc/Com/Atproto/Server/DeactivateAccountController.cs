@@ -1,5 +1,6 @@
 using AccountManager;
 using atompds.Middleware;
+using ComAtproto.Server;
 using Microsoft.AspNetCore.Mvc;
 using Sequencer;
 
@@ -36,9 +37,4 @@ public class DeactivateAccountController : ControllerBase
 
         return Ok();
     }
-}
-
-public class DeactivateAccountInput
-{
-    public string? DeleteAfter { get; set; }
 }

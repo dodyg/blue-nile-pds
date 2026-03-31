@@ -212,13 +212,13 @@ public class AccountStore
         }
     }
 
-    public async Task DeactivateAccount(string did, string? deleteAfter)
+    public async Task DeactivateAccount(string did, DateTimeOffset? deleteAfter)
     {
         var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
         if (actor != null)
         {
             actor.DeactivatedAt = DateTime.UtcNow;
-            actor.DeleteAfter = deleteAfter != null ? DateTime.Parse(deleteAfter).ToUniversalTime() : null;
+            actor.DeleteAfter = deleteAfter?.UtcDateTime;
             await _db.SaveChangesAsync();
         }
     }

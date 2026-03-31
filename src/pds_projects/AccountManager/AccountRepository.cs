@@ -151,7 +151,7 @@ public class AccountRepository
         await _accountStore.ActivateAccount(did);
     }
 
-    public async Task DeactivateAccount(string did, string? deleteAfter)
+    public async Task DeactivateAccount(string did, DateTimeOffset? deleteAfter)
     {
         await _accountStore.DeactivateAccount(did, deleteAfter);
     }

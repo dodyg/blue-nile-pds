@@ -289,7 +289,7 @@ public class SequencerRepository : IDisposable
             tooBig = false;
             foreach (var w in writes)
             {
-                var path = $"{w.Uri.Collection}/{w.Uri.Rkey}";
+                var path = $"{w.Uri.Collection}/{w.Uri.RecordKey}";
                 Cid? cid;
                 if (w.Action == WriteOpAction.Delete)
                 {

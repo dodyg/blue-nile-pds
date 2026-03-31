@@ -1,7 +1,7 @@
-﻿using AccountManager;
+using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
-using FishyFlip.Lexicon.Com.Atproto.Server;
+using ComAtproto.Server;
 using Mailer;
 using Microsoft.AspNetCore.Mvc;
 using Sequencer;
@@ -55,8 +55,8 @@ public class DeleteAccountController : ControllerBase
         [FromBody] DeleteAccountInput input,
         CancellationToken cancellationToken)
     {
-        var did = input.Did?.Handler;
-        if (did == null)
+        var did = input.Did.Value;
+        if (string.IsNullOrWhiteSpace(did))
         {
             throw new XRPCError(new InvalidRequestErrorDetail("InvalidDid", "Invalid DID."));
         }

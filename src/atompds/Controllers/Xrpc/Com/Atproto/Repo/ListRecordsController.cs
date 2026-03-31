@@ -1,9 +1,8 @@
 using System.Text.Json;
 using AccountManager;
 using ActorStore;
-using atompds.Utils;
-using FishyFlip.Lexicon.Com.Atproto.Repo;
-using FishyFlip.Models;
+using CarpaNet;
+using ComAtproto.Repo;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -45,19 +44,17 @@ public class ListRecordsController(
         );
 
         var last = records.LastOrDefault();
-        ATUri? lastUri = last is not null ? new ATUri(last.Uri!) : null;
+        ATUri? lastUri = last is not null ? new ATUri(last.Uri) : null;
 
-    
-
-        return Ok(new
+        return Ok(new ListRecordsOutput
         {
-            cursor = lastUri?.Rkey,
-            records = records.Select(r => new
+            Cursor = lastUri?.RecordKey,
+            Records = records.Select(r => new ListRecordsRecord
             {
-                uri = r.Uri,
-                cid = r.Cid,
-                value = r.Value.ToObjectResult()
-            }).ToArray()
+                Uri = new ATUri(r.Uri),
+                Cid = r.Cid,
+                Value = r.Value
+            }).ToList()
         });
     }
 

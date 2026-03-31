@@ -1,7 +1,7 @@
 ﻿using CID;
+using CarpaNet;
 using Common;
 using Crypto;
-using FishyFlip.Models;
 using PeterO.Cbor;
 using Repo.MST;
 
@@ -173,7 +173,10 @@ public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record
 
     public RecordCreateOp CreateWriteToOp()
     {
-        return new RecordCreateOp(Uri.Collection, Uri.Rkey, Record);
+        return new RecordCreateOp(
+            Uri.Collection ?? throw new InvalidOperationException("Missing collection."),
+            Uri.RecordKey ?? throw new InvalidOperationException("Missing record key."),
+            Record);
     }
 }
 
@@ -183,7 +186,10 @@ public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record
 
     public RecordUpdateOp UpdateWriteToOp()
     {
-        return new RecordUpdateOp(Uri.Collection, Uri.Rkey, Record);
+        return new RecordUpdateOp(
+            Uri.Collection ?? throw new InvalidOperationException("Missing collection."),
+            Uri.RecordKey ?? throw new InvalidOperationException("Missing record key."),
+            Record);
     }
 }
 
@@ -193,7 +199,9 @@ public record PreparedDelete(ATUri Uri, Cid? SwapCid) : IPreparedWrite
 
     public RecordDeleteOp DeleteWriteToOp()
     {
-        return new RecordDeleteOp(Uri.Collection, Uri.Rkey);
+        return new RecordDeleteOp(
+            Uri.Collection ?? throw new InvalidOperationException("Missing collection."),
+            Uri.RecordKey ?? throw new InvalidOperationException("Missing record key."));
     }
 }
 

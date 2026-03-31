@@ -60,7 +60,7 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - Dependency registration lives in `src/atompds/Config/ServerConfig.cs`.
 - Startup pipeline lives in `src/atompds/Program.cs`.
 - Controllers are organized by XRPC namespace under `src/atompds/Controllers/Xrpc/...`.
-- JSON uses `System.Text.Json` plus the FishyFlip `ATObjectJsonConverter`.
+- JSON uses `System.Text.Json` with CarpaNet-generated serializer contexts where ATProto models are involved.
 - `AccountManagerDb` and `SequencerDb` migrations run automatically on app startup.
 - Actor repos are stored per DID via `ActorRepositoryProvider` in `src/pds_projects/ActorStore/`.
 
@@ -71,7 +71,7 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - Use existing config records and DI wiring instead of ad hoc environment reads.
 - Reuse existing XRPC error types from `src/pds_projects/Xrpc/` for API-facing validation and protocol errors.
 - Follow existing controller patterns: `[ApiController]`, `[Route("xrpc")]`, explicit action names matching ATProto endpoints.
-- Keep serialization compatible with existing FishyFlip lexicon models.
+- Keep serialization compatible with the CarpaNet-generated lexicon models used by the server and tooling.
 - When touching persistence, inspect related EF models, migrations, and repository code together.
 
 ## Testing expectations
