@@ -15,7 +15,7 @@ public class ListReposController(
 
 
     [HttpGet("com.atproto.sync.listRepos")]
-    public async Task<IActionResult> ListRepos(
+    public async Task<IActionResult> ListReposAsync(
         [FromQuery] int limit = 500,
         [FromQuery] string? cursor = null
     )

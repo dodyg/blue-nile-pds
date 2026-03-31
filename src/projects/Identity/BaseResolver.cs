@@ -33,11 +33,11 @@ public abstract class BaseResolver
         return doc;
     }
 
-    public abstract Task<string?> ResolveNoCheck(string did);
+    public abstract Task<string?> ResolveNoCheckAsync(string did);
 
-    public async Task<DidDocument?> ResolveNoCache(string did)
+    public async Task<DidDocument?> ResolveNoCacheAsync(string did)
     {
-        var doc = await ResolveNoCheck(did);
+        var doc = await ResolveNoCheckAsync(did);
         if (doc == null)
         {
             return null;
@@ -45,54 +45,54 @@ public abstract class BaseResolver
         return ValidateDidDoc(did, doc);
     }
 
-    public async Task RefreshCache(string did, CacheResult? prevResult = null)
+    public async Task RefreshCacheAsync(string did, CacheResult? prevResult = null)
     {
         if (Cache == null)
         {
             return;
         }
 
-        await Cache.RefreshCache(did, () => ResolveNoCache(did), prevResult);
+        await Cache.RefreshCacheAsync(did, () => ResolveNoCacheAsync(did), prevResult);
     }
 
-    public async Task<DidDocument?> Resolve(string did, bool forceRefresh = false)
+    public async Task<DidDocument?> ResolveAsync(string did, bool forceRefresh = false)
     {
         CacheResult? fromCache = null;
         if (Cache != null && !forceRefresh)
         {
-            fromCache = await Cache.CheckCache(did);
+            fromCache = await Cache.CheckCacheAsync(did);
             if (fromCache != null && fromCache.Expired == false)
             {
                 if (fromCache.Stale)
                 {
-                    await RefreshCache(did, fromCache);
+                    await RefreshCacheAsync(did, fromCache);
                 }
 
                 return fromCache.Doc;
             }
         }
 
-        var got = await ResolveNoCache(did);
+        var got = await ResolveNoCacheAsync(did);
         if (got == null)
         {
             if (Cache != null)
             {
-                await Cache.ClearEntry(did);
+                await Cache.ClearEntryAsync(did);
             }
             return null;
         }
 
         if (Cache != null)
         {
-            await Cache.CacheDid(did, got, fromCache ?? null);
+            await Cache.CacheDidAsync(did, got, fromCache ?? null);
         }
 
         return got;
     }
 
-    public async Task<DidDocument> EnsureResolve(string did, bool forceRefresh = false)
+    public async Task<DidDocument> EnsureResolveAsync(string did, bool forceRefresh = false)
     {
-        var doc = await Resolve(did, forceRefresh);
+        var doc = await ResolveAsync(did, forceRefresh);
         if (doc == null)
         {
             throw new DidNotFoundError(did);
@@ -100,21 +100,21 @@ public abstract class BaseResolver
         return doc;
     }
 
-    public async Task<AtprotoData> ResolveAtproto(string did, bool forceRefresh = false)
+    public async Task<AtprotoData> ResolveAtprotoAsync(string did, bool forceRefresh = false)
     {
-        var doc = await EnsureResolve(did, forceRefresh);
+        var doc = await EnsureResolveAsync(did, forceRefresh);
         return Atproto_Data.EnsureAtpDocument(doc);
     }
 
-    public async Task<string> ResolveAtprotoKey(string did, bool forceRefresh = false)
+    public async Task<string> ResolveAtprotoKeyAsync(string did, bool forceRefresh = false)
     {
-        var doc = await EnsureResolve(did, forceRefresh);
+        var doc = await EnsureResolveAsync(did, forceRefresh);
         return Atproto_Data.EnsureAtprotoKey(doc);
     }
 
-    public async Task<bool> VerifySignature(string did, byte[] data, byte[] sig, bool forceRefresh = false)
+    public async Task<bool> VerifySignatureAsync(string did, byte[] data, byte[] sig, bool forceRefresh = false)
     {
-        var signingKey = await ResolveAtprotoKey(did, forceRefresh);
+        var signingKey = await ResolveAtprotoKeyAsync(did, forceRefresh);
         return Verify.VerifySignature(signingKey, data, sig, null, null);
     }
 }

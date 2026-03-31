@@ -28,7 +28,7 @@ public class RepoRepository
         Blob = new BlobTransactor(blobStore, db);
     }
 
-    public async Task<string[]> GetCollections()
+    public async Task<string[]> GetCollectionsAsync()
     {
         return await _db.Records
             .Select(x => x.Collection)
@@ -36,56 +36,56 @@ public class RepoRepository
             .ToArrayAsync();
     }
 
-    public async Task<CommitData> CreateRepo(PreparedCreate[] writes)
+    public async Task<CommitData> CreateRepoAsync(PreparedCreate[] writes)
     {
         var writeOpts = writes.Select(x => x.CreateWriteToOp()).ToArray();
-        var commit = await global::Repo.Repo.FormatInitCommit(Storage, _did, _keyPair, writeOpts);
+        var commit = await global::Repo.Repo.FormatInitCommitAsync(Storage, _did, _keyPair, writeOpts);
 
-        await Storage.ApplyCommit(commit);
-        await IndexWrites(writes.Cast<IPreparedWrite>().ToArray(), commit.Rev);
+        await Storage.ApplyCommitAsync(commit);
+        await IndexWritesAsync(writes.Cast<IPreparedWrite>().ToArray(), commit.Rev);
         // await Blob.ProcessWriteBlobs(commit.Rev, writes);
 
         return commit;
     }
 
-    public async Task IndexWrites(IPreparedWrite[] writes, string rev)
+    public async Task IndexWritesAsync(IPreparedWrite[] writes, string rev)
     {
         foreach (var write in writes)
         {
             if (write is PreparedCreate create)
             {
-                await Record.IndexRecord(create.Uri, create.Cid, create.Record, WriteOpAction.Create, rev, _now);
+                await Record.IndexRecordAsync(create.Uri, create.Cid, create.Record, WriteOpAction.Create, rev, _now);
             }
             else if (write is PreparedUpdate update)
             {
-                await Record.IndexRecord(update.Uri, update.Cid, update.Record, WriteOpAction.Update, rev, _now);
+                await Record.IndexRecordAsync(update.Uri, update.Cid, update.Record, WriteOpAction.Update, rev, _now);
             }
             else if (write is PreparedDelete delete)
             {
-                await Record.DeleteRecord(delete.Uri);
+                await Record.DeleteRecordAsync(delete.Uri);
             }
         }
     }
 
-    public async Task<CommitData> ProcessWrites(IPreparedWrite[] writes, Cid? swapCommitCid)
+    public async Task<CommitData> ProcessWritesAsync(IPreparedWrite[] writes, Cid? swapCommitCid)
     {
-        var commit = await FormatCommit(writes, swapCommitCid);
+        var commit = await FormatCommitAsync(writes, swapCommitCid);
         
-        await Storage.ApplyCommit(commit);
-        await IndexWrites(writes, commit.Rev);
-        await Blob.ProcessWriteBlobs(commit.Rev, writes);
+        await Storage.ApplyCommitAsync(commit);
+        await IndexWritesAsync(writes, commit.Rev);
+        await Blob.ProcessWriteBlobsAsync(commit.Rev, writes);
         return commit;
     }
 
-    public async Task<CommitData> FormatCommit(IPreparedWrite[] writes, Cid? swapCommit)
+    public async Task<CommitData> FormatCommitAsync(IPreparedWrite[] writes, Cid? swapCommit)
     {
-        var currRoot = await Storage.GetRootDetailed();
+        var currRoot = await Storage.GetRootDetailedAsync();
         if (swapCommit != null && !currRoot.Cid.Equals(swapCommit))
         {
             throw new Exception("Bad commit swap");
         }
 
-        await Storage.CacheRev(currRoot.Rev);
+        await Storage.CacheRevAsync(currRoot.Rev);
         var newRecordsCids = new List<Cid>();
         var delAndUpdateUris = new List<ATUri>();
         foreach (var write in writes)
@@ -112,7 +112,7 @@ public class RepoRepository
                 continue;
             }
 
-            var record = await Record.GetRecord(write.Uri, null, true);
+            var record = await Record.GetRecordAsync(write.Uri, null, true);
             Cid? currRecord = record != null ? Cid.FromString(record.Cid) : null;
             if (write.Action == WriteOpAction.Create && swapCid != null)
             {
@@ -132,12 +132,12 @@ public class RepoRepository
             }
         }
 
-        var repo = await global::Repo.Repo.Load(Storage, currRoot.Cid);
+        var repo = await global::Repo.Repo.LoadAsync(Storage, currRoot.Cid);
         var writeOps = writes.Select(WriteToOp).ToArray();
-        var commit = await repo.FormatCommit(writeOps, _keyPair);
+        var commit = await repo.FormatCommitAsync(writeOps, _keyPair);
 
         // find blocks that would be deleted but are referenced by another record
-        var dupeRecordCids = await GetDuplicateRecordCids(commit.RemovedCids.ToArray(), delAndUpdateUris.ToArray());
+        var dupeRecordCids = await GetDuplicateRecordCidsAsync(commit.RemovedCids.ToArray(), delAndUpdateUris.ToArray());
         foreach (var dupeCid in dupeRecordCids)
         {
             commit.RemovedCids.Delete(dupeCid);
@@ -146,14 +146,14 @@ public class RepoRepository
         var newRecordBlocks = commit.NewBlocks.GetMany(newRecordsCids.ToArray());
         if (newRecordBlocks.missing.Length > 0)
         {
-            var missingBlocks = await Storage.GetBlocks(newRecordBlocks.missing);
+            var missingBlocks = await Storage.GetBlocksAsync(newRecordBlocks.missing);
             commit.NewBlocks.AddMap(missingBlocks.blocks);
         }
 
         return commit;
     }
 
-    private async Task<Cid[]> GetDuplicateRecordCids(Cid[] cids, ATUri[] touchedUris)
+    private async Task<Cid[]> GetDuplicateRecordCidsAsync(Cid[] cids, ATUri[] touchedUris)
     {
         if (cids.Length == 0 || touchedUris.Length == 0)
         {

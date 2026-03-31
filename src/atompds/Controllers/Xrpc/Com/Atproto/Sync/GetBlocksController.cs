@@ -17,13 +17,13 @@ public class GetBlocksController(
 ) : ControllerBase
 {
     [HttpGet("com.atproto.sync.getBlocks")]
-    public async Task<IActionResult> GetBlocks(
+    public async Task<IActionResult> GetBlocksAsync(
         [FromQuery] string did,
         [FromQuery] string[] cids
     )
     {
         // TODO: there is some self and admin stuff that I'm skipping
-        var account = await accountRepository.GetAccount(did, new(true, true));
+        var account = await accountRepository.GetAccountAsync(did, new(true, true));
 
         if (account is null)
             throw new XRPCError(new InvalidRequestErrorDetail($"could not find account for did: {did}"));
@@ -41,7 +41,7 @@ public class GetBlocksController(
         await using (var actorRepo = actorRepositoryProvider.Open(did))
         {
             var storage = actorRepo.Repo.Storage;
-            var (gotBlocks, missing) = await storage.GetBlocks(cidObjects);
+            var (gotBlocks, missing) = await storage.GetBlocksAsync(cidObjects);
             
             if (missing.Length > 0)
             {

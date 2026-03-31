@@ -39,13 +39,13 @@ public class AccountRepository
         _db = db;
     }
 
-    public async Task<string?> GetDidForActor(string repo, AvailabilityFlags? flags = null)
+    public async Task<string?> GetDidForActorAsync(string repo, AvailabilityFlags? flags = null)
     {
-        var account = await _accountStore.GetAccount(repo, flags);
+        var account = await _accountStore.GetAccountAsync(repo, flags);
         return account?.Did;
     }
 
-    public async Task<(string AccessJwt, string RefreshJwt)> CreateAccount(string did,
+    public async Task<(string AccessJwt, string RefreshJwt)> CreateAccountAsync(string did,
         string handle,
         string? email,
         string? password,
@@ -68,100 +68,100 @@ public class AccountRepository
         if (!string.IsNullOrEmpty(inviteCode))
         {
             // ensure invite code is available
-            await _inviteStore.EnsureInviteIsAvailable(inviteCode);
+            await _inviteStore.EnsureInviteIsAvailableAsync(inviteCode);
         }
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
-        await _accountStore.RegisterActor(did, handle, deactivated);
+        await _accountStore.RegisterActorAsync(did, handle, deactivated);
         if (email != null && passwordScrypt != null)
         {
-            await _accountStore.RegisterAccount(did, email, passwordScrypt);
+            await _accountStore.RegisterAccountAsync(did, email, passwordScrypt);
         }
-        await _inviteStore.RecordInviteUse(did, inviteCode, now);
-        await _auth.StoreRefreshToken(refreshDecoded, null);
-        await _repoStore.UpdateRoot(did, repoCid, repoRev);
+        await _inviteStore.RecordInviteUseAsync(did, inviteCode, now);
+        await _auth.StoreRefreshTokenAsync(refreshDecoded, null);
+        await _repoStore.UpdateRootAsync(did, repoCid, repoRev);
         await transaction.CommitAsync();
         await _db.SaveChangesAsync();
 
         return (tokens.AccessToken, tokens.RefreshToken);
     }
 
-    public async Task DeleteAccount(string did)
+    public async Task DeleteAccountAsync(string did)
     {
-        await _accountStore.DeleteAccount(did);
+        await _accountStore.DeleteAccountAsync(did);
     }
 
-    public async Task EnsureInviteIsAvailable(string code)
+    public async Task EnsureInviteIsAvailableAsync(string code)
     {
-        await _inviteStore.EnsureInviteIsAvailable(code);
+        await _inviteStore.EnsureInviteIsAvailableAsync(code);
     }
 
-    public async Task<ActorAccount?> GetAccount(string handleOrDid, AvailabilityFlags? flags = null)
+    public async Task<ActorAccount?> GetAccountAsync(string handleOrDid, AvailabilityFlags? flags = null)
     {
-        return await _accountStore.GetAccount(handleOrDid, flags);
+        return await _accountStore.GetAccountAsync(handleOrDid, flags);
     }
 
-    public async Task<ActorAccount?> GetAccountByEmail(string email, AvailabilityFlags? flags = null)
+    public async Task<ActorAccount?> GetAccountByEmailAsync(string email, AvailabilityFlags? flags = null)
     {
-        return await _accountStore.GetAccountByEmail(email, flags);
+        return await _accountStore.GetAccountByEmailAsync(email, flags);
     }
 
-    public async Task<(string AccessJwt, string RefreshJwt)> CreateSession(string did, string? appPassword = null)
+    public async Task<(string AccessJwt, string RefreshJwt)> CreateSessionAsync(string did, string? appPassword = null)
     {
         // TODO: App password support.
         // scope=auth.formatScope(appPassword)
         var tokens = _auth.CreateTokens(did, _secretsConfig.JwtSecret, _serviceConfig.Did, Auth.ACCESS_TOKEN_SCOPE);
         var refreshDecoded = _auth.DecodeRefreshTokenUnsafe(tokens.RefreshToken, _secretsConfig.JwtSecret);
-        await _auth.StoreRefreshToken(refreshDecoded, appPassword);
+        await _auth.StoreRefreshTokenAsync(refreshDecoded, appPassword);
         return (tokens.AccessToken, tokens.RefreshToken);
     }
 
-    public Task<string> CreateEmailToken(string did, EmailToken.EmailTokenPurpose purpose)
+    public Task<string> CreateEmailTokenAsync(string did, EmailToken.EmailTokenPurpose purpose)
     {
-        return _emailTokenStore.CreateEmailToken(did, purpose);
+        return _emailTokenStore.CreateEmailTokenAsync(did, purpose);
     }
 
-    public Task AssertValidEmailToken(string did, string token, EmailToken.EmailTokenPurpose purpose)
+    public Task AssertValidEmailTokenAsync(string did, string token, EmailToken.EmailTokenPurpose purpose)
     {
-        return _emailTokenStore.AssertValidToken(did, token, purpose);
+        return _emailTokenStore.AssertValidTokenAsync(did, token, purpose);
     }
 
-    public async Task UpdateRepoRoot(string did, Cid cid, string rev)
+    public async Task UpdateRepoRootAsync(string did, Cid cid, string rev)
     {
-        await _repoStore.UpdateRoot(did, cid.ToString(), rev);
+        await _repoStore.UpdateRootAsync(did, cid.ToString(), rev);
     }
 
-    public Task<bool> VerifyAccountPassword(string did, string appPassword)
+    public Task<bool> VerifyAccountPasswordAsync(string did, string appPassword)
     {
-        return _passwordStore.VerifyAccountPassword(did, appPassword);
+        return _passwordStore.VerifyAccountPasswordAsync(did, appPassword);
     }
 
-    public Task<bool> RevokeRefreshToken(string jti)
+    public Task<bool> RevokeRefreshTokenAsync(string jti)
     {
-        return _auth.RevokeRefreshToken(jti);
+        return _auth.RevokeRefreshTokenAsync(jti);
     }
 
-    public async Task<(string AccessJwt, string RefreshJwt)?> RotateRefreshToken(string tokenId)
+    public async Task<(string AccessJwt, string RefreshJwt)?> RotateRefreshTokenAsync(string tokenId)
     {
-        return await _auth.RotateRefreshToken(tokenId, _secretsConfig.JwtSecret, _serviceConfig.Did);
+        return await _auth.RotateRefreshTokenAsync(tokenId, _secretsConfig.JwtSecret, _serviceConfig.Did);
     }
 
-    public async Task ActivateAccount(string did)
+    public async Task ActivateAccountAsync(string did)
     {
-        await _accountStore.ActivateAccount(did);
+        await _accountStore.ActivateAccountAsync(did);
     }
 
-    public async Task DeactivateAccount(string did, DateTimeOffset? deleteAfter)
+    public async Task DeactivateAccountAsync(string did, DateTimeOffset? deleteAfter)
     {
-        await _accountStore.DeactivateAccount(did, deleteAfter);
+        await _accountStore.DeactivateAccountAsync(did, deleteAfter);
     }
 
-    public async Task<AccountStore.AccountStatus> GetAccountStatus(string did)
+    public async Task<AccountStore.AccountStatus> GetAccountStatusAsync(string did)
     {
-        return await _accountStore.GetAccountStatus(did);
+        return await _accountStore.GetAccountStatusAsync(did);
     }
 
-    public async Task<ActorAccount> Login(string identifier, string password)
+    public async Task<ActorAccount> LoginAsync(string identifier, string password)
     {
         var start = DateTime.UtcNow;
         try
@@ -171,11 +171,11 @@ public class AccountRepository
             ActorAccount? user;
             if (identifierNormalized.Contains("@"))
             {
-                user = await GetAccountByEmail(identifierNormalized, new AvailabilityFlags(true, true));
+                user = await GetAccountByEmailAsync(identifierNormalized, new AvailabilityFlags(true, true));
             }
             else
             {
-                user = await GetAccount(identifierNormalized, new AvailabilityFlags(true, true));
+                user = await GetAccountAsync(identifierNormalized, new AvailabilityFlags(true, true));
             }
 
             if (user == null)
@@ -183,7 +183,7 @@ public class AccountRepository
                 throw new XRPCError(new AuthRequiredErrorDetail("Invalid username or password"));
             }
 
-            var validAccountPass = await _passwordStore.VerifyAccountPassword(user.Did, password);
+            var validAccountPass = await _passwordStore.VerifyAccountPasswordAsync(user.Did, password);
             if (!validAccountPass)
             {
                 // TODO: App password validation if acc password fails.

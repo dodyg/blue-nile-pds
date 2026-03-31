@@ -17,13 +17,13 @@ public class GetBlobController(
 {
 
     [HttpGet("com.atproto.sync.getBlob")]
-    public async Task<IActionResult> GetBlob(
+    public async Task<IActionResult> GetBlobAsync(
         [FromQuery] string did,
         [FromQuery] string cid
     )
     {
         // TODO: there is some self and admin stuff that I'm skipping
-        var account = await accountRepository.GetAccount(did, new(true, true));
+        var account = await accountRepository.GetAccountAsync(did, new(true, true));
 
         if (account is null)
             throw new XRPCError(new InvalidRequestErrorDetail($"could not find account for did: {did}"));
@@ -42,7 +42,7 @@ public class GetBlobController(
         Stream? blobStream = null;
         await using (var actorRepo = actorRepositoryProvider.Open(did))
         {
-            blob = await actorRepo.Repo.Blob.GetBlob(cidObject);
+            blob = await actorRepo.Repo.Blob.GetBlobAsync(cidObject);
             if (blob is null)
                 throw new XRPCError(new InvalidRequestErrorDetail($"could not find blob for cid: {cid}"));
 
@@ -51,7 +51,7 @@ public class GetBlobController(
 
             try
             {
-                blobStream = await actorRepo.Repo.Blob.BlobStore.GetStream(cidObject);
+                blobStream = await actorRepo.Repo.Blob.BlobStore.GetStreamAsync(cidObject);
             }
             catch (BlobNotFoundException)
             {

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Common;
 
@@ -48,6 +48,11 @@ public class TID : IComparable<TID>
         {
             TimestampCount++;
         }
+        else
+        {
+            TimestampCount = 0;
+        }
+
         LastTimestamp = time;
         var timestamp = time * 1000 + TimestampCount;
         // the bottom 32 clock ids can be randomized & are not guaranteed to be collision resistant
@@ -69,8 +74,9 @@ public class TID : IComparable<TID>
 
     public static TID FromTime(long timestamp, long clockId)
     {
-        // pad start with 2s to make sure the string is always 13 characters long
-        var str = $"{S32.Encode(timestamp)}{S32.Encode(clockId)}".PadLeft(TID_LEN, '2');
+        var timestampPart = S32.Encode(timestamp).PadLeft(11, '2');
+        var clockIdPart = S32.Encode(clockId).PadLeft(2, '2');
+        var str = $"{timestampPart}{clockIdPart}";
         return new TID(str);
     }
 
@@ -147,7 +153,8 @@ public class S32
             sb.Append(S32_CHAR[(int)(i % 32)]);
             i /= 32;
         } while (i > 0);
-        return sb.ToString();
+        var result = sb.ToString();
+        return new string(result.Reverse().ToArray());
     }
 
     public static long Decode(string s)

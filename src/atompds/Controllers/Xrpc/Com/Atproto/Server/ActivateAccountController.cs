@@ -27,25 +27,25 @@ public class ActivateAccountController : ControllerBase
 
     [HttpPost("com.atproto.server.activateAccount")]
     [AccessFull]
-    public async Task<IActionResult> ActivateAccount()
+    public async Task<IActionResult> ActivateAccountAsync()
     {
         var auth = HttpContext.GetAuthOutput();
         var requester = auth.AccessCredentials.Did;
 
         // TODO: assertValidDidDocumentForService
 
-        var account = await _accountRepository.GetAccount(requester, new AvailabilityFlags(false, true));
+        var account = await _accountRepository.GetAccountAsync(requester, new AvailabilityFlags(false, true));
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("User not found"));
         }
 
-        await _accountRepository.ActivateAccount(requester);
+        await _accountRepository.ActivateAccountAsync(requester);
 
         // Sequence events for backwards compatibility
-        var status = await _accountRepository.GetAccountStatus(requester);
-        await _sequencer.SequenceAccountEvent(requester, status);
-        await _sequencer.SequenceIdentityEvent(requester, account.Handle ?? Constants.INVALID_HANDLE);
+        var status = await _accountRepository.GetAccountStatusAsync(requester);
+        await _sequencer.SequenceAccountEventAsync(requester, status);
+        await _sequencer.SequenceIdentityEventAsync(requester, account.Handle ?? Constants.INVALID_HANDLE);
 
         return Ok();
     }

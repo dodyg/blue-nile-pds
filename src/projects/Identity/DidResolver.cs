@@ -12,7 +12,7 @@ public class DidResolver : BaseResolver
         };
     }
 
-    public override Task<string?> ResolveNoCheck(string did)
+    public override Task<string?> ResolveNoCheckAsync(string did)
     {
         var split = did.Split(':');
         if (split[0] != "did")
@@ -26,7 +26,7 @@ public class DidResolver : BaseResolver
             throw new UnsupportedDidMethodError(did);
         }
 
-        return resolver.ResolveNoCheck(did);
+        return resolver.ResolveNoCheckAsync(did);
     }
 }
 

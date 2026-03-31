@@ -31,11 +31,11 @@ public class DeleteAccountController : ControllerBase
 
     [HttpPost("com.atproto.server.requestAccountDelete")]
     [AccessFull(true)]
-    public async Task RequestAccountDelete(CancellationToken cancellationToken)
+    public async Task RequestAccountDeleteAsync(CancellationToken cancellationToken)
     {
         var auth = HttpContext.GetAuthOutput();
         var did = auth.AccessCredentials.Did;
-        var account = await _accountRepository.GetAccount(did, new AvailabilityFlags(true, true));
+        var account = await _accountRepository.GetAccountAsync(did, new AvailabilityFlags(true, true));
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Account not found."));
@@ -46,12 +46,12 @@ public class DeleteAccountController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("Account has no email."));
         }
 
-        var emailToken = await _accountRepository.CreateEmailToken(did, EmailToken.EmailTokenPurpose.delete_account);
-        await _mailer.SendAccountDelete(emailToken, account.Email);
+        var emailToken = await _accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.delete_account);
+        await _mailer.SendAccountDeleteAsync(emailToken, account.Email);
     }
 
     [HttpPost("com.atproto.server.deleteAccount")]
-    public async Task DeleteAccount(
+    public async Task DeleteAccountAsync(
         [FromBody] DeleteAccountInput input,
         CancellationToken cancellationToken)
     {
@@ -61,22 +61,22 @@ public class DeleteAccountController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("InvalidDid", "Invalid DID."));
         }
 
-        var account = await _accountRepository.GetAccount(did, new AvailabilityFlags(true, true));
+        var account = await _accountRepository.GetAccountAsync(did, new AvailabilityFlags(true, true));
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("AccountNotFound", "Account not found."));
         }
 
-        var validPass = await _accountRepository.VerifyAccountPassword(did, input.Password!);
+        var validPass = await _accountRepository.VerifyAccountPasswordAsync(did, input.Password!);
         if (!validPass)
         {
             throw new XRPCError(new AuthRequiredErrorDetail("Invalid did or password"));
         }
 
-        await _accountRepository.AssertValidEmailToken(did, input.Token!, EmailToken.EmailTokenPurpose.delete_account);
-        await _accountRepository.DeleteAccount(did);
-        var accountSeq = await _sequencer.SequenceAccountEvent(did, AccountStore.AccountStatus.Deleted);
-        var tombstoneSeq = await _sequencer.SequenceTombstoneEvent(did);
-        await _sequencer.DeleteAllForUser(did, [accountSeq, tombstoneSeq]);
+        await _accountRepository.AssertValidEmailTokenAsync(did, input.Token!, EmailToken.EmailTokenPurpose.delete_account);
+        await _accountRepository.DeleteAccountAsync(did);
+        var accountSeq = await _sequencer.SequenceAccountEventAsync(did, AccountStore.AccountStatus.Deleted);
+        var tombstoneSeq = await _sequencer.SequenceTombstoneEventAsync(did);
+        await _sequencer.DeleteAllForUserAsync(did, [accountSeq, tombstoneSeq]);
     }
 }

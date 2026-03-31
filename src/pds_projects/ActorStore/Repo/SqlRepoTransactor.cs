@@ -23,13 +23,13 @@ public class SqlRepoTransactor : IRepoStorage
         _did = did;
     }
 
-    public async Task<Cid?> GetRoot()
+    public async Task<Cid?> GetRootAsync()
     {
-        var detailedRoot = await GetRootDetailed();
+        var detailedRoot = await GetRootDetailedAsync();
         return detailedRoot.Cid;
     }
 
-    public async Task PutBlock(Cid cid, byte[] block, string rev)
+    public async Task PutBlockAsync(Cid cid, byte[] block, string rev)
     {
         var newBlock = new RepoBlock
         {
@@ -52,7 +52,7 @@ public class SqlRepoTransactor : IRepoStorage
         await _db.SaveChangesAsync();
         _cache.Set(cid, block);
     }
-    public Task PutMany(BlockMap toPut, string rev)
+    public Task PutManyAsync(BlockMap toPut, string rev)
     {
         var blocks = new List<RepoBlock>();
         foreach (var (cid, block) in toPut.Iterator)
@@ -82,7 +82,7 @@ public class SqlRepoTransactor : IRepoStorage
         return _db.SaveChangesAsync();
     }
 
-    public Task UpdateRoot(Cid cid, string rev)
+    public Task UpdateRootAsync(Cid cid, string rev)
     {
         var root = new RepoRoot
         {
@@ -104,14 +104,14 @@ public class SqlRepoTransactor : IRepoStorage
         return _db.SaveChangesAsync();
     }
     
-    public async Task ApplyCommit(CommitData commit)
+    public async Task ApplyCommitAsync(CommitData commit)
     {
-        await UpdateRoot(commit.Cid, commit.Rev);
-        await PutMany(commit.NewBlocks, commit.Rev);
-        await DeleteMany(commit.RemovedCids.ToArray());
+        await UpdateRootAsync(commit.Cid, commit.Rev);
+        await PutManyAsync(commit.NewBlocks, commit.Rev);
+        await DeleteManyAsync(commit.RemovedCids.ToArray());
     }
 
-    public async Task<byte[]?> GetBytes(Cid cid)
+    public async Task<byte[]?> GetBytesAsync(Cid cid)
     {
         var cached = _cache.Get(cid);
         if (cached != null)
@@ -131,11 +131,11 @@ public class SqlRepoTransactor : IRepoStorage
         _cache.Set(cid, res);
         return res;
     }
-    public async Task<bool> Has(Cid cid)
+    public async Task<bool> HasAsync(Cid cid)
     {
-        return await GetBytes(cid) != null;
+        return await GetBytesAsync(cid) != null;
     }
-    public async Task<(BlockMap blocks, Cid[] missing)> GetBlocks(Cid[] cids)
+    public async Task<(BlockMap blocks, Cid[] missing)> GetBlocksAsync(Cid[] cids)
     {
         var cached = _cache.GetMany(cids);
         if (cached.missing.Length < 1)
@@ -166,9 +166,9 @@ public class SqlRepoTransactor : IRepoStorage
         blocks.AddMap(cached.blocks);
         return (blocks, missing.ToArray());
     }
-    public async Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytes(Cid cid)
+    public async Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytesAsync(Cid cid)
     {
-        var bytes = await GetBytes(cid);
+        var bytes = await GetBytesAsync(cid);
         if (bytes == null)
         {
             throw new Exception("Block not found");
@@ -176,11 +176,11 @@ public class SqlRepoTransactor : IRepoStorage
         var obj = CBORObject.DecodeFromBytes(bytes);
         return (obj, bytes);
     }
-    public async Task<(CBORObject obj, byte[] bytes)?> AttemptRead(Cid cid)
+    public async Task<(CBORObject obj, byte[] bytes)?> AttemptReadAsync(Cid cid)
     {
         try
         {
-            return await ReadObjAndBytes(cid);
+            return await ReadObjAndBytesAsync(cid);
         }
         catch (Exception)
         {
@@ -188,13 +188,13 @@ public class SqlRepoTransactor : IRepoStorage
         }
     }
 
-    public async Task<(Cid Cid, string Rev)> GetRootDetailed()
+    public async Task<(Cid Cid, string Rev)> GetRootDetailedAsync()
     {
         var res = await _db.RepoRoots.AsNoTracking().SingleAsync();
         return (Cid.FromString(res.Cid), res.Rev);
     }
 
-    public async Task CacheRev(string rev)
+    public async Task CacheRevAsync(string rev)
     {
         var res = _db.RepoBlocks.Where(x => x.RepoRev == rev)
             .Select(x => new {x.Cid, x.Content})
@@ -206,7 +206,7 @@ public class SqlRepoTransactor : IRepoStorage
         }
     }
 
-    public async Task DeleteMany(Cid[] cids)
+    public async Task DeleteManyAsync(Cid[] cids)
     {
         foreach (var cid in cids)
         {
@@ -222,14 +222,14 @@ public class SqlRepoTransactor : IRepoStorage
 
         await _db.SaveChangesAsync();
     }
-    public async IAsyncEnumerable<CarBlock> IterateCarBlocks(string? since,
+    public async IAsyncEnumerable<CarBlock> IterateCarBlocksAsync(string? since,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         RevCursor? cursor = null;
         // allow us to write to car while fetching the next page
         do
         {
-            var res = await GetBlockRange(since, cursor);
+            var res = await GetBlockRangeAsync(since, cursor);
             foreach (var row in res)
             {
                 yield return new CarBlock(Cid.FromString(row.Cid), row.Content);
@@ -247,7 +247,7 @@ public class SqlRepoTransactor : IRepoStorage
         } while (cursor is not null);
     }
 
-    public async Task<List<RepoBlock>> GetBlockRange(string? since = null, RevCursor? cursor = null)
+    public async Task<List<RepoBlock>> GetBlockRangeAsync(string? since = null, RevCursor? cursor = null)
     {
         var query = _db.RepoBlocks.AsNoTracking();
 

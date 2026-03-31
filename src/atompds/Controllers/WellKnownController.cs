@@ -42,12 +42,12 @@ public class WellKnownController : ControllerBase
     }
 
     [HttpGet("atproto-did")]
-    public async Task<IActionResult> GetAtprotoDid()
+    public async Task<IActionResult> GetAtprotoDidAsync()
     {
         // get hostname for request
         var host = Request.Host.Host;
         // _logger.LogInformation("Resolving handle {Handle}", host);
-        var acc = await _accountRepository.GetAccount(host);
+        var acc = await _accountRepository.GetAccountAsync(host);
         if (acc?.Handle == null)
         {
             return NotFound("no user by that handle exists on this PDS");

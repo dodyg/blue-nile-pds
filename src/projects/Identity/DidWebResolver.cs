@@ -16,7 +16,7 @@ public class DidWebResolver : BaseResolver
     }
 
     // TODO: Handle when value is not found vs errors
-    public override async Task<string?> ResolveNoCheck(string did)
+    public override async Task<string?> ResolveNoCheckAsync(string did)
     {
         var parsedId = string.Join(":", did.Split(':')[2..]);
         var parts = parsedId.Split(':').Select(HttpUtility.UrlDecode).ToArray();

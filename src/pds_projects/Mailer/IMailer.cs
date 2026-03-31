@@ -2,5 +2,5 @@
 
 public interface IMailer
 {
-    public Task SendAccountDelete(string token, string to);
+    public Task SendAccountDeleteAsync(string token, string to);
 }

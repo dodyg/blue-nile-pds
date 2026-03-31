@@ -98,7 +98,7 @@ public class Auth
         return encoded;
     }
 
-    public async Task<bool> StoreRefreshToken(Types.RefreshToken token, string? appPassword)
+    public async Task<bool> StoreRefreshTokenAsync(Types.RefreshToken token, string? appPassword)
     {
         var match = await _accountDb.RefreshTokens.FirstOrDefaultAsync(t => t.Id == token.Jti);
         if (match != null)
@@ -118,7 +118,7 @@ public class Auth
         return true;
     }
 
-    public async Task DeleteExpiredRefreshTokens(string did, DateTimeOffset now)
+    public async Task DeleteExpiredRefreshTokensAsync(string did, DateTimeOffset now)
     {
         var nowUtc = now.UtcDateTime;
         var expired = await _accountDb.RefreshTokens.Where(t => t.Did == did && t.ExpiresAt <= nowUtc).ToListAsync();
@@ -126,7 +126,7 @@ public class Auth
         await _accountDb.SaveChangesAsync();
     }
 
-    public async Task AddRefreshGracePeriod(string jti, DateTimeOffset expiresAt, string nextId)
+    public async Task AddRefreshGracePeriodAsync(string jti, DateTimeOffset expiresAt, string nextId)
     {
         var tokenMatch = await _accountDb.RefreshTokens.Where(x => x.Id == jti && (x.NextId == null || x.NextId == nextId))
             .SingleOrDefaultAsync();
@@ -142,21 +142,21 @@ public class Auth
         }
     }
 
-    public async Task<RefreshToken?> GetRefreshToken(string id)
+    public async Task<RefreshToken?> GetRefreshTokenAsync(string id)
     {
         return await _accountDb.RefreshTokens.FirstOrDefaultAsync(t => t.Id == id);
     }
 
-    public async Task<(string AccessJwt, string RefreshJwt)?> RotateRefreshToken(string id, string jwtKey, string serviceDid)
+    public async Task<(string AccessJwt, string RefreshJwt)?> RotateRefreshTokenAsync(string id, string jwtKey, string serviceDid)
     {
-        var token = await GetRefreshToken(id);
+        var token = await GetRefreshTokenAsync(id);
         if (token == null) return null;
 
         var now = DateTime.UtcNow;
 
         // take the chance to tidy all of a user's expired tokens
         // does not need to be transactional since this is just best-effort
-        await DeleteExpiredRefreshTokens(token.Did, new DateTimeOffset(now));
+        await DeleteExpiredRefreshTokensAsync(token.Did, new DateTimeOffset(now));
 
         // Shorten the refresh token lifespan down from its
         // original expiration time to its revocation grace period.
@@ -180,36 +180,36 @@ public class Auth
 
         try
         {
-            await AddRefreshGracePeriod(id, new DateTimeOffset(expiresAt), nextId);
-            var stored = await StoreRefreshToken(refreshPayload, token.AppPasswordName);
+            await AddRefreshGracePeriodAsync(id, new DateTimeOffset(expiresAt), nextId);
+            var stored = await StoreRefreshTokenAsync(refreshPayload, token.AppPasswordName);
             if (!stored)
             {
                 // Concurrent refresh — retry
-                return await RotateRefreshToken(id, jwtKey, serviceDid);
+                return await RotateRefreshTokenAsync(id, jwtKey, serviceDid);
             }
         }
         catch
         {
             // Concurrent refresh — retry
-            return await RotateRefreshToken(id, jwtKey, serviceDid);
+            return await RotateRefreshTokenAsync(id, jwtKey, serviceDid);
         }
 
         return (tokens.AccessToken, tokens.RefreshToken);
     }
 
-    public async Task<bool> RevokeRefreshToken(string jti)
+    public async Task<bool> RevokeRefreshTokenAsync(string jti)
     {
         _accountDb.RefreshTokens.RemoveRange(_accountDb.RefreshTokens.Where(t => t.Id == jti));
         return await _accountDb.SaveChangesAsync() > 0;
     }
 
-    public async Task<bool> RevokeRefreshTokensByDid(string did)
+    public async Task<bool> RevokeRefreshTokensByDidAsync(string did)
     {
         _accountDb.RefreshTokens.RemoveRange(_accountDb.RefreshTokens.Where(t => t.Did == did));
         return await _accountDb.SaveChangesAsync() > 0;
     }
 
-    public async Task<bool> RevokeAppPasswordRefreshToken(string did, string appPassword)
+    public async Task<bool> RevokeAppPasswordRefreshTokenAsync(string did, string appPassword)
     {
         _accountDb.RefreshTokens.RemoveRange(_accountDb.RefreshTokens.Where(t => t.Did == did && t.AppPasswordName == appPassword));
         return await _accountDb.SaveChangesAsync() > 0;

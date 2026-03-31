@@ -32,15 +32,15 @@ public class DescribeRepoController : ControllerBase
     }
 
     [HttpGet("com.atproto.repo.describeRepo")]
-    public async Task<IActionResult> DescribeRepo(
+    public async Task<IActionResult> DescribeRepoAsync(
         [FromQuery] string repo)
     {
-        var account = await AssertRepoAvailability(repo);
+        var account = await AssertRepoAvailabilityAsync(repo);
 
         DidDocument didDoc;
         try
         {
-            didDoc = await _idResolver.DidResolver.EnsureResolve(account.Did);
+            didDoc = await _idResolver.DidResolver.EnsureResolveAsync(account.Did);
         }
         catch (Exception e)
         {
@@ -53,7 +53,7 @@ public class DescribeRepoController : ControllerBase
         var handleIsCorrect = handle == account.Handle;
 
         await using var actorDb = _actorRepositoryProvider.Open(account.Did);
-        var collections = await actorDb.Repo.GetCollections();
+        var collections = await actorDb.Repo.GetCollectionsAsync();
 
         return Ok(new DescribeRepoOutput
         {
@@ -65,9 +65,9 @@ public class DescribeRepoController : ControllerBase
         });
     }
 
-    private async Task<ActorAccount> AssertRepoAvailability(string did, bool isAdminOrSelf = false)
+    private async Task<ActorAccount> AssertRepoAvailabilityAsync(string did, bool isAdminOrSelf = false)
     {
-        var account = await _accountRepository.GetAccount(did, new AvailabilityFlags(true, true));
+        var account = await _accountRepository.GetAccountAsync(did, new AvailabilityFlags(true, true));
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("RepoNotFound", $"Could not find repo for DID: {did}"));

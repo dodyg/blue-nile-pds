@@ -11,7 +11,7 @@ public class AuthMiddleware
         _next = next;
     }
 
-    public async Task Invoke(HttpContext context)
+    public async Task InvokeAsync(HttpContext context)
     {
         var endpoint = context.GetEndpoint();
         if (endpoint == null)
@@ -24,28 +24,28 @@ public class AuthMiddleware
         var accessStandard = endpoint.Metadata.GetMetadata<AccessStandardAttribute>();
         if (accessStandard != null)
         {
-            var output = await accessStandard.Handle(verifier, context);
+            var output = await accessStandard.HandleAsync(verifier, context);
             context.Items["AuthOutput"] = output;
         }
 
         var accessFull = endpoint.Metadata.GetMetadata<AccessFullAttribute>();
         if (accessFull != null)
         {
-            var output = await accessFull.Handle(verifier, context);
+            var output = await accessFull.HandleAsync(verifier, context);
             context.Items["AuthOutput"] = output;
         }
 
         var accessPrivileged = endpoint.Metadata.GetMetadata<AccessPrivilegedAttribute>();
         if (accessPrivileged != null)
         {
-            var output = await accessPrivileged.Handle(verifier, context);
+            var output = await accessPrivileged.HandleAsync(verifier, context);
             context.Items["AuthOutput"] = output;
         }
 
         var refresh = endpoint.Metadata.GetMetadata<RefreshAttribute>();
         if (refresh != null)
         {
-            var output = await refresh.Handle(verifier, context);
+            var output = await refresh.HandleAsync(verifier, context);
             context.Items["AuthOutput"] = output;
         }
 
@@ -93,9 +93,9 @@ public static class AuthMiddlewareExtensions
 
 public class AdminTokenAttribute : Attribute
 {
-    public Task<AuthVerifier.AdminOutput> Handle(AuthVerifier verifier, HttpContext context)
+    public Task<AuthVerifier.AdminOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
-        return verifier.AdminToken(context);
+        return verifier.AdminTokenAsync(context);
     }
 }
 
@@ -110,9 +110,9 @@ public class AccessStandardAttribute : Attribute
         _checkDeactivated = checkDeactivated;
     }
 
-    public Task<AuthVerifier.AccessOutput> Handle(AuthVerifier verifier, HttpContext context)
+    public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
-        return verifier.AccessStandard(context, _checkTakenDown, _checkDeactivated);
+        return verifier.AccessStandardAsync(context, _checkTakenDown, _checkDeactivated);
     }
 }
 
@@ -127,9 +127,9 @@ public class AccessFullAttribute : Attribute
         _checkDeactivated = checkDeactivated;
     }
 
-    public Task<AuthVerifier.AccessOutput> Handle(AuthVerifier verifier, HttpContext context)
+    public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
-        return verifier.AccessFull(context, _checkTakenDown, _checkDeactivated);
+        return verifier.AccessFullAsync(context, _checkTakenDown, _checkDeactivated);
     }
 }
 
@@ -144,15 +144,15 @@ public class AccessPrivilegedAttribute : Attribute
         _checkDeactivated = checkDeactivated;
     }
 
-    public Task<AuthVerifier.AccessOutput> Handle(AuthVerifier verifier, HttpContext context)
+    public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
-        return verifier.AccessPrivileged(context, _checkTakenDown, _checkDeactivated);
+        return verifier.AccessPrivilegedAsync(context, _checkTakenDown, _checkDeactivated);
     }
 }
 
 public class RefreshAttribute : Attribute
 {
-    public Task<AuthVerifier.RefreshOutput> Handle(AuthVerifier verifier, HttpContext context)
+    public Task<AuthVerifier.RefreshOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
         return Task.FromResult(verifier.Refresh(context));
     }

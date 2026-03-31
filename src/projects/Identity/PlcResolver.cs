@@ -15,7 +15,7 @@ public class PlcResolver : BaseResolver
         _plcUrl = plcUrl;
     }
 
-    public override async Task<string?> ResolveNoCheck(string did)
+    public override async Task<string?> ResolveNoCheckAsync(string did)
     {
         var encodedDid = HttpUtility.UrlPathEncode(did);
         try

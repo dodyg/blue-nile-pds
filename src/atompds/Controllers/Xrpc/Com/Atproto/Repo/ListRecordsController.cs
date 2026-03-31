@@ -18,7 +18,7 @@ public class ListRecordsController(
 ) : ControllerBase
 {
     [HttpGet("com.atproto.repo.listRecords")]
-    public async Task<IActionResult> ListRecords(
+    public async Task<IActionResult> ListRecordsAsync(
         [FromQuery] string repo,
         [FromQuery] string collection,
         [FromQuery] int limit = 50,
@@ -26,7 +26,7 @@ public class ListRecordsController(
         [FromQuery] bool reverse = false
     )
     {
-        var did = await accountRepository.GetDidForActor(repo);
+        var did = await accountRepository.GetDidForActorAsync(repo);
 
         if (did is null)
         {
@@ -36,7 +36,7 @@ public class ListRecordsController(
 
         await using var actorRepo = actorRepositoryProvider.Open(did);
 
-        var records = await actorRepo.Repo.Record.ListRecordsForCollection(
+        var records = await actorRepo.Repo.Record.ListRecordsForCollectionAsync(
             collection,
             limit,
             reverse,

@@ -57,7 +57,7 @@ public class AccountStore
         return accounts;
     }
 
-    public async Task<ActorAccount?> GetAccount(string handleOrDid, AvailabilityFlags? flags = null)
+    public async Task<ActorAccount?> GetAccountAsync(string handleOrDid, AvailabilityFlags? flags = null)
     {
         var accounts = SelectAccountQb(flags);
         if (handleOrDid.StartsWith("did:"))
@@ -73,7 +73,7 @@ public class AccountStore
         return ActorAccount.From(result?.Actor, result);
     }
 
-    public async Task<Dictionary<string, ActorAccount>> GetAccounts(string[] dids, AvailabilityFlags? flags = null)
+    public async Task<Dictionary<string, ActorAccount>> GetAccountsAsync(string[] dids, AvailabilityFlags? flags = null)
     {
         var actors = SelectAccountQb(flags);
         actors = actors.Where(x => dids.Contains(x.Actor.Did));
@@ -82,7 +82,7 @@ public class AccountStore
         return results.ToDictionary(x => x.Actor.Did, x => ActorAccount.From(x.Actor, x)!);
     }
 
-    public async Task<ActorAccount?> GetAccountByEmail(string email, AvailabilityFlags? flags = null)
+    public async Task<ActorAccount?> GetAccountByEmailAsync(string email, AvailabilityFlags? flags = null)
     {
         var accounts = SelectAccountQb(flags);
         email = email.ToLower();
@@ -93,9 +93,9 @@ public class AccountStore
         return ActorAccount.From(result?.Actor, result);
     }
 
-    public async Task<bool> IsAccountActivated(string did)
+    public async Task<bool> IsAccountActivatedAsync(string did)
     {
-        var account = await GetAccount(did, new AvailabilityFlags(true));
+        var account = await GetAccountAsync(did, new AvailabilityFlags(true));
         if (account == null)
         {
             return false;
@@ -104,15 +104,15 @@ public class AccountStore
         return account.DeactivatedAt == null;
     }
 
-    public async Task<string?> GetDidForActor(string handle)
+    public async Task<string?> GetDidForActorAsync(string handle)
     {
-        var account = await GetAccount(handle);
+        var account = await GetAccountAsync(handle);
         return account?.Did;
     }
 
-    public async Task<AccountStatus> GetAccountStatus(string did)
+    public async Task<AccountStatus> GetAccountStatusAsync(string did)
     {
-        var account = await GetAccount(did, new AvailabilityFlags(true, true));
+        var account = await GetAccountAsync(did, new AvailabilityFlags(true, true));
         if (account == null)
         {
             return AccountStatus.Deleted;
@@ -128,7 +128,7 @@ public class AccountStore
         return AccountStatus.Active;
     }
 
-    public async Task RegisterActor(string did, string handle, bool? deactivated)
+    public async Task RegisterActorAsync(string did, string handle, bool? deactivated)
     {
         var createdAt = DateTime.UtcNow;
         try
@@ -152,7 +152,7 @@ public class AccountStore
         }
     }
 
-    public async Task RegisterAccount(string did, string email, string passwordScrypt)
+    public async Task RegisterAccountAsync(string did, string email, string passwordScrypt)
     {
         try
         {
@@ -174,7 +174,7 @@ public class AccountStore
         }
     }
 
-    public async Task DeleteAccount(string did)
+    public async Task DeleteAccountAsync(string did)
     {
         await _db.RepoRoots.Where(x => x.Did == did).ExecuteDeleteAsync();
         await _db.RefreshTokens.Where(x => x.Did == did).ExecuteDeleteAsync();
@@ -201,7 +201,7 @@ public class AccountStore
         return (true, AccountStore.AccountStatus.Active);
     }
 
-    public async Task ActivateAccount(string did)
+    public async Task ActivateAccountAsync(string did)
     {
         var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
         if (actor != null)
@@ -212,7 +212,7 @@ public class AccountStore
         }
     }
 
-    public async Task DeactivateAccount(string did, DateTimeOffset? deleteAfter)
+    public async Task DeactivateAccountAsync(string did, DateTimeOffset? deleteAfter)
     {
         var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
         if (actor != null)

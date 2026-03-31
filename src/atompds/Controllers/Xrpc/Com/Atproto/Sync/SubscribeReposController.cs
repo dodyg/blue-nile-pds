@@ -31,7 +31,7 @@ public class SubscribeReposController : ControllerBase
     }
 
     [HttpGet("com.atproto.sync.subscribeRepos")]
-    public async Task SubscribeRepos(
+    public async Task SubscribeReposAsync(
         [FromQuery] int? cursor, // The last known event seq number to backfill from.
         CancellationToken cancellationToken)
     {
@@ -50,8 +50,8 @@ public class SubscribeReposController : ControllerBase
             int? outboxCursor = null;
             if (cursor != null)
             {
-                var next = await _sequencer.Next(cursor.Value);
-                var curr = await _sequencer.Current();
+                var next = await _sequencer.NextAsync(cursor.Value);
+                var curr = await _sequencer.CurrentAsync();
                 if (cursor.Value > (curr ?? 0))
                 {
                     var header = CBORObject.NewMap()
@@ -83,7 +83,7 @@ public class SubscribeReposController : ControllerBase
                     byte[] buffer = [..header, ..blob];
 
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
-                    var startEvt = await _sequencer.EarliestAfterTime(backfillTime);
+                    var startEvt = await _sequencer.EarliestAfterTimeAsync(backfillTime);
                     outboxCursor = startEvt?.Seq - 1;
                 }
                 else
@@ -92,7 +92,7 @@ public class SubscribeReposController : ControllerBase
                 }
             }
 
-            await foreach (var evt in outbox.Events(outboxCursor, cancellationToken, webSocket))
+            await foreach (var evt in outbox.EventsAsync(outboxCursor, cancellationToken, webSocket))
             {
                 //_logger.LogInformation("Handling {type} event: {Seq}", evt.Type, evt.Seq);
                 if (evt.Type == TypedCommitType.Commit && evt is TypedCommitEvt commit)

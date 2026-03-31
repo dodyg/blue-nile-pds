@@ -36,13 +36,13 @@ public class ResolveHandleController : ControllerBase
     }
 
     [HttpGet("com.atproto.identity.resolveHandle")]
-    public async Task<IActionResult> ResolveHandle([FromQuery] string handle)
+    public async Task<IActionResult> ResolveHandleAsync([FromQuery] string handle)
     {
         _logger.LogInformation("Resolving handle {Handle}", handle);
         handle = _handle.NormalizeAndEnsureValidHandle(handle);
 
         string? did = null;
-        var user = await _accountRepository.GetAccount(handle);
+        var user = await _accountRepository.GetAccountAsync(handle);
         if (user != null)
         {
             did = user.Did;
@@ -56,7 +56,7 @@ public class ResolveHandleController : ControllerBase
         if (did == null)
         {
             // TODO: if identity is not from our server, we should direct the appview to attempt to resolve the handle
-            did = await TryResolveFromAppView(handle);
+            did = await TryResolveFromAppViewAsync(handle);
         }
 
         if (did == null)
@@ -70,7 +70,7 @@ public class ResolveHandleController : ControllerBase
         });
     }
 
-    private async Task<string?> TryResolveFromAppView(string handle)
+    private async Task<string?> TryResolveFromAppViewAsync(string handle)
     {
         if (_appViewConfig is BskyAppViewConfig appViewConfig)
         {

@@ -18,7 +18,7 @@ public class AccountCommands
     ///     List accounts
     /// </summary>
     [Command("list")]
-    public async Task List()
+    public async Task ListAsync()
     {
         var client = await Program.CreateAuthenticatedClientAsync();
         var output = await client.ComAtprotoSyncListReposAsync(new ListReposParameters { Limit = 100 });
@@ -50,7 +50,7 @@ public class AccountCommands
     /// <param name="email">-e, --email, Email address ex. alice@example.com</param>
     /// <param name="handle">-h, --handle, Handle, ex. alice.example.com</param>
     [Command("create")]
-    public async Task Create(string email, string handle)
+    public async Task CreateAsync(string email, string handle)
     {
         var client = await Program.CreateAuthenticatedClientAsync();
         var atHandle = new ATHandle(handle);
@@ -82,7 +82,7 @@ public class AccountCommands
     /// <param name="token">-t, --token, Account deletion token sent to the user's email</param>
     /// <param name="password">-p, --password, Current password for the account being deleted</param>
     [Command("delete")]
-    public async Task Delete(string did, string token, string password)
+    public async Task DeleteAsync(string did, string token, string password)
     {
         var client = await Program.CreateAuthenticatedClientAsync();
         await client.ComAtprotoServerDeleteAccountAsync(new DeleteAccountInput
@@ -100,7 +100,7 @@ public class AccountCommands
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
     [Command("takedown")]
-    public async Task Takedown(string did)
+    public async Task TakedownAsync(string did)
     {
         var client = await Program.CreateAuthenticatedClientAsync();
         var atDid = new ATDid(did);
@@ -119,7 +119,7 @@ public class AccountCommands
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
     [Command("untakedown")]
-    public async Task Untakedown(string did)
+    public async Task UntakedownAsync(string did)
     {
         var client = await Program.CreateAuthenticatedClientAsync();
         var atDid = new ATDid(did);
@@ -137,7 +137,7 @@ public class AccountCommands
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
     [Command("reset-password")]
-    public async Task ResetPassword(string did)
+    public async Task ResetPasswordAsync(string did)
     {
         var client = await Program.CreateAuthenticatedClientAsync();
         var atDid = new ATDid(did);
@@ -173,7 +173,7 @@ public class RootCommands
     /// </summary>
     /// <param name="relayHost">-r, --relay-host, Relay host, ex. bsky.network</param>
     [Command("request-crawl")]
-    public async Task RequestCrawl(string relayHost)
+    public async Task RequestCrawlAsync(string relayHost)
     {
         var relayHosts = relayHost.Split(',');
         var client = new HttpClient();
@@ -203,7 +203,7 @@ public class RootCommands
     ///     Create a new invite code
     /// </summary>
     [Command("create-invite-code")]
-    public async Task CreateInviteCode()
+    public async Task CreateInviteCodeAsync()
     {
         var result = await Program.CreateInviteCodeAsync(1);
         Program.Logger.LogInformation("Invite code: {Code}", result.Code);

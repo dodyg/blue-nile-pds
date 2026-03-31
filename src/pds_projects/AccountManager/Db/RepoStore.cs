@@ -11,7 +11,7 @@ public class RepoStore
         _db = db;
     }
 
-    public async Task UpdateRoot(string did, string cid, string rev)
+    public async Task UpdateRootAsync(string did, string cid, string rev)
     {
         var existingRoot = await _db.RepoRoots
             .Where(x => x.Did == did)

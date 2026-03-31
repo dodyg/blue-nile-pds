@@ -23,7 +23,7 @@ public class RecordRepository
         _keyPair = keyPair;
         _storage = storage;
     }
-    public async Task<GetRecordResult?> GetRecord(ATUri uri, string? cid, bool includeSoftDeleted = false)
+    public async Task<GetRecordResult?> GetRecordAsync(ATUri uri, string? cid, bool includeSoftDeleted = false)
     {
         var uriStr = uri.ToString();
         var query = _db.Records
@@ -52,7 +52,7 @@ public class RecordRepository
         return new GetRecordResult(record.Uri, record.Cid, ToJsonElement(CBORObject.DecodeFromBytes(block.Content)), record.IndexedAt, record.TakedownRef);
     }
 
-    public async Task IndexRecord(ATUri uri, Cid cid, CBORObject? record, WriteOpAction action, string rev, DateTime? timestamp)
+    public async Task IndexRecordAsync(ATUri uri, Cid cid, CBORObject? record, WriteOpAction action, string rev, DateTime? timestamp)
     {
         var row = new Record
         {
@@ -96,26 +96,26 @@ public class RecordRepository
             var backlinks = GetBacklinks(uri, record);
             if (action == WriteOpAction.Update)
             {
-                await RemoveBacklinksByUri(uri.ToString());
+                await RemoveBacklinksByUriAsync(uri.ToString());
             }
-            await AddBacklinks(backlinks);
+            await AddBacklinksAsync(backlinks);
         }
 
         await _db.SaveChangesAsync();
     }
 
-    public async Task DeleteRecord(ATUri uri)
+    public async Task DeleteRecordAsync(ATUri uri)
     {
         await _db.Records.Where(x => x.Uri == uri.ToString()).ExecuteDeleteAsync();
         await _db.Backlinks.Where(x => x.Uri == uri.ToString()).ExecuteDeleteAsync();
     }
 
-    public async Task RemoveBacklinksByUri(string uri)
+    public async Task RemoveBacklinksByUriAsync(string uri)
     {
         await _db.Backlinks.Where(x => x.Uri == uri).ExecuteDeleteAsync();
     }
 
-    public async Task AddBacklinks(Backlink[] backlinks)
+    public async Task AddBacklinksAsync(Backlink[] backlinks)
     {
         if (backlinks.Length == 0)
         {
@@ -202,7 +202,7 @@ public class RecordRepository
         return [];
     }
 
-    public async Task<List<RecordForCollection>> ListRecordsForCollection(
+    public async Task<List<RecordForCollection>> ListRecordsForCollectionAsync(
         string collection,
         int limit,
         bool reverse,

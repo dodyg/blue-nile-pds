@@ -18,7 +18,7 @@ public class CarMemoryWriter : IDisposable, IAsyncDisposable
     {
         _buffer.Dispose();
     }
-    public static async Task<CarMemoryWriter> Create(Cid? root)
+    public static async Task<CarMemoryWriter> CreateAsync(Cid? root)
     {
         var writer = new CarMemoryWriter();
         if (root != null)
@@ -29,7 +29,7 @@ public class CarMemoryWriter : IDisposable, IAsyncDisposable
         return writer;
     }
 
-    public async Task Put(CarBlock block)
+    public async Task PutAsync(CarBlock block)
     {
         var blockBytes = CarEncoder.EncodeBlock(block);
         await _buffer.WriteAsync(blockBytes);

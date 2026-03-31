@@ -23,7 +23,7 @@ public class BlobController(
     // TODO: rate limiting
     [HttpPost("com.atproto.repo.uploadBlob")]
     [AccessStandard(true, true)]
-    public async Task<IActionResult> UploadBlob()
+    public async Task<IActionResult> UploadBlobAsync()
     {
         var auth = HttpContext.GetAuthOutput();
         var did = auth.AccessCredentials.Did;
@@ -55,10 +55,10 @@ public class BlobController(
 
         await using var actorRepo = actorRepositoryProvider.Open(did);
 
-        var key = await actorRepo.Repo.Blob.BlobStore.PutTemp(fileStream, cancellationToken);
+        var key = await actorRepo.Repo.Blob.BlobStore.PutTempAsync(fileStream, cancellationToken);
 
 
-        var blobMetaData = await actorRepo.Repo.Blob.GenerateTempBlobMetadata(key, userSuppliedContentType);
+        var blobMetaData = await actorRepo.Repo.Blob.GenerateTempBlobMetadataAsync(key, userSuppliedContentType);
 
         if (blobMetaData.Size != userSuppliedContentLength)
         {
@@ -73,11 +73,11 @@ public class BlobController(
         }
 
         
-        var (blob, shouldMoveToPermanent) = await actorRepo.TransactRepo<(Blob blob, bool shouldMoveToPermanent)>(async repo =>
+        var (blob, shouldMoveToPermanent) = await actorRepo.TransactRepoAsync<(Blob blob, bool shouldMoveToPermanent)>(async repo =>
         {
-            var alreadyExisting = await actorRepo.Repo.Blob.GetBlob(blobMetaData.Cid);
+            var alreadyExisting = await actorRepo.Repo.Blob.GetBlobAsync(blobMetaData.Cid);
 
-            var blobReferences = await actorRepo.Repo.Blob.GetRecordsForBlob(blobMetaData.Cid);
+            var blobReferences = await actorRepo.Repo.Blob.GetRecordsForBlobAsync(blobMetaData.Cid);
 
             if (alreadyExisting is not null)
             {
@@ -97,7 +97,7 @@ public class BlobController(
                     // but I don't know how are we going to garbage collect the old temp file then
                     // lets just not update it for now
                     // maybe we can update uploaded at instead?
-                    await actorRepo.Repo.Blob.UpdateBlob(blobMetaData.Cid, b =>
+                    await actorRepo.Repo.Blob.UpdateBlobAsync(blobMetaData.Cid, b =>
                     {
                         b.CreatedAt = DateTime.UtcNow;
                     });
@@ -105,7 +105,7 @@ public class BlobController(
                 }
                 else // BlobStatus.GarbageCollected
                 {
-                    await actorRepo.Repo.Blob.UpdateBlob(blobMetaData.Cid, b =>
+                    await actorRepo.Repo.Blob.UpdateBlobAsync(blobMetaData.Cid, b =>
                     {
                         b.Status = blobReferences.Count > 0 ? BlobStatus.Permanent : BlobStatus.Temporary;
                         b.TempKey = key;
@@ -128,7 +128,7 @@ public class BlobController(
                     CreatedAt = DateTime.UtcNow
                 };
 
-                await actorRepo.Repo.Blob.SaveBlobRecord(blob);
+                await actorRepo.Repo.Blob.SaveBlobRecordAsync(blob);
 
                 return (blob, blobReferences.Count > 0);
             }
@@ -138,7 +138,7 @@ public class BlobController(
         // there is a chance of failure here after the transaction, status in db might be inconsistent with actual blob storage
         if (shouldMoveToPermanent)
         {
-            await actorRepo.Repo.Blob.BlobStore.MakePermanent(key, Cid.FromString(blob.Cid));
+            await actorRepo.Repo.Blob.BlobStore.MakePermanentAsync(key, Cid.FromString(blob.Cid));
         }
 
         return Ok(new BlobMetaDataResponse(

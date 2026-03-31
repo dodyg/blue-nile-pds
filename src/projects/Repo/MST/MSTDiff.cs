@@ -5,25 +5,25 @@ namespace Repo.MST;
 
 public static class MSTDiff
 {
-    public static async Task<DataDiff> NullDiff(MST tree)
+    public static async Task<DataDiff> NullDiffAsync(MST tree)
     {
         var diff = new DataDiff();
-        await foreach (var entry in tree.Walk())
+        await foreach (var entry in tree.WalkAsync())
         {
-            await diff.NodeAdd(entry);
+            await diff.NodeAddAsync(entry);
         }
         return diff;
     }
 
-    public static async Task<DataDiff> Diff(MST curr, MST? prev)
+    public static async Task<DataDiff> DiffAsync(MST curr, MST? prev)
     {
-        await curr.GetPointer();
+        await curr.GetPointerAsync();
         if (prev == null)
         {
-            return await NullDiff(curr);
+            return await NullDiffAsync(curr);
         }
 
-        await prev.GetPointer();
+        await prev.GetPointerAsync();
         var diff = new DataDiff();
 
         var leftWalker = new MSTWalker(prev);
@@ -33,14 +33,14 @@ public static class MSTDiff
             // if one walker is finished, continue walking the other & logging all nodes
             if (leftWalker.Status.Done && rightWalker.Status is WalkerStatusProgress rightProgress)
             {
-                await diff.NodeAdd(rightProgress.Current);
-                await rightWalker.Advance();
+                await diff.NodeAddAsync(rightProgress.Current);
+                await rightWalker.AdvanceAsync();
                 continue;
             }
             if (leftWalker.Status is WalkerStatusProgress leftProgress && rightWalker.Status.Done)
             {
-                await diff.NodeDelete(leftProgress.Current);
-                await leftWalker.Advance();
+                await diff.NodeDeleteAsync(leftProgress.Current);
+                await leftWalker.AdvanceAsync();
                 continue;
             }
 
@@ -65,18 +65,18 @@ public static class MSTDiff
                     {
                         diff.LeafUpdate(leftLeaf.Key, leftLeaf.Value, rightLeaf.Value);
                     }
-                    await leftWalker.Advance();
-                    await rightWalker.Advance();
+                    await leftWalker.AdvanceAsync();
+                    await rightWalker.AdvanceAsync();
                 }
                 else if (string.CompareOrdinal(leftLeaf.Key, rightLeaf.Key) < 0)
                 {
-                    await diff.NodeDelete(leftLeaf);
-                    await leftWalker.Advance();
+                    await diff.NodeDeleteAsync(leftLeaf);
+                    await leftWalker.AdvanceAsync();
                 }
                 else
                 {
-                    await diff.NodeAdd(rightLeaf);
-                    await rightWalker.Advance();
+                    await diff.NodeAddAsync(rightLeaf);
+                    await rightWalker.AdvanceAsync();
                 }
 
                 continue;
@@ -90,13 +90,13 @@ public static class MSTDiff
             {
                 if (left is Leaf)
                 {
-                    await diff.NodeAdd(right);
-                    await rightWalker.Advance();
+                    await diff.NodeAddAsync(right);
+                    await rightWalker.AdvanceAsync();
                 }
                 else
                 {
-                    await diff.NodeDelete(left);
-                    await leftWalker.StepInto();
+                    await diff.NodeDeleteAsync(left);
+                    await leftWalker.StepIntoAsync();
                 }
                 continue;
             }
@@ -105,13 +105,13 @@ public static class MSTDiff
             {
                 if (right is Leaf)
                 {
-                    await diff.NodeDelete(left);
-                    await leftWalker.Advance();
+                    await diff.NodeDeleteAsync(left);
+                    await leftWalker.AdvanceAsync();
                 }
                 else
                 {
-                    await diff.NodeAdd(right);
-                    await rightWalker.StepInto();
+                    await diff.NodeAddAsync(right);
+                    await rightWalker.StepIntoAsync();
                 }
                 continue;
             }
@@ -122,29 +122,29 @@ public static class MSTDiff
             {
                 if (leftMst.Pointer == rightMst.Pointer)
                 {
-                    await leftWalker.StepOver();
-                    await rightWalker.StepOver();
+                    await leftWalker.StepOverAsync();
+                    await rightWalker.StepOverAsync();
                 }
                 else
                 {
-                    await diff.NodeAdd(right);
-                    await diff.NodeDelete(left);
-                    await leftWalker.StepInto();
-                    await rightWalker.StepInto();
+                    await diff.NodeAddAsync(right);
+                    await diff.NodeDeleteAsync(left);
+                    await leftWalker.StepIntoAsync();
+                    await rightWalker.StepIntoAsync();
                 }
                 continue;
             }
 
             if (left is Leaf && right is MST)
             {
-                await diff.NodeAdd(right);
-                await rightWalker.StepInto();
+                await diff.NodeAddAsync(right);
+                await rightWalker.StepIntoAsync();
                 continue;
             }
             if (left is MST && right is Leaf)
             {
-                await diff.NodeDelete(left);
-                await leftWalker.StepInto();
+                await diff.NodeDeleteAsync(left);
+                await leftWalker.StepIntoAsync();
                 continue;
             }
 
@@ -170,12 +170,12 @@ public class DataDiff
 
     [JsonPropertyName("removedCids")] public CidSet RemovedCids { get; set; } = new();
 
-    public static async Task<DataDiff> Of(MST curr, MST? prev)
+    public static async Task<DataDiff> OfAsync(MST curr, MST? prev)
     {
-        return await MSTDiff.Diff(curr, prev);
+        return await MSTDiff.DiffAsync(curr, prev);
     }
 
-    public async Task NodeAdd(INodeEntry entry)
+    public async Task NodeAddAsync(INodeEntry entry)
     {
         if (entry is Leaf leaf)
         {
@@ -183,12 +183,12 @@ public class DataDiff
         }
         else if (entry is MST tree)
         {
-            var (cid, bytes) = await tree.Serialize();
+            var (cid, bytes) = await tree.SerializeAsync();
             TreeAdd(cid, bytes);
         }
     }
 
-    public async Task NodeDelete(INodeEntry entry)
+    public async Task NodeDeleteAsync(INodeEntry entry)
     {
         if (entry is Leaf leaf)
         {
@@ -197,7 +197,7 @@ public class DataDiff
         }
         else if (entry is MST tree)
         {
-            var cid = await tree.GetPointer();
+            var cid = await tree.GetPointerAsync();
             TreeDelete(cid);
         }
         else

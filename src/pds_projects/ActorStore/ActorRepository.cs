@@ -43,7 +43,7 @@ public class ActorRepository : IDisposable, IAsyncDisposable
             .ToArray();
     }
 
-    public async Task<T> TransactDb<T>(Func<ActorStoreDb, Task<T>> fn)
+    public async Task<T> TransactDbAsync<T>(Func<ActorStoreDb, Task<T>> fn)
     {
         await using var tx = await _db.Database.BeginTransactionAsync();
         try
@@ -59,7 +59,7 @@ public class ActorRepository : IDisposable, IAsyncDisposable
         }
     }
 
-    public async Task<T> TransactRepo<T>(Func<ActorRepository, Task<T>> fn)
+    public async Task<T> TransactRepoAsync<T>(Func<ActorRepository, Task<T>> fn)
     {
         await using var tx = await _db.Database.BeginTransactionAsync();
         try

@@ -41,9 +41,9 @@ public class AuthVerifier
         _config = config;
     }
 
-    public async Task<AccessOutput> AccessStandard(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput> AccessStandardAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessToken(ctx,
+        return await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access],
             ScopeMap[AuthScope.AppPass],
@@ -51,17 +51,17 @@ public class AuthVerifier
         ], checkTakenDown, checkDeactivated);
     }
 
-    public async Task<AccessOutput> AccessFull(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput> AccessFullAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessToken(ctx,
+        return await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access]
         ], checkTakenDown, checkDeactivated);
     }
 
-    public async Task<AccessOutput> AccessPrivileged(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput> AccessPrivilegedAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessToken(ctx,
+        return await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access],
             ScopeMap[AuthScope.AppPassPrivileged]
@@ -97,7 +97,7 @@ public class AuthVerifier
         }, result.Token);
     }
 
-    public async Task<AccessOutput> ValidateAccessToken(HttpContext ctx, string[] scopes, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput> ValidateAccessTokenAsync(HttpContext ctx, string[] scopes, bool checkTakenDown = false, bool checkDeactivated = false)
     {
         if (ctx.Response.HasStarted)
         {
@@ -126,7 +126,7 @@ public class AuthVerifier
 
         if (checkTakenDown || checkDeactivated)
         {
-            var found = await _accountRepository.GetAccount(accessOutput.AccessCredentials.Did, new AvailabilityFlags(checkTakenDown, checkDeactivated));
+            var found = await _accountRepository.GetAccountAsync(accessOutput.AccessCredentials.Did, new AvailabilityFlags(checkTakenDown, checkDeactivated));
             if (found == null)
             {
                 throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountNotFound", "Account not found"));
@@ -317,7 +317,7 @@ public class AuthVerifier
             }
         }
     }
-    public Task<AdminOutput> AdminToken(HttpContext context)
+    public Task<AdminOutput> AdminTokenAsync(HttpContext context)
     {
         var auth = ParseBasicAuthorization(context.Request.Headers.Authorization);
         if (auth == null || auth.Username != "admin" || auth.Password != _config.AdminPass)
