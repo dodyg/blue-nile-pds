@@ -1,8 +1,8 @@
-﻿using ActorStore.Db;
+﻿using System.Text.Json;
+using ActorStore.Db;
+using CarpaNet;
 using CID;
 using Crypto;
-using FishyFlip.Lexicon;
-using FishyFlip.Models;
 using Microsoft.EntityFrameworkCore;
 using PeterO.Cbor;
 using Repo;
@@ -49,7 +49,7 @@ public class RecordRepository
         {
             return null;
         }
-        return new GetRecordResult(record.Uri, record.Cid, CBORObject.DecodeFromBytes(block.Content), record.IndexedAt, record.TakedownRef);
+        return new GetRecordResult(record.Uri, record.Cid, ToJsonElement(CBORObject.DecodeFromBytes(block.Content)), record.IndexedAt, record.TakedownRef);
     }
 
     public async Task IndexRecord(ATUri uri, Cid cid, CBORObject? record, WriteOpAction action, string rev, DateTime? timestamp)
@@ -58,12 +58,12 @@ public class RecordRepository
         {
             Uri = uri.ToString(),
             Cid = cid.ToString(),
-            Collection = uri.Collection,
-            Rkey = uri.Rkey,
+            Collection = uri.Collection ?? throw new Exception("Invalid collection"),
+            Rkey = uri.RecordKey ?? throw new Exception("Invalid rkey"),
             RepoRev = rev,
             IndexedAt = timestamp ?? DateTime.UtcNow
         };
-        if (!uri.Hostname.StartsWith("did:"))
+        if (!(uri.Authority?.StartsWith("did:") ?? false))
         {
             throw new Exception("Invalid hostname");
         }
@@ -246,16 +246,22 @@ public class RecordRepository
         return results.Select(x => new RecordForCollection(
             x.Record.Uri,
             x.Record.Cid,
-            CBORObject.DecodeFromBytes(x.RepoBlock.Content).ToATObject()
+            ToJsonElement(CBORObject.DecodeFromBytes(x.RepoBlock.Content))
         )).ToList();
     }
 
 
-    public record GetRecordResult(string Uri, string Cid, CBORObject Value, DateTime IndexedAt, string? TakedownRef);
+    public record GetRecordResult(string Uri, string Cid, JsonElement Value, DateTime IndexedAt, string? TakedownRef);
 
     public record RecordForCollection(
         string Uri,
         string Cid,
-        ATObject Value
+        JsonElement Value
     );
+
+    private static JsonElement ToJsonElement(CBORObject value)
+    {
+        using var document = JsonDocument.Parse(value.ToJSONString());
+        return document.RootElement.Clone();
+    }
 }

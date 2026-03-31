@@ -1,15 +1,15 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
 using atompds.Middleware;
+using CarpaNet;
+using CarpaNet.Json;
 using CID;
+using ComAtproto.Repo;
 using Config;
 using DidLib;
-using FishyFlip.Lexicon;
-using FishyFlip.Lexicon.Com.Atproto.Repo;
-using FishyFlip.Models;
 using Handle;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -23,21 +23,19 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Repo;
 [Route("xrpc")]
 public class ApplyWritesController : ControllerBase
 {
+    private static readonly JsonSerializerOptions ApplyWritesJsonOptions = new(ATProtoJsonContext.DefaultOptions)
+    {
+        AllowOutOfOrderMetadataProperties = true
+    };
+
     private readonly AccountRepository _accountRepository;
     private readonly ActorRepositoryProvider _actorRepositoryProvider;
     private readonly IBskyAppViewConfig _bskyAppViewConfig;
-    private readonly HandleManager _handle;
-    private readonly HttpClient _httpClient;
-    private readonly IdentityConfig _identityConfig;
-    private readonly IdResolver _idResolver;
-    private readonly InvitesConfig _invitesConfig;
     private readonly ILogger<ApplyWritesController> _logger;
-    private readonly PlcClient _plcClient;
-    private readonly SecretsConfig _secretsConfig;
     private readonly SequencerRepository _sequencer;
-    private readonly ServiceConfig _serviceConfig;
 
-    public ApplyWritesController(ILogger<ApplyWritesController> logger,
+    public ApplyWritesController(
+        ILogger<ApplyWritesController> logger,
         AccountRepository accountRepository,
         IdentityConfig identityConfig,
         ServiceConfig serviceConfig,
@@ -53,17 +51,9 @@ public class ApplyWritesController : ControllerBase
     {
         _logger = logger;
         _accountRepository = accountRepository;
-        _identityConfig = identityConfig;
-        _serviceConfig = serviceConfig;
-        _invitesConfig = invitesConfig;
-        _httpClient = httpClient;
-        _handle = handle;
         _actorRepositoryProvider = actorRepositoryProvider;
-        _idResolver = idResolver;
-        _secretsConfig = secretsConfig;
         _sequencer = sequencer;
         _bskyAppViewConfig = bskyAppViewConfig;
-        _plcClient = plcClient;
     }
 
     [HttpGet("com.atproto.repo.getRecord")]
@@ -72,9 +62,8 @@ public class ApplyWritesController : ControllerBase
         var did = await _accountRepository.GetDidForActor(repo);
         if (did == null)
         {
-            if (_bskyAppViewConfig is BskyAppViewConfig bskyAppViewConfig)
+            if (_bskyAppViewConfig is BskyAppViewConfig)
             {
-                // TODO: pipe to appview
                 throw new XRPCError(new InvalidRequestErrorDetail("Invalid repo."));
             }
 
@@ -82,106 +71,113 @@ public class ApplyWritesController : ControllerBase
         }
 
         await using var db = _actorRepositoryProvider.Open(did);
-        var uri = ATUri.Create($"{did}/{collection}/{rkey}");
+        var uri = ATUri.Create(did, collection, rkey);
         var record = await db.Record.GetRecord(uri, cid);
         if (record == null || record.TakedownRef != null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("RecordNotFound", $"Could not locate record: {uri}"));
         }
 
-        return Ok(new GetRecordOutput(ATUri.Create(record.Uri), record.Cid, record.Value.ToATObject()));
+        return Ok(new GetRecordOutput
+        {
+            Uri = new ATUri(record.Uri),
+            Cid = record.Cid,
+            Value = record.Value
+        });
     }
 
     [HttpPost("com.atproto.repo.putRecord")]
     [AccessStandard(true, true)]
     public async Task<IActionResult> PutRecord(JsonDocument json)
     {
-        var tx = PutRecordInput.FromJson(json.RootElement.ToString());
-        // var tx = JsonSerializer.Deserialize<PutRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
-        // {
-        //     AllowOutOfOrderMetadataProperties = true
-        // });
+        var tx = PutRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid record payload."));
         _logger.LogInformation("PutRecord: {tx}", tx);
 
         var did = await CheckAccount(tx.Repo);
-        var uri = ATUri.Create($"{did}/{tx.Collection}/{tx.Rkey}");
+        var uri = ATUri.Create(did, tx.Collection, tx.Rkey);
 
         await using var actorStore = _actorRepositoryProvider.Open(did);
         var current = await actorStore.Record.GetRecord(uri, null, true);
         var isUpdate = current != null;
 
-        ATObject write = isUpdate
-            ? new Update(tx.Collection, tx.Rkey, tx.Record)
-            : new Create(tx.Collection, tx.Rkey, tx.Record);
+        IApplyWritesInputWrites write = isUpdate
+            ? new ApplyWritesUpdate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }
+            : new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record };
 
         var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write]);
+        var commitMeta = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev };
 
         if (isUpdate)
         {
             var writeResult = (PreparedUpdate)writeArr[0];
-            return Ok(new PutRecordOutput(writeResult.Uri, writeResult.Cid.ToString(), new CommitMeta(commit.Cid.ToString(), commit.Rev),
-                writeResult.ValidationStatus.ToString()));
+            return Ok(new PutRecordOutput
+            {
+                Uri = writeResult.Uri,
+                Cid = writeResult.Cid.ToString(),
+                Commit = commitMeta,
+                ValidationStatus = writeResult.ValidationStatus.ToString()
+            });
         }
-        else
-        {
-            var writeResult = (PreparedCreate)writeArr[0];
-            return Ok(new PutRecordOutput(writeResult.Uri, writeResult.Cid.ToString(), new CommitMeta(commit.Cid.ToString(), commit.Rev),
-                writeResult.ValidationStatus.ToString()));
-        }
-    }
 
+        var createResult = (PreparedCreate)writeArr[0];
+        return Ok(new PutRecordOutput
+        {
+            Uri = createResult.Uri,
+            Cid = createResult.Cid.ToString(),
+            Commit = commitMeta,
+            ValidationStatus = createResult.ValidationStatus.ToString()
+        });
+    }
 
     [HttpPost("com.atproto.repo.deleteRecord")]
     [AccessStandard(true, true)]
     public async Task<IActionResult> DeleteRecord(JsonDocument json)
     {
-        var tx = JsonSerializer.Deserialize<DeleteRecordInput>(json.RootElement.GetRawText(), new JsonSerializerOptions
-        {
-            AllowOutOfOrderMetadataProperties = true
-        });
+        var tx = DeleteRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete payload."));
 
         _logger.LogInformation("DeleteRecord: {tx}", tx);
-        var (commit, writeArr) = await Handle(tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new Delete(tx.Collection, tx.Rkey)]);
-        return Ok(new DeleteRecordOutput(new CommitMeta(commit.Cid.ToString(), commit.Rev)));
+        var (commit, _) = await Handle(tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new ApplyWritesDelete { Collection = tx.Collection, Rkey = tx.Rkey }]);
+        return Ok(new DeleteRecordOutput
+        {
+            Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev }
+        });
     }
-
 
     [HttpPost("com.atproto.repo.createRecord")]
     [AccessStandard(true, true)]
     public async Task<IActionResult> createRecord(JsonDocument json)
     {
-        var tx = CreateRecordInput.FromJson(json.RootElement.ToString());
+        var tx = CreateRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid create payload."));
         _logger.LogInformation("CreateRecord: {tx}", tx);
-        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, [new Create(tx.Collection, tx.Rkey, tx.Record)]);
+        var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, [new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }]);
         var write = (PreparedCreate)writeArr[0];
-        return Ok(new CreateRecordOutput(write.Uri, commit.Cid.ToString(), new CommitMeta(commit.Cid.ToString(), commit.Rev), write.ValidationStatus.ToString()));
+        return Ok(new CreateRecordOutput
+        {
+            Uri = write.Uri,
+            Cid = commit.Cid.ToString(),
+            Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev },
+            ValidationStatus = write.ValidationStatus.ToString()
+        });
     }
 
     [HttpPost("com.atproto.repo.applyWrites")]
     [AccessStandard(true, true)]
-    public async Task<IActionResult> ApplyWrites([FromBody] ApplyWritesInput tx)
+    public async Task<IActionResult> ApplyWrites(JsonDocument json)
     {
+        var tx = JsonSerializer.Deserialize<ApplyWritesInput>(json.RootElement.GetRawText(), ApplyWritesJsonOptions)
+                 ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid applyWrites payload."));
         _logger.LogInformation("ApplyWrites: {tx}", tx);
         var (commit, writeArr) = await Handle(tx.Repo, tx.Validate, tx.SwapCommit, null, tx.Writes);
-        return Ok(new ApplyWritesOutput(new CommitMeta(commit.Cid.ToString(), commit.Rev), writeArr.Select(WriteToOutputResult).ToList()));
+        return Ok(new ApplyWritesOutput
+        {
+            Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev },
+            Results = writeArr.Select(WriteToOutputResult).ToList()
+        });
     }
 
-    private async Task<string> CheckAccount(ATIdentifier? repo)
+    private async Task<string> CheckAccount(ATIdentifier repo)
     {
-        string handleOrDid;
-        if (repo is ATHandle atHandle)
-        {
-            handleOrDid = atHandle.Handle;
-        }
-        else if (repo is ATDid atDid)
-        {
-            handleOrDid = atDid.Handler;
-        }
-        else
-        {
-            throw new XRPCError(new InvalidRequestErrorDetail("Invalid repo type."));
-        }
-
+        var handleOrDid = repo.Value;
         var auth = HttpContext.GetAuthOutput();
         var account = await _accountRepository.GetAccount(handleOrDid, new AvailabilityFlags(IncludeDeactivated: true));
         if (account == null)
@@ -202,11 +198,12 @@ public class ApplyWritesController : ControllerBase
         return did;
     }
 
-    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(ATIdentifier? repo,
+    private async Task<(CommitData commit, IPreparedWrite[] writeArr)> Handle(
+        ATIdentifier repo,
         bool? validate,
         string? swapCommit,
         string? swapRecord,
-        List<ATObject>? writeOps)
+        IReadOnlyList<IApplyWritesInputWrites>? writeOps)
     {
         var did = await CheckAccount(repo);
         if (writeOps == null || writeOps.Count > 200)
@@ -217,12 +214,11 @@ public class ApplyWritesController : ControllerBase
         var writes = new List<IPreparedWrite>();
         foreach (var write in writeOps)
         {
-            switch (write.Type)
+            switch (write)
             {
-                case "com.atproto.repo.applyWrites#create":
+                case ApplyWritesCreate create:
                 {
-                    var create = (Create)write;
-                    if (create.Collection == null || create.Value == null)
+                    if (string.IsNullOrWhiteSpace(create.Collection) || create.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
                     {
                         throw new XRPCError(new InvalidRequestErrorDetail("Invalid create."));
                     }
@@ -230,21 +226,21 @@ public class ApplyWritesController : ControllerBase
                     writes.Add(preparedCreate);
                     break;
                 }
-                case "com.atproto.repo.applyWrites#update":
+                case ApplyWritesUpdate update:
                 {
-                    var update = (Update)write;
-                    if (update.Collection == null || update.Value == null || update.Rkey == null)
+                    if (string.IsNullOrWhiteSpace(update.Collection) || string.IsNullOrWhiteSpace(update.Rkey) ||
+                        update.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
                     {
                         throw new XRPCError(new InvalidRequestErrorDetail("Invalid update."));
                     }
-                    var preparedUpdate = Prepare.PrepareUpdate(did, update.Collection, update.Rkey, null, update.Value, validate);
+                    Cid? swapRecordCid = swapRecord != null ? Cid.FromString(swapRecord) : null;
+                    var preparedUpdate = Prepare.PrepareUpdate(did, update.Collection, update.Rkey, swapRecordCid, update.Value, validate);
                     writes.Add(preparedUpdate);
                     break;
                 }
-                case "com.atproto.repo.applyWrites#delete":
+                case ApplyWritesDelete delete:
                 {
-                    var delete = (Delete)write;
-                    if (delete.Collection == null || delete.Rkey == null)
+                    if (string.IsNullOrWhiteSpace(delete.Collection) || string.IsNullOrWhiteSpace(delete.Rkey))
                     {
                         throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete."));
                     }
@@ -253,9 +249,7 @@ public class ApplyWritesController : ControllerBase
                     break;
                 }
                 default:
-                {
-                    throw new XRPCError(new InvalidRequestErrorDetail($"Action not supported: {write.Type}"));
-                }
+                    throw new XRPCError(new InvalidRequestErrorDetail("Action not supported."));
             }
         }
 
@@ -271,13 +265,23 @@ public class ApplyWritesController : ControllerBase
         return (commit, writeArr);
     }
 
-    public ATObject WriteToOutputResult(IPreparedWrite write)
+    private static IApplyWritesOutputResults WriteToOutputResult(IPreparedWrite write)
     {
         return write switch
         {
-            PreparedCreate create => new CreateResult(create.Uri, create.Cid.ToString(), create.ValidationStatus.ToString()),
-            PreparedUpdate update => new UpdateResult(update.Uri, update.Cid.ToString(), update.ValidationStatus.ToString()),
-            PreparedDelete delete => new DeleteResult(),
+            PreparedCreate create => new ApplyWritesCreateResult
+            {
+                Uri = create.Uri,
+                Cid = create.Cid.ToString(),
+                ValidationStatus = create.ValidationStatus.ToString()
+            },
+            PreparedUpdate update => new ApplyWritesUpdateResult
+            {
+                Uri = update.Uri,
+                Cid = update.Cid.ToString(),
+                ValidationStatus = update.ValidationStatus.ToString()
+            },
+            PreparedDelete => new ApplyWritesDeleteResult(),
             _ => throw new Exception("Invalid write type.")
         };
     }

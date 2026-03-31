@@ -1,12 +1,12 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using AppBsky.Actor;
 using ActorStore;
 using atompds.Middleware;
 using Config;
 using Crypto;
-using FishyFlip.Lexicon.App.Bsky.Actor;
 using Identity;
 using Jose;
 using Microsoft.AspNetCore.Mvc;
@@ -42,7 +42,10 @@ public class AppViewProxyController : ControllerBase
     {
         var auth = HttpContext.GetAuthOutput();
 
-        return Ok(new GetPreferencesOutput([]));
+        return Ok(new GetPreferencesOutput
+        {
+            Preferences = []
+        });
     }
 
     [HttpPost("app.bsky.actor.putPreferences")]

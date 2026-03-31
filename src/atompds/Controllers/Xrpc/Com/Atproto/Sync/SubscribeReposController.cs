@@ -1,6 +1,5 @@
-﻿using System.Net.WebSockets;
+using System.Net.WebSockets;
 using Config;
-using FishyFlip.Models;
 using Microsoft.AspNetCore.Mvc;
 using PeterO.Cbor;
 using Sequencer;
@@ -13,6 +12,9 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Sync;
 [Route("xrpc")]
 public class SubscribeReposController : ControllerBase
 {
+    private const int FrameOperation = 1;
+    private const int ErrorOperation = -1;
+
     private readonly ILogger<SubscribeReposController> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly SequencerRepository _sequencer;
@@ -40,7 +42,7 @@ public class SubscribeReposController : ControllerBase
 
         _logger.LogInformation("Subscribing to repos, cursor: {Cursor}", cursor);
         using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-        var cborOpts = new CBOREncodeOptions("useIndefLengthStrings=true;float64=true;allowduplicatekeys=true;allowEmpty=true");
+        var cborOpts = CBOREncodeOptions.None;
         try
         {
             var outbox = new Outbox(_sequencer, new OutboxOpts(_subscriptionConfig.MaxSubscriptionBuffer), _loggerFactory.CreateLogger<Outbox>());
@@ -54,7 +56,7 @@ public class SubscribeReposController : ControllerBase
                 {
                     var header = CBORObject.NewMap()
                         .Add("t", "#info")
-                        .Add("op", FrameHeaderOperation.Error)
+                        .Add("op", ErrorOperation)
                         .EncodeToBytes();
                     var blob = CBORObject.NewMap()
                         .Add("atError", "FutureCursor")
@@ -72,7 +74,7 @@ public class SubscribeReposController : ControllerBase
                 {
                     var header = CBORObject.NewMap()
                         .Add("t", "#info")
-                        .Add("op", FrameHeaderOperation.Error)
+                        .Add("op", ErrorOperation)
                         .EncodeToBytes();
                     var blob = CBORObject.NewMap()
                         .Add("atError", "OutdatedCursor")
@@ -97,7 +99,7 @@ public class SubscribeReposController : ControllerBase
                 {
                     var header = CBORObject.NewMap()
                         .Add("t", "#commit")
-                        .Add("op", FrameHeaderOperation.Frame)
+                        .Add("op", FrameOperation)
                         .EncodeToBytes(cborOpts);
                     var blob = commit.Evt.ToCborObject()
                         .Add("seq", evt.Seq)
@@ -109,7 +111,7 @@ public class SubscribeReposController : ControllerBase
                 {
                     var header = CBORObject.NewMap()
                         .Add("t", "#handle")
-                        .Add("op", FrameHeaderOperation.Frame)
+                        .Add("op", FrameOperation)
                         .EncodeToBytes(cborOpts);
                     var blob = handle.Evt.ToCborObject()
                         .Add("seq", evt.Seq)
@@ -122,7 +124,7 @@ public class SubscribeReposController : ControllerBase
                 {
                     var header = CBORObject.NewMap()
                         .Add("t", "#account")
-                        .Add("op", FrameHeaderOperation.Frame)
+                        .Add("op", FrameOperation)
                         .EncodeToBytes(cborOpts);
                     var blob = account.Evt.ToCborObject()
                         .Add("seq", evt.Seq)
@@ -135,7 +137,7 @@ public class SubscribeReposController : ControllerBase
                 {
                     var header = CBORObject.NewMap()
                         .Add("t", "#tombstone")
-                        .Add("op", FrameHeaderOperation.Frame)
+                        .Add("op", FrameOperation)
                         .EncodeToBytes(cborOpts);
                     var blob = tombstone.Evt.ToCborObject()
                         .Add("seq", evt.Seq)

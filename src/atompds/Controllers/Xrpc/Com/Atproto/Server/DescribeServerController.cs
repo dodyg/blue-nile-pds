@@ -1,6 +1,6 @@
 ﻿using Config;
-using FishyFlip.Lexicon.Com.Atproto.Server;
-using FishyFlip.Models;
+using CarpaNet;
+using ComAtproto.Server;
 using Microsoft.AspNetCore.Mvc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;

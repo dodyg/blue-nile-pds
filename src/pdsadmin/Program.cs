@@ -1,12 +1,12 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
+using CarpaNet;
 using ConsoleAppFramework;
-using FishyFlip;
-using FishyFlip.Lexicon.Com.Atproto.Admin;
-using FishyFlip.Lexicon.Com.Atproto.Server;
-using FishyFlip.Lexicon.Com.Atproto.Sync;
-using FishyFlip.Models;
+using CommonWeb.Generated;
+using ComAtproto.Admin;
+using ComAtproto.Server;
+using ComAtproto.Sync;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Debug;
 
@@ -20,33 +20,21 @@ public class AccountCommands
     [Command("list")]
     public async Task List()
     {
-        var session = await Program.LoginAsync();
-        var repos = await Program.Protocol.ListReposAsync(100);
-
-        ListReposOutput? output = null;
-
-        repos.Switch(
-            success => output = success,
-            error => Program.Logger.LogError("Failed to list repos {Error} {Message}", error.Detail?.Error,
-                error.Detail?.Message));
-
-        if (output?.Repos == null)
-        {
-            Program.Logger.LogError("Failed to list repos");
-            return;
-        }
+        var client = await Program.CreateAuthenticatedClientAsync();
+        var output = await client.ComAtprotoSyncListReposAsync(new ListReposParameters { Limit = 100 });
 
         var outputList = new List<(string Handle, string Email, string Did)>();
         foreach (var repo in output.Repos)
         {
-            var accountInfo = await Program.Protocol.GetAccountInfoAsync(repo.Did!);
-            accountInfo.Switch(
-                accountInfoSuccess =>
-                {
-                    outputList.Add((accountInfoSuccess!.Handle!.Handle, accountInfoSuccess.Email!, accountInfoSuccess.Did!.Handler));
-                },
-                error => Program.Logger.LogError("Failed to get account info for {Did} {Error}", repo.Did, error.Detail?.Message)
-            );
+            try
+            {
+                var accountInfo = await client.ComAtprotoAdminGetAccountInfoAsync(new GetAccountInfoParameters { Did = repo.Did });
+                outputList.Add((accountInfo.Handle.Value, accountInfo.Email ?? string.Empty, accountInfo.Did.Value));
+            }
+            catch (ATProtoException ex)
+            {
+                Program.Logger.LogError(ex, "Failed to get account info for {Did} {ErrorCode} {Message}", repo.Did, ex.ErrorCode, ex.Message);
+            }
         }
 
         Program.Logger.LogInformation("{Handle,-20} {Email,-20} {Did,-20}", "Handle", "Email", "DID");
@@ -64,48 +52,47 @@ public class AccountCommands
     [Command("create")]
     public async Task Create(string email, string handle)
     {
-        var session = await Program.LoginAsync();
-        var atHandle = ATHandle.Create(handle) ?? throw new Exception("Failed to create handle");
+        var client = await Program.CreateAuthenticatedClientAsync();
+        var atHandle = new ATHandle(handle);
         var rnd = RandomNumberGenerator.Create();
         var password = new byte[30];
         rnd.GetBytes(password);
         var passwordStr = Convert.ToBase64String(password).Replace("=", "").Replace("+", "").Replace("/", "")[..24];
 
         var inviteCode = await Program.CreateInviteCodeAsync(1);
-        var result = await Program.Protocol.CreateAccountAsync(atHandle, email, password: passwordStr, inviteCode: inviteCode.Code);
+        var result = await client.ComAtprotoServerCreateAccountAsync(new CreateAccountInput
+        {
+            Handle = atHandle,
+            Email = email,
+            Password = passwordStr,
+            InviteCode = inviteCode.Code
+        });
 
-        result.Switch(
-            success =>
-            {
-                if (success == null)
-                {
-                    Program.Logger.LogError("Failed to create account");
-                    return;
-                }
-                Program.Logger.LogInformation("Account created successfully!");
-                Program.Logger.LogInformation("Handle   : {Handle}", handle);
-                Program.Logger.LogInformation("DID      : {Did}", success.Did);
-                Program.Logger.LogInformation("Password : {Password}", password);
-                Program.Logger.LogInformation("Save this password, it will not be displayed again.");
-            },
-            error => Program.Logger.LogError("Failed to create account {Error} {Message}", error.Detail?.Error, error.Detail?.Message)
-        );
+        Program.Logger.LogInformation("Account created successfully!");
+        Program.Logger.LogInformation("Handle   : {Handle}", handle);
+        Program.Logger.LogInformation("DID      : {Did}", result.Did);
+        Program.Logger.LogInformation("Password : {Password}", passwordStr);
+        Program.Logger.LogInformation("Save this password, it will not be displayed again.");
     }
 
     /// <summary>
     ///     Delete an account specified by DID
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
+    /// <param name="token">-t, --token, Account deletion token sent to the user's email</param>
+    /// <param name="password">-p, --password, Current password for the account being deleted</param>
     [Command("delete")]
-    public async Task Delete(string did)
+    public async Task Delete(string did, string token, string password)
     {
-        var session = await Program.LoginAsync();
-        var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
-        var result = await Program.Protocol.DeleteAccountAsync(atDid);
-        result.Switch(
-            success => Program.Logger.LogInformation("{Did} deleted", did),
-            error => Program.Logger.LogError("Failed to delete account {Did} {Error} {Message}", did, error.Detail?.Error, error.Detail?.Message)
-        );
+        var client = await Program.CreateAuthenticatedClientAsync();
+        await client.ComAtprotoServerDeleteAccountAsync(new DeleteAccountInput
+        {
+            Did = new ATDid(did),
+            Token = token,
+            Password = password
+        });
+
+        Program.Logger.LogInformation("{Did} deleted", did);
     }
 
     /// <summary>
@@ -115,17 +102,16 @@ public class AccountCommands
     [Command("takedown")]
     public async Task Takedown(string did)
     {
-        var session = await Program.LoginAsync();
-        var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
-        var atObject = new RepoRef(atDid);
+        var client = await Program.CreateAuthenticatedClientAsync();
+        var atDid = new ATDid(did);
         var takedownRef = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var takedownAttr = new StatusAttr(true, takedownRef.ToString());
-        var result = await Program.Protocol.UpdateSubjectStatusAsync(atObject, takedownAttr);
+        await client.ComAtprotoAdminUpdateSubjectStatusAsync(new UpdateSubjectStatusInput
+        {
+            Subject = new DefsRepoRef { Did = atDid },
+            Takedown = new DefsStatusAttr { Applied = true, Ref = takedownRef.ToString() }
+        });
 
-        result.Switch(
-            success => Program.Logger.LogInformation("{Did} taken down", did),
-            error => Program.Logger.LogError("Failed to take down account {Did} {Error} {Message}", did, error.Detail?.Error, error.Detail?.Message)
-        );
+        Program.Logger.LogInformation("{Did} taken down", did);
     }
 
     /// <summary>
@@ -135,16 +121,15 @@ public class AccountCommands
     [Command("untakedown")]
     public async Task Untakedown(string did)
     {
-        var session = await Program.LoginAsync();
-        var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
-        var atObject = new RepoRef(atDid);
-        var takedownAttr = new StatusAttr(false);
-        var result = await Program.Protocol.UpdateSubjectStatusAsync(atObject, takedownAttr);
+        var client = await Program.CreateAuthenticatedClientAsync();
+        var atDid = new ATDid(did);
+        await client.ComAtprotoAdminUpdateSubjectStatusAsync(new UpdateSubjectStatusInput
+        {
+            Subject = new DefsRepoRef { Did = atDid },
+            Takedown = new DefsStatusAttr { Applied = false }
+        });
 
-        result.Switch(
-            success => Program.Logger.LogInformation("{Did} untaken down", did),
-            error => Program.Logger.LogError("Failed to untake down account {Did} {Error} {Message}", did, error.Detail?.Error, error.Detail?.Message)
-        );
+        Program.Logger.LogInformation("{Did} untaken down", did);
     }
 
     /// <summary>
@@ -154,22 +139,20 @@ public class AccountCommands
     [Command("reset-password")]
     public async Task ResetPassword(string did)
     {
-        var session = await Program.LoginAsync();
-        var atDid = ATDid.Create(did) ?? throw new Exception("Failed to create DID");
+        var client = await Program.CreateAuthenticatedClientAsync();
+        var atDid = new ATDid(did);
         var rnd = RandomNumberGenerator.Create();
         var password = new byte[30];
         rnd.GetBytes(password);
         var passwordStr = Convert.ToBase64String(password).Replace("=", "").Replace("+", "").Replace("/", "")[..24];
-        var result = await Program.Protocol.UpdateAccountPasswordAsync(atDid, passwordStr);
+        await client.ComAtprotoAdminUpdateAccountPasswordAsync(new UpdateAccountPasswordInput
+        {
+            Did = atDid,
+            Password = passwordStr
+        });
 
-        result.Switch(
-            success =>
-            {
-                Program.Logger.LogInformation("Password reset for {Did}", did);
-                Program.Logger.LogInformation("New password: {Password}", passwordStr);
-            },
-            error => Program.Logger.LogError("Failed to reset password for account {Did} {Error} {Message}", did, error.Detail?.Error, error.Detail?.Message)
-        );
+        Program.Logger.LogInformation("Password reset for {Did}", did);
+        Program.Logger.LogInformation("New password: {Password}", passwordStr);
     }
 }
 
@@ -222,7 +205,6 @@ public class RootCommands
     [Command("create-invite-code")]
     public async Task CreateInviteCode()
     {
-        var session = await Program.LoginAsync();
         var result = await Program.CreateInviteCodeAsync(1);
         Program.Logger.LogInformation("Invite code: {Code}", result.Code);
     }
@@ -236,25 +218,23 @@ public record PdsEnv(
 public class Program
 {
     public static PdsEnv PdsEnv { get; set; } = null!;
-    public static ATProtocol Protocol { get; set; } = null!;
     public static ILogger Logger { get; set; } = null!;
-    public static Session Session { get; set; } = null!;
-
-    public static async Task<Session> LoginAsync()
-    {
-        return await Protocol.AuthenticateWithPasswordAsync("admin", PdsEnv.PdsAdminPassword) ?? throw new Exception("Failed to login");
-    }
 
     public static async Task<CreateInviteCodeOutput> CreateInviteCodeAsync(int useCount)
     {
-        var result = await Protocol.CreateInviteCodeAsync(useCount);
-        CreateInviteCodeOutput? inviteCode = null;
-        result.Switch(
-            success => inviteCode = success,
-            error => Logger.LogError("Failed to create invite code {Error} {Message}", error.Detail?.Error, error.Detail?.Message)
-        );
+        var client = await CreateAuthenticatedClientAsync();
+        return await client.ComAtprotoServerCreateInviteCodeAsync(new CreateInviteCodeInput
+        {
+            UseCount = useCount
+        });
+    }
 
-        return inviteCode ?? throw new Exception("Failed to create invite code");
+    public static async Task<ATProtoClient> CreateAuthenticatedClientAsync()
+    {
+        return await ATProtoClientFactory.CreateWithSessionAsync(
+            "admin",
+            PdsEnv.PdsAdminPassword,
+            new Uri($"https://{PdsEnv.PdsHostname}"));
     }
 
     public static async Task Main(string[] args)
@@ -266,14 +246,18 @@ public class Program
         var pdsEnv = JsonSerializer.Deserialize<PdsEnv>(pdsEnvContent) ??
                      throw new Exception("Failed to read pdsenv.json");
         PdsEnv = pdsEnv;
-        var protoBuilder = new ATProtocolBuilder()
-            .WithInstanceUrl(new Uri($"https://{PdsEnv.PdsHostname}"))
-            .WithLogger(Logger);
-        Protocol = protoBuilder.Build();
 
         var app = ConsoleApp.Create();
         app.Add<RootCommands>();
         app.Add<AccountCommands>("account");
-        await app.RunAsync(args);
+        try
+        {
+            await app.RunAsync(args);
+        }
+        catch (ATProtoException ex)
+        {
+            Logger.LogError(ex, "ATProto request failed {StatusCode} {ErrorCode} {Message}", ex.StatusCode, ex.ErrorCode, ex.Message);
+            Environment.ExitCode = 1;
+        }
     }
 }

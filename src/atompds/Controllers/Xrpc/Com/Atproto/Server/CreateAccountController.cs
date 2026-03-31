@@ -3,12 +3,12 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using atompds.Utils;
+using CarpaNet;
 using CommonWeb;
+using ComAtproto.Server;
 using Config;
 using Crypto.Secp256k1;
 using DidLib;
-using FishyFlip.Lexicon.Com.Atproto.Server;
-using FishyFlip.Models;
 using Handle;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -122,7 +122,7 @@ public class CreateAccountController : ControllerBase
                 Did = new ATDid(validatedInputs.did),
                 AccessJwt = creds.AccessJwt,
                 RefreshJwt = creds.RefreshJwt,
-                DidDoc = didDoc?.ToDidDoc(),
+                DidDoc = didDoc?.ToJsonElement(),
                 Handle = new ATHandle(validatedInputs.handle)
             });
         }
@@ -178,7 +178,7 @@ public class CreateAccountController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("This email address is not supported, please use a different email."));
         }
 
-        var handle = await _handle.NormalizeAndValidateHandle(createAccountInput.Handle!.Handle, createAccountInput.Did?.Handler, false);
+        var handle = await _handle.NormalizeAndValidateHandle(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
 
         if (_invitesConfig.Required && createAccountInput.InviteCode != null)
         {

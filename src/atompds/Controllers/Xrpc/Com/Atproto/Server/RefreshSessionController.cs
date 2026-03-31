@@ -2,10 +2,10 @@ using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
 using atompds.Utils;
+using CarpaNet;
 using CommonWeb;
+using ComAtproto.Server;
 using Config;
-using FishyFlip.Lexicon.Com.Atproto.Server;
-using FishyFlip.Models;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -65,14 +65,16 @@ public class RefreshSessionController : ControllerBase
 
         var (active, status) = AccountStore.FormatAccountStatus(user);
 
-        return Ok(new RefreshSessionOutput(
-            rotated.Value.AccessJwt,
-            rotated.Value.RefreshJwt,
-            new ATHandle(user.Handle ?? Constants.INVALID_HANDLE),
-            new ATDid(user.Did),
-            didDoc?.ToDidDoc(),
-            active,
-            status.ToString()));
+        return Ok(new RefreshSessionOutput
+        {
+            AccessJwt = rotated.Value.AccessJwt,
+            RefreshJwt = rotated.Value.RefreshJwt,
+            Handle = new ATHandle(user.Handle ?? Constants.INVALID_HANDLE),
+            Did = new ATDid(user.Did),
+            DidDoc = didDoc?.ToJsonElement(),
+            Active = active,
+            Status = status.ToString()
+        });
     }
 
     private async Task<DidDocument?> DidDocForSession(string did, bool forceRefresh = false)

@@ -1,13 +1,10 @@
 ﻿using System.Text;
 using System.Text.Json;
+using AppBsky.Actor;
+using AppBsky.Feed;
+using CarpaNet;
 using CID;
 using Common;
-using FishyFlip.Lexicon;
-using FishyFlip.Lexicon.App.Bsky.Actor;
-using FishyFlip.Lexicon.App.Bsky.Feed;
-using FishyFlip.Lexicon.App.Bsky.Graph;
-using FishyFlip.Lexicon.App.Bsky.Richtext;
-using FishyFlip.Models;
 using Handle;
 using Multiformats.Codec;
 using PeterO.Cbor;
@@ -19,15 +16,16 @@ public class Prepare
 {
     public static PreparedDelete PrepareDelete(string did, string collection, string rkey, Cid? swapCid)
     {
-        return new PreparedDelete(ATUri.Create($"{did}/{collection}/{rkey}"), swapCid);
+        return new PreparedDelete(ATUri.Create(did, collection, rkey), swapCid);
     }
 
-    public static PreparedCreate PrepareCreate(string did, string collection, string? rkey, Cid? swap, ATObject record, bool? validate)
+    public static PreparedCreate PrepareCreate(string did, string collection, string? rkey, Cid? swapCid, JsonElement record, bool? validate)
     {
         var maybeValidate = validate != false;
-        if (record.Type != collection && maybeValidate)
+        var recordType = GetRecordType(record);
+        if (recordType != collection && maybeValidate)
         {
-            throw new Exception($"Invalid type, expected {collection}, got {record.Type}");
+            throw new Exception($"Invalid type, expected {collection}, got {recordType}");
         }
 
         // TODO: need to properly validate the record
@@ -43,24 +41,26 @@ public class Prepare
         var nextRKey = TID.Next();
         rkey ??= nextRKey.ToString();
         RecordKey.EnsureValidRecordKey(rkey);
-        AssertNoExplicitSlurs(rkey, record);
-        var recordCbor = CBORObject.FromJSONString(record.ToJson());
+        AssertNoExplicitSlurs(collection, rkey, record);
+        var recordJson = record.GetRawText();
+        var recordCbor = CBORObject.FromJSONString(recordJson);
         return new PreparedCreate(
-            ATUri.Create($"{did}/{collection}/{rkey}"),
+            ATUri.Create(did, collection, rkey),
             CidForSafeRecord(record),
-            swap,
+            swapCid,
             recordCbor,
-            ExtractBlobReferences(record.ToJson()),
+            ExtractBlobReferences(record),
             validationStatus);
     }
 
 
-    public static PreparedUpdate PrepareUpdate(string did, string collection, string rkey, Cid? swapCid, ATObject record, bool? validate)
+    public static PreparedUpdate PrepareUpdate(string did, string collection, string rkey, Cid? swapCid, JsonElement record, bool? validate)
     {
         var maybeValidate = validate != false;
-        if (record.Type != collection && maybeValidate)
+        var recordType = GetRecordType(record);
+        if (recordType != collection && maybeValidate)
         {
-            throw new Exception($"Invalid type, expected {collection}, got {record.Type}");
+            throw new Exception($"Invalid type, expected {collection}, got {recordType}");
         }
 
         var validationStatus = ValidationStatus.Unknown;
@@ -69,72 +69,84 @@ public class Prepare
             //
         }
 
-        AssertNoExplicitSlurs(rkey, record);
+        AssertNoExplicitSlurs(collection, rkey, record);
         return new PreparedUpdate(
-            ATUri.Create($"{did}/{collection}/{rkey}"),
+            ATUri.Create(did, collection, rkey),
             CidForSafeRecord(record),
             swapCid,
-            CBORObject.FromJSONString(record.ToJson()),
-            ExtractBlobReferences(record.ToJson()),
+            CBORObject.FromJSONString(record.GetRawText()),
+            ExtractBlobReferences(record),
             validationStatus);
     }
 
-    public static Cid CidForSafeRecord(ATObject record)
+    public static Cid CidForSafeRecord(JsonElement record)
     {
         // TODO: This is probably not in any way correct.
-        var cborObj = CBORObject.FromJSONString(record.ToJson());
+        var cborObj = CBORObject.FromJSONString(record.GetRawText());
         var block = CborBlock.Encode(cborObj);
 
         return block.Cid;
     }
 
-    public static void AssertNoExplicitSlurs(string rkey, ATObject record)
+    public static void AssertNoExplicitSlurs(string collection, string rkey, JsonElement record)
     {
         var sb = new StringBuilder();
-        if (record is Profile profile)
+        if (collection == Profile.RecordType)
         {
             sb.Append(' ');
-            sb.Append(profile.DisplayName);
+            AppendString(record, sb, "displayName");
         }
-        else if (record is List list)
+        else if (collection == AppBsky.Graph.List.RecordType)
         {
             sb.Append(' ');
-            sb.Append(list.Name);
+            AppendString(record, sb, "name");
         }
-        else if (record is Starterpack starterpack)
+        else if (collection == "app.bsky.graph.starterpack")
         {
             sb.Append(' ');
-            sb.Append(starterpack.Name);
+            AppendString(record, sb, "name");
         }
-        else if (record is Generator generator)
+        else if (collection == Generator.RecordType)
         {
             sb.Append(' ');
             sb.Append(rkey);
             sb.Append(' ');
-            sb.Append(generator.DisplayName);
+            AppendString(record, sb, "displayName");
         }
-        else if (record is Post post)
+        else if (collection == Post.RecordType)
         {
-            if (post.Tags != null)
+            if (record.TryGetProperty("tags", out var tags) && tags.ValueKind == JsonValueKind.Array)
             {
                 sb.Append(' ');
-                sb.AppendJoin(" ", post.Tags);
+                foreach (var tag in tags.EnumerateArray())
+                {
+                    if (tag.ValueKind == JsonValueKind.String)
+                    {
+                        sb.Append(tag.GetString());
+                        sb.Append(' ');
+                    }
+                }
             }
 
-            if (post.Facets != null)
+            if (record.TryGetProperty("facets", out var facets) && facets.ValueKind == JsonValueKind.Array)
             {
-                foreach (var facet in post.Facets)
+                foreach (var facet in facets.EnumerateArray())
                 {
-                    if (facet.Features == null)
+                    if (!facet.TryGetProperty("features", out var features) || features.ValueKind != JsonValueKind.Array)
                     {
                         continue;
                     }
-                    foreach (var feature in facet.Features)
+                    foreach (var feature in features.EnumerateArray())
                     {
-                        if (feature is Tag tag)
+                        if (feature.ValueKind == JsonValueKind.Object &&
+                            feature.TryGetProperty("$type", out var typeProp) &&
+                            typeProp.ValueKind == JsonValueKind.String &&
+                            typeProp.GetString() == "app.bsky.richtext.facet#tag" &&
+                            feature.TryGetProperty("tag", out var tagProp) &&
+                            tagProp.ValueKind == JsonValueKind.String)
                         {
                             sb.Append(' ');
-                            sb.Append(tag.TagValue);
+                            sb.Append(tagProp.GetString());
                         }
                     }
                 }
@@ -144,6 +156,28 @@ public class Prepare
         if (HandleManager.HasExplicitSlur(sb.ToString()))
         {
             throw new Exception("Unacceptable slur in record.");
+        }
+    }
+
+    private static string? GetRecordType(JsonElement record)
+    {
+        if (record.ValueKind == JsonValueKind.Object &&
+            record.TryGetProperty("$type", out var typeProp) &&
+            typeProp.ValueKind == JsonValueKind.String)
+        {
+            return typeProp.GetString();
+        }
+
+        return null;
+    }
+
+    private static void AppendString(JsonElement record, StringBuilder sb, string propertyName)
+    {
+        if (record.ValueKind == JsonValueKind.Object &&
+            record.TryGetProperty(propertyName, out var property) &&
+            property.ValueKind == JsonValueKind.String)
+        {
+            sb.Append(property.GetString());
         }
     }
 

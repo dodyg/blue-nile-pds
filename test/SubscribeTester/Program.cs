@@ -1,11 +1,12 @@
-﻿using System.Collections.Concurrent;
-using FishyFlip;
-using FishyFlip.Lexicon.App.Bsky.Embed;
-using FishyFlip.Lexicon.App.Bsky.Feed;
-using FishyFlip.Lexicon.App.Bsky.Graph;
-using FishyFlip.Lexicon.Com.Atproto.Repo;
-using FishyFlip.Models;
-using FishyFlip.Tools;
+using System.Text.Json;
+using AppBsky.Embed;
+using AppBsky.Feed;
+using AppBsky.Graph;
+using CarpaNet;
+using CommonWeb.Generated;
+using CarpaNet.Json;
+using ComAtproto.Repo;
+using ComAtproto.Sync;
 using Microsoft.Extensions.Logging;
 
 var loggerFactory = LoggerFactory.Create(builder =>
@@ -15,83 +16,80 @@ var loggerFactory = LoggerFactory.Create(builder =>
 
 var log = loggerFactory.CreateLogger("Debug");
 
-var atWebProtocol = new ATWebSocketProtocolBuilder()
-    .WithInstanceUrl(new Uri("https://pds.ramen.fyi"))
-    .WithLogger(log)
-    .Build();
-
-var atProtocol = new ATProtocolBuilder()
-    .WithInstanceUrl(new Uri("https://pds.ramen.fyi"))
-    .WithLogger(log)
-    .Build();
-
-
-var messageQueue = new ConcurrentQueue<SubscribeRepoMessage>();
-
-atWebProtocol.OnSubscribedRepoMessage += (sender, args) =>
+var atProtocol = ATProtoClientFactory.Create(new ATProtoClientOptions
 {
-    messageQueue.Enqueue(args.Message);
-};
+    BaseUrl = new Uri("https://pds.ramen.fyi"),
+    LoggerFactory = loggerFactory
+});
 
-await atWebProtocol.StartSubscribeReposAsync();
-
-while (true)
-    if (messageQueue.TryDequeue(out var message))
-    {
-        await HandleMessageAsync(message);
-    }
-    else
-    {
-        await Task.Delay(1000);
-    }
-
-async Task HandleMessageAsync(SubscribeRepoMessage message)
+await foreach (var message in atProtocol.ComAtprotoSyncSubscribeReposAsync())
 {
-    if (message.Commit is null)
+    await HandleMessageAsync(message);
+}
+
+async Task HandleMessageAsync(ISubscribeReposMessage message)
+{
+    if (message is not SubscribeReposCommit commit)
     {
         return;
     }
 
-    var orgId = message.Commit.Repo;
+    var orgId = commit.Repo;
 
-    if (orgId is null)
+    var repoOutput = await atProtocol.ComAtprotoRepoDescribeRepoAsync(new DescribeRepoParameters { Repo = orgId.Value });
+
+    foreach (var op in commit.Ops)
     {
-        return;
-    }
-
-    if (message.Record is not null)
-    {
-        log.LogInformation("Record: {Record}", message.Record.ToJson());
-
-
-        if (message.Record is Follow follow)
+        if (!string.Equals(op.Action, "create", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(op.Action, "update", StringComparison.OrdinalIgnoreCase))
         {
-            log.LogInformation("Follow: {Subject} -> {CreatedAt}", follow.Subject, follow.CreatedAt);
+            continue;
         }
 
-        if (message.Record is Post post)
+        var pathParts = op.Path.Split('/');
+        if (pathParts.Length != 2)
         {
-            // The Actor Did.
-            var did = message.Commit.Repo;
+            continue;
+        }
 
-            var repo = (await atProtocol.DescribeRepoAsync(did)).HandleResult();
+        var getRecord = await atProtocol.ComAtprotoRepoGetRecordAsync(new GetRecordParameters
+        {
+            Repo = orgId.Value,
+            Collection = pathParts[0],
+            Rkey = pathParts[1]
+        });
 
-            // Commit.Ops are the actions used when creating the message.
-            // In this case, it's a create record for the post.
-            // The path contains the post action and path, we need the path, so we split to get it.
-            var url = $"https://bsky.app/profile/{did}/post/{message.Commit.Ops![0]!.Path!.Split('/').Last()}";
-            log.LogInformation("Post URL: {Url}, from {Handle}", url, repo?.Handle);
+        log.LogInformation("Record: {Record}", getRecord.Value.GetRawText());
+
+        if (pathParts[0] == Follow.RecordType)
+        {
+            var follow = JsonSerializer.Deserialize<Follow>(getRecord.Value, ATProtoJsonContext.DefaultOptions);
+            if (follow != null)
+            {
+                log.LogInformation("Follow: {Subject} -> {CreatedAt}", follow.Subject, follow.CreatedAt);
+            }
+        }
+
+        if (pathParts[0] == Post.RecordType)
+        {
+            var post = JsonSerializer.Deserialize<Post>(getRecord.Value, ATProtoJsonContext.DefaultOptions);
+            if (post == null)
+            {
+                continue;
+            }
+
+            var did = commit.Repo;
+            var url = $"https://bsky.app/profile/{did}/post/{pathParts[1]}";
+            log.LogInformation("Post URL: {Url}, from {Handle}", url, repoOutput.Handle);
 
             if (post.Reply is not null)
             {
                 log.LogInformation("Reply Root: {Root}, Parent: {Parent}", post.Reply.Root, post.Reply.Parent);
             }
 
-            if (post.Embed is EmbedVideo videoEmbed)
+            if (post.Embed is Video videoEmbed)
             {
-                // https://video.bsky.app/watch/did%3Aplc%3Acxe5e4ldjfvryf5dqvopdq3v/bafkreiefakrdmclohastskuauwurbtx3tnu2drjpnirsoroyalq5nqr73a/playlist.m3u8
-                var link = videoEmbed.Video?.Ref?.Link;
-                var linkString = link?.ToString();
+                var linkString = videoEmbed.VideoValue.Ref.Value;
                 log.LogInformation("Video Link: https://video.bsky.app/watch/{Did}/{LinkString}/playlist.m3u8", did, linkString);
             }
         }
