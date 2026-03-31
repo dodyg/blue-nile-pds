@@ -12,7 +12,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CarpaNet" Version="1.0.1" />
+        <PackageReference Include="CarpaNet" />
     </ItemGroup>
 
     <ItemGroup>
