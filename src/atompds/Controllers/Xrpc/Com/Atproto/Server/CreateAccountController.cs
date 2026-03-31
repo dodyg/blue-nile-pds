@@ -1,4 +1,6 @@
 ﻿using System.Net.Mail;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
@@ -13,7 +15,6 @@ using Handle;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
-using Newtonsoft.Json;
 using Sequencer;
 using Xrpc;
 using Operations = DidLib.Operations;
@@ -246,7 +247,7 @@ public class CreateAccountController : ControllerBase
         {
             var response = await _httpClient.GetAsync($"https://open.kickbox.com/v1/disposable/{email}");
             var content = await response.Content.ReadAsStringAsync();
-            var disposableResponse = JsonConvert.DeserializeObject<DisposableResponse>(content);
+            var disposableResponse = JsonSerializer.Deserialize<DisposableResponse>(content);
             if (disposableResponse == null)
             {
                 return false;
@@ -261,5 +262,5 @@ public class CreateAccountController : ControllerBase
         }
     }
 
-    private record DisposableResponse([property: JsonProperty("disposable")] bool Disposable);
+    private record DisposableResponse([property: JsonPropertyName("disposable")] bool Disposable);
 }
