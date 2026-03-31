@@ -1,0 +1,38 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/pds_projects/">
+    <Project Path="src/pds_projects/AccountManager/AccountManager.csproj" />
+    <Project Path="src/pds_projects/ActorStore/ActorStore.csproj" />
+    <Project Path="src/pds_projects/BlobStore/BlobStore.csproj" />
+    <Project Path="src/pds_projects/Config/Config.csproj" />
+    <Project Path="src/pds_projects/Mailer/Mailer.csproj" />
+    <Project Path="src/pds_projects/Sequencer/Sequencer.csproj" />
+    <Project Path="src/pds_projects/Xrpc/Xrpc.csproj" />
+  </Folder>
+  <Folder Name="/projects/">
+    <Project Path="src/projects/CID/CID.csproj" />
+    <Project Path="src/projects/Common/Common.csproj" />
+    <Project Path="src/projects/CommonDb/CommonDb.csproj" />
+    <Project Path="src/projects/CommonWeb/CommonWeb.csproj" />
+    <Project Path="src/projects/Crypto/Crypto.csproj" />
+    <Project Path="src/projects/DidLib/DidLib.csproj" />
+    <Project Path="src/projects/Handle/Handle.csproj" />
+    <Project Path="src/projects/Identity/Identity.csproj" />
+    <Project Path="src/projects/Repo/Repo.csproj" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/pds_projects/" />
+  <Folder Name="/tests/">
+    <Project Path="test/ActorStore.Test/ActorStore.Test.csproj" />
+    <Project Path="test/CID.Tests/CID.Tests.csproj" />
+    <Project Path="test/Common.Test/Common.Test.csproj" />
+    <Project Path="test/SubscribeTester/SubscribeTester.csproj" />
+  </Folder>
+  <Project Path="src/atompds/atompds.csproj" />
+  <Project Path="src/migration/migration.csproj" />
+  <Project Path="src/pdsadmin/pdsadmin.csproj" />
+</Solution>
