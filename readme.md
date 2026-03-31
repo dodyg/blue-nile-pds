@@ -54,27 +54,4 @@ and should follow the same general structure.
     - As long as your handle domain is the same as the server's handles are resolved via
       the [HTTP method](https://bsky.social/about/blog/4-28-2023-domain-handle-tutorial)
 
-## Components
-
-- Crypto (implements @atproto/crypto)
-    - Cryptographic helper functions
-    - K-256 (secp256k1) support
-- Repo (implements @atproto/repo)
-    - Merkle Search Tree (MST) structure
-    - Content Addressable Archive (CAR) encoding
-- CID
-    - Content Identifier (CID) generation and parsing
-- DidLib
-    - Minimal implementation to upload DID documents to a PLC Directory
-- Identity (implements @atproto/identity)
-    - did:web: and did:plc: resolution
-    - _atproto dns resolution
-- Common
-    - TID generation
-    - CBOR block base handling
-
-## Configuration
-
-Copy `atompds/appsettings.Development.json.example` to `atompds/appsettings.Development.json` and edit it.
-There are more options found in `atompds/Config/ServerEnvironment.cs` that can also be specified in config.
 
