@@ -36,8 +36,8 @@ Useful focused test commands:
 
 ```bash
 dotnet test test/CID.Tests/CID.Tests.csproj
-dotnet test test/Common.Test/Common.Test.csproj
-dotnet test test/ActorStore.Test/ActorStore.Test.csproj
+dotnet test test/Common.Tests/Common.Tests.csproj
+dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
 ```
 
 For dependency hygiene:

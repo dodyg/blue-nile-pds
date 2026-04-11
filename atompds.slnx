@@ -27,9 +27,9 @@
   <Folder Name="/src/" />
   <Folder Name="/src/pds_projects/" />
   <Folder Name="/tests/">
-    <Project Path="test/ActorStore.Test/ActorStore.Test.csproj" />
+    <Project Path="test/ActorStore.Tests/ActorStore.Tests.csproj" />
     <Project Path="test/CID.Tests/CID.Tests.csproj" />
-    <Project Path="test/Common.Test/Common.Test.csproj" />
+    <Project Path="test/Common.Tests/Common.Tests.csproj" />
     <Project Path="test/SubscribeTester/SubscribeTester.csproj" />
   </Folder>
   <Project Path="src/atompds/atompds.csproj" />

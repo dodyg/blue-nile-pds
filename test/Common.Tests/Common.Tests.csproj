@@ -11,19 +11,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Ipfs.Core" />
         <PackageReference Include="TUnit" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\projects\CID\CID.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Content Include="..\data\**\*">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>data\%(RecursiveDir)%(Filename)%(Extension)</Link>
-        </Content>
+        <ProjectReference Include="..\..\src\projects\Common\Common.csproj" />
     </ItemGroup>
 
 </Project>
