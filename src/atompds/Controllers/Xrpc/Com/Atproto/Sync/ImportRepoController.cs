@@ -29,7 +29,7 @@ public class ImportRepoController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("com.atproto.sync.importRepo")]
+    [HttpPost("com.atproto.repo.importRepo")]
     public async Task<IActionResult> ImportRepoAsync()
     {
         var did = HttpContext.Request.Headers["x-atproto-did"].FirstOrDefault()

@@ -27,7 +27,7 @@ public class ListMissingBlobsController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet("com.atproto.sync.listMissingBlobs")]
+    [HttpGet("com.atproto.repo.listMissingBlobs")]
     public async Task<IActionResult> ListMissingBlobsAsync(
         [FromQuery] int limit = 500,
         [FromQuery] string? cursor = null)
