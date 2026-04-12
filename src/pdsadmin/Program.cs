@@ -76,6 +76,78 @@ public class AccountCommands
     }
 
     /// <summary>
+    ///     Delete an account specified by DID (admin)
+    /// </summary>
+    /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
+    [Command("admin-delete")]
+    public async Task AdminDeleteAsync(string did)
+    {
+        await Program.PostAdminAsync("com.atproto.admin.deleteAccount", new { did });
+        Program.Logger.LogInformation("{Did} deleted (admin)", did);
+    }
+
+    /// <summary>
+    ///     Get account info by DID
+    /// </summary>
+    /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
+    [Command("info")]
+    public async Task InfoAsync(string did)
+    {
+        var client = await Program.CreateAuthenticatedClientAsync();
+        var accountInfo = await client.ComAtprotoAdminGetAccountInfoAsync(new GetAccountInfoParameters { Did = new ATDid(did) });
+
+        Program.Logger.LogInformation("DID     : {Did}", accountInfo.Did.Value);
+        Program.Logger.LogInformation("Handle  : {Handle}", accountInfo.Handle.Value);
+        Program.Logger.LogInformation("Email   : {Email}", accountInfo.Email ?? "N/A");
+    }
+
+    /// <summary>
+    ///     Update account handle (admin)
+    /// </summary>
+    /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
+    /// <param name="handle">-h, --handle, New handle</param>
+    [Command("update-handle")]
+    public async Task UpdateHandleAsync(string did, string handle)
+    {
+        await Program.PostAdminAsync("com.atproto.admin.updateAccountHandle", new { did, handle });
+        Program.Logger.LogInformation("Handle updated for {Did} to {Handle}", did, handle);
+    }
+
+    /// <summary>
+    ///     Update account email (admin)
+    /// </summary>
+    /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
+    /// <param name="email">-e, --email, New email address</param>
+    [Command("update-email")]
+    public async Task UpdateEmailAsync(string did, string email)
+    {
+        await Program.PostAdminAsync("com.atproto.admin.updateAccountEmail", new { did, email });
+        Program.Logger.LogInformation("Email updated for {Did} to {Email}", did, email);
+    }
+
+    /// <summary>
+    ///     Enable account invites
+    /// </summary>
+    /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
+    [Command("enable-invites")]
+    public async Task EnableInvitesAsync(string did)
+    {
+        await Program.PostAdminAsync("com.atproto.admin.enableAccountInvites", new { account = did });
+        Program.Logger.LogInformation("Invites enabled for {Did}", did);
+    }
+
+    /// <summary>
+    ///     Disable account invites
+    /// </summary>
+    /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
+    [Command("disable-invites")]
+    public async Task DisableInvitesAsync(string did)
+    {
+        await Program.PostAdminAsync("com.atproto.admin.disableAccountInvites", new { account = did });
+        Program.Logger.LogInformation("Invites disabled for {Did}", did);
+    }
+
+    /// <summary>
     ///     Delete an account specified by DID
     /// </summary>
     /// <param name="did">-d, --did, DID, ex. did:plc:xyz123abc456</param>
@@ -235,6 +307,18 @@ public class Program
             "admin",
             PdsEnv.PdsAdminPassword,
             new Uri($"https://{PdsEnv.PdsHostname}"));
+    }
+
+    public static async Task PostAdminAsync(string nsid, object payload)
+    {
+        var client = await CreateAuthenticatedClientAsync();
+        var baseUrl = $"https://{PdsEnv.PdsHostname}";
+        var response = await client.HttpClient.PostAsJsonAsync($"{baseUrl}/xrpc/{nsid}", payload);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Admin request failed: {response.StatusCode} {nsid} - {body}");
+        }
     }
 
     public static async Task Main(string[] args)
