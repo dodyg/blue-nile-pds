@@ -325,5 +325,6 @@ public record ServerConfig
 
         // Scratch cache (in-memory; Redis support when PDS_REDIS_URL is set)
         services.AddSingleton<IScratchCache, MemoryScratchCache>();
+        services.AddSingleton<ReservedSigningKeyStore>();
     }
 }

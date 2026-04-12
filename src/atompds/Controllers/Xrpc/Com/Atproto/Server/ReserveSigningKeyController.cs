@@ -1,4 +1,5 @@
-using ActorStore;
+using atompds.Services;
+using Crypto.Secp256k1;
 using atompds.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -9,28 +10,30 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 [Route("xrpc")]
 public class ReserveSigningKeyController : ControllerBase
 {
-    private readonly ActorRepositoryProvider _actorRepositoryProvider;
+    private readonly ReservedSigningKeyStore _reservedSigningKeyStore;
     private readonly ILogger<ReserveSigningKeyController> _logger;
 
-    public ReserveSigningKeyController(ActorRepositoryProvider actorRepositoryProvider, ILogger<ReserveSigningKeyController> logger)
+    public ReserveSigningKeyController(ReservedSigningKeyStore reservedSigningKeyStore, ILogger<ReserveSigningKeyController> logger)
     {
-        _actorRepositoryProvider = actorRepositoryProvider;
+        _reservedSigningKeyStore = reservedSigningKeyStore;
         _logger = logger;
     }
 
     [HttpPost("com.atproto.server.reserveSigningKey")]
-    [AccessPrivileged]
-    public IActionResult ReserveSigningKey()
+    public async Task<IActionResult> ReserveSigningKeyAsync([FromBody] ReserveSigningKeyInput? request)
     {
-        var auth = HttpContext.GetAuthOutput();
-        var did = auth.AccessCredentials.Did;
-
-        var keyPair = _actorRepositoryProvider.KeyPair(did);
-        var signingKey = keyPair.Did();
+        var signingKey = string.IsNullOrWhiteSpace(request?.Did)
+            ? Secp256k1Keypair.Create(false).Did()
+            : await _reservedSigningKeyStore.ReserveAsync(request.Did);
 
         return Ok(new
         {
             signingKey
         });
     }
+}
+
+public class ReserveSigningKeyInput
+{
+    public string? Did { get; set; }
 }
