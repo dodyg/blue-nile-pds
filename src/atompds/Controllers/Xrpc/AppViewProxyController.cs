@@ -5,6 +5,7 @@ using System.Text.Json;
 using AppBsky.Actor;
 using ActorStore;
 using atompds.Middleware;
+using atompds.Services;
 using Config;
 using Crypto;
 using Identity;
@@ -23,17 +24,20 @@ public class AppViewProxyController : ControllerBase
     private readonly IBskyAppViewConfig _config;
     private readonly IdResolver _idResolver;
     private readonly ILogger<AppViewProxyController> _logger;
+    private readonly ServiceJwtBuilder _serviceJwtBuilder;
     public AppViewProxyController(IBskyAppViewConfig config,
         ILogger<AppViewProxyController> logger,
         HttpClient client,
         ActorRepositoryProvider actorRepositoryProvider,
-        IdResolver idResolver)
+        IdResolver idResolver,
+        ServiceJwtBuilder serviceJwtBuilder)
     {
         _config = config;
         _logger = logger;
         _client = client;
         _actorRepositoryProvider = actorRepositoryProvider;
         _idResolver = idResolver;
+        _serviceJwtBuilder = serviceJwtBuilder;
     }
 
     [HttpGet("app.bsky.actor.getPreferences")]
@@ -127,14 +131,11 @@ public class AppViewProxyController : ControllerBase
             throw new XRPCError(500);
         }
 
-        var jwt = CreateServiceJwt(new ServiceJwtPayload(
+        var jwt = _serviceJwtBuilder.CreateServiceJwt(
             auth.AccessCredentials.Did,
             config.Did,
-            null,
-            null,
-            reqNsid,
-            exportable
-        ));
+            reqNsid
+        );
         //await AssertValidJwt(jwt, config.Did, reqNsid);
 
         // if get

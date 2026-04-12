@@ -3,6 +3,7 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using atompds.Middleware;
+using atompds.Services;
 using BlobStore;
 using Config;
 using Crypto.Secp256k1;
@@ -250,6 +251,9 @@ public record ServerConfig
 
         // Actor store
         services.AddScoped<ActorRepositoryProvider>();
+
+        // Service JWT builder
+        services.AddScoped<ServiceJwtBuilder>();
 
         // blobstore
         services.AddSingleton<BlobStoreFactory>();
