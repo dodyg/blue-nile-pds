@@ -114,4 +114,8 @@ public class ServerEnvironment
     // Rate Limiting
     public bool PDS_RATE_LIMITS_ENABLED { get; set; } = false;
 
+    // Anti-Abuse
+    public string? PDS_HCAPTCHA_SECRET { get; set; }
+    public string? PDS_HCAPTCHA_SITE_KEY { get; set; }
+
 }

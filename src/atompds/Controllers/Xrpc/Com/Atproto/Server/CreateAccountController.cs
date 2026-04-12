@@ -1,9 +1,10 @@
-﻿using System.Net.Mail;
+using System.Net.Mail;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
+using atompds.Services;
 using atompds.Utils;
 using CarpaNet;
 using CommonWeb;
@@ -27,6 +28,7 @@ public class CreateAccountController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
     private readonly ActorRepositoryProvider _actorRepositoryProvider;
+    private readonly CaptchaVerifier _captchaVerifier;
     private readonly HandleManager _handle;
     private readonly HttpClient _httpClient;
     private readonly IdentityConfig _identityConfig;
@@ -49,7 +51,8 @@ public class CreateAccountController : ControllerBase
         IdResolver idResolver,
         SecretsConfig secretsConfig,
         SequencerRepository sequencer,
-        PlcClient plcClient)
+        PlcClient plcClient,
+        CaptchaVerifier captchaVerifier)
     {
         _logger = logger;
         _accountRepository = accountRepository;
@@ -63,6 +66,7 @@ public class CreateAccountController : ControllerBase
         _secretsConfig = secretsConfig;
         _sequencer = sequencer;
         _plcClient = plcClient;
+        _captchaVerifier = captchaVerifier;
     }
 
 
@@ -74,6 +78,8 @@ public class CreateAccountController : ControllerBase
         SqliteConnection? conn = null;
         try
         {
+            await _captchaVerifier.VerifyAsync(request.VerificationCode);
+
             var validatedInputs = await ValidateInputsForLocalPdsAsync(request);
             validatedDid = validatedInputs.did;
 

@@ -258,6 +258,14 @@ public record ServerConfig
         // Service JWT builder
         services.AddScoped<ServiceJwtBuilder>();
 
+        // Captcha verifier
+        services.AddSingleton(x =>
+        {
+            var httpClient = x.GetRequiredService<HttpClient>();
+            var logger = x.GetRequiredService<ILogger<CaptchaVerifier>>();
+            return new CaptchaVerifier(httpClient, logger, config._env.PDS_HCAPTCHA_SECRET);
+        });
+
         // blobstore
         services.AddSingleton<BlobStoreFactory>();
 

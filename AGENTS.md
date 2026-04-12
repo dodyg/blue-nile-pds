@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **Quick reference:** See [MEMORY.md](MEMORY.md) for a detailed codebase map including dependency graphs, subsystem overviews, controller patterns, and key file locations.
+
 ## Project summary
 
 `blue-nile-pds` is a .NET 10 preview fork of `atompds`, a proof-of-concept ATProto PDS implementation in C#. Treat it as experimental and learning-focused, not production-ready. Preserve behavior unless the task explicitly requires protocol or storage changes.
