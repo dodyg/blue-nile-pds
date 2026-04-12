@@ -21,6 +21,13 @@ public class AuthMiddleware
         }
 
         var verifier = context.RequestServices.GetRequiredService<AuthVerifier>();
+        var adminToken = endpoint.Metadata.GetMetadata<AdminTokenAttribute>();
+        if (adminToken != null)
+        {
+            var output = await adminToken.HandleAsync(verifier, context);
+            context.Items["AuthOutput"] = output;
+        }
+
         var accessStandard = endpoint.Metadata.GetMetadata<AccessStandardAttribute>();
         if (accessStandard != null)
         {
