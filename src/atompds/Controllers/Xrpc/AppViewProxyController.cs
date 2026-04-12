@@ -369,5 +369,30 @@ public class AppViewProxyController : ControllerBase
         return nsid[..curr];
     }
 
+    [HttpGet("{nsid}")]
+    [HttpPost("{nsid}")]
+    [AccessStandard]
+    public async Task<IActionResult> CatchallProxyAsync(string nsid)
+    {
+        if (!nsid.StartsWith("app.bsky.") && !nsid.StartsWith("chat.bsky.") && !nsid.StartsWith("com.atproto.moderation."))
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            return await InnerAsync();
+        }
+        catch (XRPCError e) when (e.Status == ResponseType.XRPCNotSupported)
+        {
+            return NotFound();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in catchall proxy for {nsid}", nsid);
+            return StatusCode(500);
+        }
+    }
+
     private record ServiceJwtPayload(string iss, string? aud, long? iat, long? exp, string? lxm, IKeyPair KeyPair);
 }
