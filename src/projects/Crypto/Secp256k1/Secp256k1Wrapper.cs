@@ -4,13 +4,20 @@ namespace Crypto.Secp256k1;
 
 public static class Secp256k1Wrapper
 {
-    private static readonly Secp256k1Net.Secp256k1 Secp256K1 = new();
+    private static readonly Lazy<Secp256k1Net.Secp256k1> Secp256K1 = new(CreateSecp256k1);
     private static readonly object _lock = new();
+
+    private static Secp256k1Net.Secp256k1 CreateSecp256k1()
+    {
+        Secp256k1NativeLibraryResolver.EnsureLoaded();
+        return new Secp256k1Net.Secp256k1();
+    }
 
     public static byte[] CompressPublicKey(byte[] input)
     {
         lock (_lock)
         {
+            Secp256k1NativeLibraryResolver.EnsureLoaded();
             return Secp256k1Net.Secp256k1.CompressPublicKey(input);
         }
     }
@@ -19,6 +26,7 @@ public static class Secp256k1Wrapper
     {
         lock (_lock)
         {
+            Secp256k1NativeLibraryResolver.EnsureLoaded();
             return Secp256k1Net.Secp256k1.DecompressPublicKey(input);
         }
     }
@@ -27,7 +35,7 @@ public static class Secp256k1Wrapper
     {
         lock (_lock)
         {
-            return Secp256K1.EcdsaSignatureParseCompact(output, input);
+            return Secp256K1.Value.EcdsaSignatureParseCompact(output, input);
         }
     }
 
@@ -35,6 +43,7 @@ public static class Secp256k1Wrapper
     {
         lock (_lock)
         {
+            Secp256k1NativeLibraryResolver.EnsureLoaded();
             return Secp256k1Net.Secp256k1.Verify(sig, msgHash, publicKey);
         }
     }
@@ -43,7 +52,7 @@ public static class Secp256k1Wrapper
     {
         lock (_lock)
         {
-            return Secp256K1.EcdsaSignatureSerializeCompact(output, input);
+            return Secp256K1.Value.EcdsaSignatureSerializeCompact(output, input);
         }
     }
 
@@ -51,6 +60,7 @@ public static class Secp256k1Wrapper
     {
         lock (_lock)
         {
+            Secp256k1NativeLibraryResolver.EnsureLoaded();
             return Secp256k1Net.Secp256k1.IsValidSecretKey(secretKey);
         }
     }
@@ -59,6 +69,7 @@ public static class Secp256k1Wrapper
     {
         lock (_lock)
         {
+            Secp256k1NativeLibraryResolver.EnsureLoaded();
             return Secp256k1Net.Secp256k1.CreatePublicKey(secretKey, compressed: false);
         }
     }
@@ -67,6 +78,7 @@ public static class Secp256k1Wrapper
     {
         lock (_lock)
         {
+            Secp256k1NativeLibraryResolver.EnsureLoaded();
             return Secp256k1Net.Secp256k1.Sign(msgHash, secretKey);
         }
     }
