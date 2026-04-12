@@ -40,19 +40,19 @@ public class CreateSessionController : ControllerBase
         }
 
         var login = await _accountRepository.LoginAsync(request.Identifier, request.Password);
-        var creds = await _accountRepository.CreateSessionAsync(login.Did);
-        var didDoc = await DidDocForSessionAsync(login.Did);
-        var (active, status) = AccountStore.FormatAccountStatus(login);
+        var creds = await _accountRepository.CreateSessionAsync(login.Account.Did, login.AppPasswordName, login.AppPasswordScope);
+        var didDoc = await DidDocForSessionAsync(login.Account.Did);
+        var (active, status) = AccountStore.FormatAccountStatus(login.Account);
 
         return Ok(new CreateSessionOutput
         {
             AccessJwt = creds.AccessJwt,
             RefreshJwt = creds.RefreshJwt,
-            Handle = new ATHandle(login.Handle ?? Constants.INVALID_HANDLE),
-            Did = new ATDid(login.Did),
+            Handle = new ATHandle(login.Account.Handle ?? Constants.INVALID_HANDLE),
+            Did = new ATDid(login.Account.Did),
             DidDoc = didDoc?.ToJsonElement(),
-            Email = login.Email,
-            EmailConfirmed = login.EmailConfirmedAt != null,
+            Email = login.Account.Email,
+            EmailConfirmed = login.Account.EmailConfirmedAt != null,
             EmailAuthFactor = null,
             Active = active,
             Status = status.ToString()

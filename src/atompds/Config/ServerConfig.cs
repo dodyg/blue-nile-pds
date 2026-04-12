@@ -245,6 +245,7 @@ public record ServerConfig
         services.AddScoped<RepoStore>();
         services.AddScoped<InviteStore>();
         services.AddScoped<EmailTokenStore>();
+        services.AddScoped<AppPasswordStore>();
         services.AddScoped<Auth>();
 
         // Actor store
