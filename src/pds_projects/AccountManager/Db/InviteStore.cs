@@ -79,6 +79,86 @@ public class InviteStore
             .ToListAsync();
     }
 
+    public async Task<(List<InviteCode> Codes, string? Cursor)> GetInviteCodesAsync(string sort, int limit, string? cursor)
+    {
+        var offset = 0;
+        if (!string.IsNullOrWhiteSpace(cursor) && !int.TryParse(cursor, out offset))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Malformed cursor"));
+        }
+
+        IQueryable<InviteCode> query = _db.InviteCodes;
+        query = sort switch
+        {
+            "recent" => query
+                .OrderByDescending(invite => invite.CreatedAt)
+                .ThenBy(invite => invite.Code),
+            "usage" => query
+                .GroupJoin(
+                    _db.InviteCodeUses,
+                    invite => invite.Code,
+                    use => use.Code,
+                    (invite, uses) => new { Invite = invite, Uses = uses.Count() })
+                .OrderByDescending(row => row.Uses)
+                .ThenBy(row => row.Invite.Code)
+                .Select(row => row.Invite),
+            _ => throw new XRPCError(new InvalidRequestErrorDetail($"unknown sort method: {sort}"))
+        };
+
+        var results = await query
+            .Skip(offset)
+            .Take(limit + 1)
+            .ToListAsync();
+        var nextCursor = results.Count > limit ? (offset + limit).ToString() : null;
+
+        return (results.Take(limit).ToList(), nextCursor);
+    }
+
+    public async Task<Dictionary<string, List<InviteCodeUse>>> GetInviteCodeUsesAsync(IEnumerable<string> codes)
+    {
+        var codeList = codes.ToArray();
+        if (codeList.Length == 0)
+        {
+            return new Dictionary<string, List<InviteCodeUse>>();
+        }
+
+        var uses = await _db.InviteCodeUses
+            .Where(use => codeList.Contains(use.Code))
+            .OrderBy(use => use.UsedAt)
+            .ToListAsync();
+
+        return uses
+            .GroupBy(use => use.Code)
+            .ToDictionary(group => group.Key, group => group.ToList());
+    }
+
+    public async Task DisableInviteCodesAsync(IEnumerable<string> codes, IEnumerable<string> accounts)
+    {
+        var codeList = codes
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var accountList = accounts
+            .Where(account => !string.IsNullOrWhiteSpace(account))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (codeList.Length == 0 && accountList.Length == 0)
+        {
+            return;
+        }
+
+        var invites = await _db.InviteCodes
+            .Where(invite => codeList.Contains(invite.Code) || accountList.Contains(invite.ForAccount))
+            .ToListAsync();
+
+        foreach (var invite in invites)
+        {
+            invite.Disabled = true;
+        }
+
+        await _db.SaveChangesAsync();
+    }
+
     private static string GenerateInviteCode()
     {
         using var rng = RandomNumberGenerator.Create();
