@@ -64,7 +64,7 @@ public class FooController : ControllerBase
 
 **Goal:** Match the minimum compatibility surface expected by current ATProto clients and services.
 
-### 1A. `getSession` — Status: ☐ Not started
+### 1A. `getSession` — Status: ✅ Done
 
 | | |
 |---|---|
@@ -84,7 +84,7 @@ public class FooController : ControllerBase
 
 ---
 
-### 1B. `getLatestCommit` — Status: ☐ Not started
+### 1B. `getLatestCommit` — Status: ✅ Done
 
 | | |
 |---|---|
@@ -102,7 +102,7 @@ public class FooController : ControllerBase
 
 ---
 
-### 1C. App-Password Suite — Status: ☐ Not started
+### 1C. App-Password Suite — Status: ✅ Done
 
 | | |
 |---|---|
@@ -150,7 +150,7 @@ public class FooController : ControllerBase
 
 ---
 
-### 1D. Identity Endpoints — Status: ☐ Not started
+### 1D. Identity Endpoints — Status: ✅ Done
 
 | | |
 |---|---|
@@ -193,7 +193,7 @@ All go under `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/`.
 
 ---
 
-### 1E. `getServiceAuth` + Extract `ServiceJwtBuilder` — Status: ☐ Not started
+### 1E. `getServiceAuth` + Extract `ServiceJwtBuilder` — Status: ✅ Done
 
 | | |
 |---|---|
@@ -216,7 +216,7 @@ All go under `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/`.
 
 ---
 
-### 1F. `reserveSigningKey` + `checkAccountStatus` — Status: ☐ Not started
+### 1F. `reserveSigningKey` + `checkAccountStatus` — Status: ✅ Done
 
 | | |
 |---|---|
@@ -237,7 +237,7 @@ All go under `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/`.
 
 ---
 
-### 1G. `createAccount` Parity — Status: ☐ Not started
+### 1G. `createAccount` Parity — Status: ✅ Done
 
 | | |
 |---|---|
@@ -258,7 +258,7 @@ All go under `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/`.
 
 ---
 
-### 1H. `describeServer` Metadata — Status: ☐ Not started
+### 1H. `describeServer` Metadata — Status: ✅ Done
 
 | | |
 |---|---|
@@ -276,7 +276,7 @@ All go under `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/`.
 
 ---
 
-### 1I. OAuth Resource-Server Auth: DPoP — Status: ☐ Not started
+### 1I. OAuth Resource-Server Auth: DPoP — Status: ✅ Done
 
 | | |
 |---|---|
@@ -315,7 +315,7 @@ All go under `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/`.
 
 **Goal:** Make the PDS usable for real users and modern clients.
 
-### 2A. `SmtpMailer` + Email Flows — Status: ☐ Not started
+### 2A. `SmtpMailer` + Email Flows — Status: ✅ Done
 
 | | |
 |---|---|
@@ -352,7 +352,7 @@ All go under `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/`.
 
 ---
 
-### 2B. Rate Limiting — Status: ☐ Not started
+### 2B. Rate Limiting — Status: ✅ Done
 
 | | |
 |---|---|
@@ -371,7 +371,7 @@ All go under `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/`.
 
 ---
 
-### 2C. Generic Service-Aware Pipethrough — Status: ☐ Not started
+### 2C. Generic Service-Aware Pipethrough — Status: ✅ Done
 
 | | |
 |---|---|
@@ -450,7 +450,7 @@ Replace the fixed 33-method whitelist in `AppViewProxyController` with:
 
 **Goal:** Make the PDS operable and support migration/reporting workflows.
 
-### 3A. Admin Endpoints — Status: ☐ Not started
+### 3A. Admin Endpoints — Status: ✅ Done
 
 | | |
 |---|---|
