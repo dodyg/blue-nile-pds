@@ -52,6 +52,11 @@ public class SmtpMailer : IMailer
         await SendEmailAsync(to, subject, body);
     }
 
+    public async Task SendCustomEmailAsync(string subject, string content, string to)
+    {
+        await SendEmailAsync(to, subject, content);
+    }
+
     private async Task SendEmailAsync(string to, string subject, string body)
     {
         try

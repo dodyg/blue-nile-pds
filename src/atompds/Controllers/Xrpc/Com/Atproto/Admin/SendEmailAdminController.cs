@@ -26,15 +26,16 @@ public class SendEmailAdminController : ControllerBase
     [AdminToken]
     public async Task<IActionResult> SendEmailAsync([FromBody] AdminSendEmailInput request)
     {
-        if (string.IsNullOrWhiteSpace(request.Did) || string.IsNullOrWhiteSpace(request.Content))
+        var recipientDid = request.RecipientDid ?? request.Did;
+        if (string.IsNullOrWhiteSpace(recipientDid) || string.IsNullOrWhiteSpace(request.Content))
         {
-            throw new XRPCError(new InvalidRequestErrorDetail("did and content are required"));
+            throw new XRPCError(new InvalidRequestErrorDetail("recipientDid and content are required"));
         }
 
-        var account = await _accountRepository.GetAccountAsync(request.Did, new AvailabilityFlags(true, true));
+        var account = await _accountRepository.GetAccountAsync(recipientDid, new AvailabilityFlags(true, true));
         if (account == null)
         {
-            throw new XRPCError(new InvalidRequestErrorDetail("Account not found"));
+            throw new XRPCError(new InvalidRequestErrorDetail("Recipient not found"));
         }
 
         if (account.Email == null)
@@ -42,16 +43,19 @@ public class SendEmailAdminController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("Account has no email"));
         }
 
-        var token = await _accountRepository.CreateEmailTokenAsync(account.Did, EmailToken.EmailTokenPurpose.delete_account);
-        await _mailer.SendAccountDeleteAsync(token, account.Email);
+        await _mailer.SendCustomEmailAsync(
+            request.Subject ?? "Message via your PDS",
+            request.Content,
+            account.Email);
 
-        return Ok();
+        return Ok(new { sent = true });
     }
 }
 
 public class AdminSendEmailInput
 {
     public string? Did { get; set; }
+    public string? RecipientDid { get; set; }
     public string? Content { get; set; }
     public string? Subject { get; set; }
 }

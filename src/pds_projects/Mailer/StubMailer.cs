@@ -10,6 +10,12 @@ public class StubMailer : IMailer
         _logger = logger;
     }
 
+    public Task SendCustomEmailAsync(string subject, string content, string to)
+    {
+        _logger.LogInformation("[STUB] Sending custom email to {to} with subject '{subject}' and content '{content}'", to, subject, content);
+        return Task.CompletedTask;
+    }
+
     public Task SendAccountDeleteAsync(string token, string to)
     {
         _logger.LogInformation("[STUB] Sending account delete email to {to} with token {token}", to, token);
