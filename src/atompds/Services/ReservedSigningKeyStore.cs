@@ -1,4 +1,4 @@
-using Crypto.Secp256k1;
+﻿using Crypto.Secp256k1;
 
 namespace atompds.Services;
 
@@ -16,10 +16,11 @@ public class ReservedSigningKeyStore
         _logger = logger;
     }
 
-    public async Task<string> ReserveAsync(string did)
+    public async Task<string> ReserveAsync(string? did = null)
     {
         var keypair = Secp256k1Keypair.Create(true);
-        await _scratchCache.SetAsync(GetCacheKey(did), Convert.ToHexString(keypair.Export()), ReservationTtl);
+        var cacheKey = GetCacheKey(did ?? keypair.Did());
+        await _scratchCache.SetAsync(cacheKey, Convert.ToHexString(keypair.Export()), ReservationTtl);
         return keypair.Did();
     }
 

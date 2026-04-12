@@ -1,6 +1,7 @@
-using AccountManager;
+﻿using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
+using atompds.Services;
 using Mailer;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -12,16 +13,19 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 public class RequestEmailUpdateController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
+    private readonly EntrywayRelayService _entrywayRelayService;
     private readonly IMailer _mailer;
     private readonly ILogger<RequestEmailUpdateController> _logger;
 
     public RequestEmailUpdateController(
         AccountRepository accountRepository,
         IMailer mailer,
+        EntrywayRelayService entrywayRelayService,
         ILogger<RequestEmailUpdateController> logger)
     {
         _accountRepository = accountRepository;
         _mailer = mailer;
+        _entrywayRelayService = entrywayRelayService;
         _logger = logger;
     }
 
@@ -35,6 +39,17 @@ public class RequestEmailUpdateController : ControllerBase
         if (account == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Account not found"));
+        }
+
+        if (_entrywayRelayService.IsConfigured)
+        {
+            return await _entrywayRelayService.ForwardWithoutBodyAsync(
+                HttpContext.Request,
+                HttpMethod.Post,
+                "/xrpc/com.atproto.server.requestEmailUpdate",
+                did,
+                "com.atproto.server.requestEmailUpdate",
+                HttpContext.RequestAborted);
         }
 
         if (string.IsNullOrWhiteSpace(account.Email))

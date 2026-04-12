@@ -1,12 +1,12 @@
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using atompds.Services;
 using atompds.Services.OAuth;
 using Config;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace atompds.Controllers.OAuth;
@@ -14,6 +14,7 @@ namespace atompds.Controllers.OAuth;
 [ApiController]
 public class OAuthTokenController : ControllerBase
 {
+    private readonly EntrywayRelayService _entrywayRelayService;
     private readonly ILogger<OAuthTokenController> _logger;
     private readonly OAuthSessionStore _sessionStore;
     private readonly SecretsConfig _secretsConfig;
@@ -23,32 +24,42 @@ public class OAuthTokenController : ControllerBase
         OAuthSessionStore sessionStore,
         ServiceConfig serviceConfig,
         SecretsConfig secretsConfig,
+        EntrywayRelayService entrywayRelayService,
         ILogger<OAuthTokenController> logger)
     {
         _sessionStore = sessionStore;
         _serviceConfig = serviceConfig;
         _secretsConfig = secretsConfig;
+        _entrywayRelayService = entrywayRelayService;
         _logger = logger;
     }
 
     [HttpPost("oauth/token")]
     [EnableRateLimiting("auth-sensitive")]
-    public IActionResult Token([FromForm] string? grant_type,
-        [FromForm] string? code,
-        [FromForm] string? redirect_uri,
-        [FromForm] string? code_verifier,
-        [FromForm] string? refresh_token,
-        [FromForm] string? client_id)
+    public async Task<IActionResult> TokenAsync()
     {
-        switch (grant_type)
+        var form = await Request.ReadFormAsync(HttpContext.RequestAborted);
+        if (_entrywayRelayService.IsConfigured)
         {
-            case "authorization_code":
-                return HandleAuthorizationCode(code, code_verifier, client_id);
-            case "refresh_token":
-                return HandleRefreshToken(refresh_token);
-            default:
-                return BadRequest(new { error = "unsupported_grant_type", error_description = $"Grant type '{grant_type}' is not supported" });
+            return await _entrywayRelayService.ForwardFormAsync(
+                HttpContext.Request,
+                "/oauth/token",
+                form,
+                HttpContext.RequestAborted);
         }
+
+        var grantType = form["grant_type"].FirstOrDefault();
+        var code = form["code"].FirstOrDefault();
+        var codeVerifier = form["code_verifier"].FirstOrDefault();
+        var refreshToken = form["refresh_token"].FirstOrDefault();
+        var clientId = form["client_id"].FirstOrDefault();
+
+        return grantType switch
+        {
+            "authorization_code" => HandleAuthorizationCode(code, codeVerifier, clientId),
+            "refresh_token" => HandleRefreshToken(refreshToken),
+            _ => BadRequest(new { error = "unsupported_grant_type", error_description = $"Grant type '{grantType}' is not supported" })
+        };
     }
 
     private IActionResult HandleAuthorizationCode(string? code, string? codeVerifier, string? clientId)
@@ -174,8 +185,7 @@ public class OAuthTokenController : ControllerBase
                 IssuerSigningKey = key,
                 ValidTypes = ["rt+jwt"]
             };
-            var principal = handler.ValidateToken(token, parameters, out _);
-            return principal;
+            return handler.ValidateToken(token, parameters, out _);
         }
         catch (Exception e)
         {

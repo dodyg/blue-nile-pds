@@ -1,4 +1,4 @@
-using AccountManager;
+﻿using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
 using atompds.Services;
@@ -13,15 +13,18 @@ public class UpdateEmailController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
     private readonly EmailAddressValidator _emailAddressValidator;
+    private readonly EntrywayRelayService _entrywayRelayService;
     private readonly ILogger<UpdateEmailController> _logger;
 
     public UpdateEmailController(
         AccountRepository accountRepository,
         EmailAddressValidator emailAddressValidator,
+        EntrywayRelayService entrywayRelayService,
         ILogger<UpdateEmailController> logger)
     {
         _accountRepository = accountRepository;
         _emailAddressValidator = emailAddressValidator;
+        _entrywayRelayService = entrywayRelayService;
         _logger = logger;
     }
 
@@ -43,6 +46,17 @@ public class UpdateEmailController : ControllerBase
         }
 
         await _emailAddressValidator.AssertSupportedEmailAsync(request.Email);
+
+        if (_entrywayRelayService.IsConfigured)
+        {
+            return await _entrywayRelayService.ForwardJsonAsync(
+                HttpContext.Request,
+                "/xrpc/com.atproto.server.updateEmail",
+                System.Text.Json.JsonSerializer.Serialize(request, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)),
+                did,
+                "com.atproto.server.updateEmail",
+                HttpContext.RequestAborted);
+        }
 
         var existingAccount = await _accountRepository.GetAccountByEmailAsync(request.Email, new AvailabilityFlags(true, true));
         if (existingAccount != null && existingAccount.Did != did)

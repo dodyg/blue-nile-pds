@@ -42,6 +42,24 @@ public record ServerConfig
             }
         }
 
+        var hasEntrywayUrl = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_URL);
+        var hasEntrywayDid = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_DID);
+        if (hasEntrywayUrl != hasEntrywayDid)
+        {
+            throw new Exception("PDS_OAUTH_ENTRYWAY_URL and PDS_OAUTH_ENTRYWAY_DID must be configured together");
+        }
+
+        if (hasEntrywayUrl)
+        {
+            if (!Uri.TryCreate(env.PDS_OAUTH_ENTRYWAY_URL, UriKind.Absolute, out var entrywayUri) ||
+                (entrywayUri.Scheme != Uri.UriSchemeHttp && entrywayUri.Scheme != Uri.UriSchemeHttps))
+            {
+                throw new Exception("PDS_OAUTH_ENTRYWAY_URL must be an absolute http(s) URL");
+            }
+
+            env.PDS_OAUTH_ENTRYWAY_URL = entrywayUri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+        }
+
         env.PDS_ACTOR_STORE_DIRECTORY = ExpandPath(env.PDS_ACTOR_STORE_DIRECTORY);
         if (!Directory.Exists(env.PDS_ACTOR_STORE_DIRECTORY))
         {
@@ -323,8 +341,10 @@ public record ServerConfig
         // OAuth session store
         services.AddSingleton<OAuthSessionStore>();
 
-        // Scratch cache (in-memory; Redis support when PDS_REDIS_URL is set)
+        // Scratch cache
         services.AddSingleton<IScratchCache, MemoryScratchCache>();
+
         services.AddSingleton<ReservedSigningKeyStore>();
+        services.AddScoped<EntrywayRelayService>();
     }
 }

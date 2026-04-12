@@ -1,5 +1,7 @@
-﻿using AccountManager;
+﻿using System.Text.Json;
+using AccountManager;
 using AccountManager.Db;
+using atompds.Services;
 using atompds.Utils;
 using CarpaNet;
 using CommonWeb;
@@ -17,31 +19,47 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 public class CreateSessionController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
+    private readonly EntrywayRelayService _entrywayRelayService;
     private readonly IdentityConfig _identityConfig;
     private readonly IdResolver _idResolver;
     private readonly ILogger<CreateSessionController> _logger;
 
-    public CreateSessionController(AccountRepository accountRepository,
+    public CreateSessionController(
+        AccountRepository accountRepository,
         IdentityConfig identityConfig,
         IdResolver idResolver,
+        EntrywayRelayService entrywayRelayService,
         ILogger<CreateSessionController> logger)
     {
         _accountRepository = accountRepository;
         _identityConfig = identityConfig;
         _idResolver = idResolver;
+        _entrywayRelayService = entrywayRelayService;
         _logger = logger;
     }
 
     [HttpPost("com.atproto.server.createSession")]
     [EnableRateLimiting("auth-sensitive")]
-    public async Task<IActionResult> CreateSessionAsync([FromBody] CreateSessionInput request)
+    public async Task<IActionResult> CreateSessionAsync([FromBody] JsonElement request)
     {
-        if (request.Identifier == null || request.Password == null)
+        if (_entrywayRelayService.IsConfigured)
+        {
+            return await _entrywayRelayService.ForwardJsonAsync(
+                HttpContext.Request,
+                "/xrpc/com.atproto.server.createSession",
+                request.GetRawText(),
+                cancellationToken: HttpContext.RequestAborted);
+        }
+
+        var identifier = TryGetString(request, "identifier");
+        var password = TryGetString(request, "password");
+        var allowTakendown = TryGetBoolean(request, "allowTakendown") == true;
+        if (identifier == null || password == null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Identifier and password are required"));
         }
 
-        var login = await _accountRepository.LoginAsync(request.Identifier, request.Password, request.AllowTakendown == true);
+        var login = await _accountRepository.LoginAsync(identifier, password, allowTakendown);
         var creds = await _accountRepository.CreateSessionAsync(login.Account.Did, login.AppPasswordName, login.AppPasswordScope);
         var didDoc = await DidDocForSessionAsync(login.Account.Did);
         var (active, status) = AccountStore.FormatAccountStatus(login.Account);
@@ -67,6 +85,7 @@ public class CreateSessionController : ControllerBase
         {
             return null;
         }
+
         return await SafeResolveDidDocAsync(did, forceRefresh);
     }
 
@@ -74,13 +93,30 @@ public class CreateSessionController : ControllerBase
     {
         try
         {
-            var didDoc = await _idResolver.DidResolver.ResolveAsync(did, forceRefresh);
-            return didDoc;
+            return await _idResolver.DidResolver.ResolveAsync(did, forceRefresh);
         }
         catch (Exception e)
         {
             _logger.LogWarning(e, "Failed to resolve did doc: {did}", did);
             return null;
         }
+    }
+
+    private static string? TryGetString(JsonElement body, string propertyName)
+    {
+        return body.ValueKind == JsonValueKind.Object &&
+               body.TryGetProperty(propertyName, out var property) &&
+               property.ValueKind != JsonValueKind.Null
+            ? property.GetString()
+            : null;
+    }
+
+    private static bool? TryGetBoolean(JsonElement body, string propertyName)
+    {
+        return body.ValueKind == JsonValueKind.Object &&
+               body.TryGetProperty(propertyName, out var property) &&
+               (property.ValueKind == JsonValueKind.True || property.ValueKind == JsonValueKind.False)
+            ? property.GetBoolean()
+            : null;
     }
 }

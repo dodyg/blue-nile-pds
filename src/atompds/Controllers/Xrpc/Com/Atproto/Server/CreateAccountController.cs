@@ -1,3 +1,4 @@
+﻿using System.Text.Json;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
@@ -29,6 +30,8 @@ public class CreateAccountController : ControllerBase
     private readonly ActorRepositoryProvider _actorRepositoryProvider;
     private readonly AuthVerifier _authVerifier;
     private readonly CaptchaVerifier _captchaVerifier;
+    private readonly EmailAddressValidator _emailAddressValidator;
+    private readonly EntrywayRelayService _entrywayRelayService;
     private readonly HandleManager _handle;
     private readonly IdentityConfig _identityConfig;
     private readonly IdResolver _idResolver;
@@ -39,9 +42,9 @@ public class CreateAccountController : ControllerBase
     private readonly SecretsConfig _secretsConfig;
     private readonly SequencerRepository _sequencer;
     private readonly ServiceConfig _serviceConfig;
-    private readonly EmailAddressValidator _emailAddressValidator;
 
-    public CreateAccountController(ILogger<CreateAccountController> logger,
+    public CreateAccountController(
+        ILogger<CreateAccountController> logger,
         AccountRepository accountRepository,
         AuthVerifier authVerifier,
         IdentityConfig identityConfig,
@@ -55,7 +58,8 @@ public class CreateAccountController : ControllerBase
         PlcClient plcClient,
         CaptchaVerifier captchaVerifier,
         ReservedSigningKeyStore reservedSigningKeyStore,
-        EmailAddressValidator emailAddressValidator)
+        EmailAddressValidator emailAddressValidator,
+        EntrywayRelayService entrywayRelayService)
     {
         _logger = logger;
         _accountRepository = accountRepository;
@@ -72,8 +76,8 @@ public class CreateAccountController : ControllerBase
         _captchaVerifier = captchaVerifier;
         _reservedSigningKeyStore = reservedSigningKeyStore;
         _emailAddressValidator = emailAddressValidator;
+        _entrywayRelayService = entrywayRelayService;
     }
-
 
     [HttpPost("com.atproto.server.createAccount")]
     [EnableRateLimiting("auth-sensitive")]
@@ -83,64 +87,64 @@ public class CreateAccountController : ControllerBase
         SqliteConnection? conn = null;
         try
         {
-            await _captchaVerifier.VerifyAsync(request.VerificationCode);
-
-            var validatedInputs = await ValidateInputsForLocalPdsAsync(request);
-            validatedDid = validatedInputs.did;
-
-            await using var actorStoreDb = _actorRepositoryProvider.Create(validatedInputs.did, validatedInputs.signingKey);
-            conn = actorStoreDb.Connection;
-            var commit = await actorStoreDb.TransactRepoAsync(async repo =>
+            if (!_entrywayRelayService.IsConfigured)
             {
-                var commit = await repo.Repo.CreateRepoAsync([]);
-                return commit;
-            });
+                await _captchaVerifier.VerifyAsync(request.VerificationCode);
+            }
 
-            if (validatedInputs.plcOp != null)
+            var validatedInputs = _entrywayRelayService.IsConfigured
+                ? await ValidateInputsForEntrywayPdsAsync(request)
+                : await ValidateInputsForLocalPdsAsync(request);
+            validatedDid = validatedInputs.Did;
+
+            await using var actorStoreDb = _actorRepositoryProvider.Create(validatedInputs.Did, validatedInputs.SigningKey);
+            conn = actorStoreDb.Connection;
+            var commit = await actorStoreDb.TransactRepoAsync(async repo => await repo.Repo.CreateRepoAsync([]));
+
+            if (validatedInputs.PlcOp != null)
             {
                 try
                 {
-                    await _plcClient.SendOperationAsync(validatedDid, validatedInputs.plcOp);
+                    await _plcClient.SendOperationAsync(validatedInputs.Did, validatedInputs.PlcOp);
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Failed to create did:plc for {didKey}, {handle}", validatedInputs.did, validatedInputs.handle);
+                    _logger.LogError(e, "Failed to create did:plc for {didKey}, {handle}", validatedInputs.Did, validatedInputs.Handle);
                     throw new XRPCError(new InvalidRequestErrorDetail("Failed to create did:plc"), e);
                 }
             }
 
-            var didDoc = await SafeResolveDidDocAsync(validatedInputs.did, true);
-            var creds = await _accountRepository.CreateAccountAsync(validatedInputs.did,
-                validatedInputs.handle,
+            var didDoc = await SafeResolveDidDocAsync(validatedInputs.Did, true);
+            var creds = await _accountRepository.CreateAccountAsync(
+                validatedInputs.Did,
+                validatedInputs.Handle,
                 validatedInputs.Email,
                 validatedInputs.Password,
                 commit.Cid.ToString(),
                 commit.Rev,
                 validatedInputs.InviteCode,
-                validatedInputs.deactivated);
+                validatedInputs.Deactivated);
 
-            if (!validatedInputs.deactivated)
+            if (!validatedInputs.Deactivated)
             {
-                await _sequencer.SequenceIdentityEventAsync(validatedInputs.did, validatedInputs.handle);
-                await _sequencer.SequenceAccountEventAsync(validatedInputs.did, AccountStore.AccountStatus.Active);
-                await _sequencer.SequenceCommitAsync(validatedInputs.did, commit, []);
+                await _sequencer.SequenceIdentityEventAsync(validatedInputs.Did, validatedInputs.Handle);
+                await _sequencer.SequenceAccountEventAsync(validatedInputs.Did, AccountStore.AccountStatus.Active);
+                await _sequencer.SequenceCommitAsync(validatedInputs.Did, commit, []);
             }
 
-            await _accountRepository.UpdateRepoRootAsync(validatedInputs.did, commit.Cid, commit.Rev);
-            // TODO: clear reserved keypair
+            await _accountRepository.UpdateRepoRootAsync(validatedInputs.Did, commit.Cid, commit.Rev);
 
             return Ok(new CreateAccountOutput
             {
-                Did = new ATDid(validatedInputs.did),
+                Did = new ATDid(validatedInputs.Did),
                 AccessJwt = creds.AccessJwt,
                 RefreshJwt = creds.RefreshJwt,
                 DidDoc = didDoc?.ToJsonElement(),
-                Handle = new ATHandle(validatedInputs.handle)
+                Handle = new ATHandle(validatedInputs.Handle)
             });
         }
         catch (Exception e)
         {
-            // if exception, delete actorstore
             _logger.LogError(e, "Failed to create account");
             if (!string.IsNullOrWhiteSpace(validatedDid))
             {
@@ -148,8 +152,10 @@ public class CreateAccountController : ControllerBase
                 {
                     SqliteConnection.ClearPool(conn);
                 }
+
                 _actorRepositoryProvider.Destroy(validatedDid);
             }
+
             throw;
         }
     }
@@ -158,8 +164,7 @@ public class CreateAccountController : ControllerBase
     {
         try
         {
-            var didDoc = await _idResolver.DidResolver.ResolveAsync(did, forceRefresh);
-            return didDoc;
+            return await _idResolver.DidResolver.ResolveAsync(did, forceRefresh);
         }
         catch (Exception e)
         {
@@ -168,8 +173,70 @@ public class CreateAccountController : ControllerBase
         }
     }
 
-    private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, SignedOp<AtProtoOp>? plcOp, bool
-        deactivated)> ValidateInputsForLocalPdsAsync(CreateAccountInput createAccountInput)
+    private async Task<ValidatedCreateAccount> ValidateInputsForEntrywayPdsAsync(CreateAccountInput createAccountInput)
+    {
+        if (createAccountInput.Did == null || createAccountInput.PlcOp == null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Entryway account creation requires \"did\" and \"plcOp\""));
+        }
+
+        var did = createAccountInput.Did.Value;
+        var plcOp = JsonSerializer.Deserialize<SignedOp<AtProtoOp>>(createAccountInput.PlcOp.Value.GetRawText())
+            ?? throw new XRPCError(new IncompatibleDidDocErrorDetail("invalid plc operation"));
+        var handle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, did, false);
+
+        if (!string.Equals(plcOp.Op.Type, "plc_operation", StringComparison.Ordinal) || plcOp.Op.Prev != null)
+        {
+            throw new XRPCError(new IncompatibleDidDocErrorDetail("invalid plc operation"));
+        }
+
+        var derivedDid = await Operations.DidForCreateOpAsync(plcOp);
+        if (!string.Equals(derivedDid, did, StringComparison.Ordinal))
+        {
+            throw new XRPCError(new IncompatibleDidDocErrorDetail("provided DID does not match plcOp"));
+        }
+
+        if (!plcOp.Op.VerificationMethods.TryGetValue("atproto", out var signingDid) || string.IsNullOrWhiteSpace(signingDid))
+        {
+            throw new XRPCError(new IncompatibleDidDocErrorDetail("provided DID document is missing an atproto signing key"));
+        }
+
+        var reservedSigningKey = await _reservedSigningKeyStore.ConsumeAsync(did)
+            ?? await _reservedSigningKeyStore.ConsumeAsync(signingDid);
+        if (reservedSigningKey == null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Reserved signing key does not exist"));
+        }
+
+        if (!string.Equals(reservedSigningKey.Did(), signingDid, StringComparison.Ordinal))
+        {
+            throw new XRPCError(new IncompatibleDidDocErrorDetail("DID document signing key does not match reserved signing key"));
+        }
+
+        if (!plcOp.Op.AlsoKnownAs.Contains($"at://{handle}", StringComparer.Ordinal))
+        {
+            throw new XRPCError(new IncompatibleDidDocErrorDetail("provided handle does not match DID document handle"));
+        }
+
+        if (!plcOp.Op.Services.TryGetValue("atproto_pds", out var pdsService) ||
+            !string.Equals(pdsService.Type, "AtprotoPersonalDataServer", StringComparison.Ordinal) ||
+            !string.Equals(NormalizeUrl(pdsService.Endpoint), NormalizeUrl(_serviceConfig.PublicUrl), StringComparison.Ordinal))
+        {
+            throw new XRPCError(new IncompatibleDidDocErrorDetail("DID document pds endpoint does not match service endpoint"));
+        }
+
+        return new ValidatedCreateAccount(
+            did,
+            handle,
+            null,
+            null,
+            null,
+            reservedSigningKey,
+            plcOp,
+            false);
+    }
+
+    private async Task<ValidatedCreateAccount> ValidateInputsForLocalPdsAsync(CreateAccountInput createAccountInput)
     {
         if (createAccountInput.PlcOp != null)
         {
@@ -190,6 +257,7 @@ public class CreateAccountController : ControllerBase
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Email is required"));
         }
+
         await _emailAddressValidator.AssertSupportedEmailAsync(createAccountInput.Email);
 
         if (createAccountInput.Did != null)
@@ -215,7 +283,15 @@ public class CreateAccountController : ControllerBase
                 throw new XRPCError(new InvalidRequestErrorDetail("Account already exists"));
             }
 
-            return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, reservedSigningKey, null, true);
+            return new ValidatedCreateAccount(
+                did,
+                handle,
+                createAccountInput.Email,
+                createAccountInput.Password,
+                createAccountInput.InviteCode,
+                reservedSigningKey,
+                null,
+                true);
         }
 
         var validatedHandle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
@@ -232,14 +308,23 @@ public class CreateAccountController : ControllerBase
         {
             throw new XRPCError(new HandleNotAvailableErrorDetail($"Handle already taken: {validatedHandle}"));
         }
+
         if (emailAcct != null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail($"Email already taken: {createAccountInput.Email}"));
         }
 
-        var (did2, plcOp2) = await FormatDidAndPlcOpAsync(validatedHandle, createAccountInput, signingKey);
+        var (createdDid, plcOp) = await FormatDidAndPlcOpAsync(validatedHandle, createAccountInput, signingKey);
 
-        return (did2, validatedHandle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp2, false);
+        return new ValidatedCreateAccount(
+            createdDid,
+            validatedHandle,
+            createAccountInput.Email,
+            createAccountInput.Password,
+            createAccountInput.InviteCode,
+            signingKey,
+            plcOp,
+            false);
     }
 
     private async Task<string?> GetRequesterDidAsync()
@@ -253,21 +338,43 @@ public class CreateAccountController : ControllerBase
         return accessOutput.AccessCredentials.Did;
     }
 
-
-    private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOpAsync(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
+    private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOpAsync(
+        string handle,
+        CreateAccountInput createAccountInput,
+        Secp256k1Keypair signingKey)
     {
         string[] rotationKeys = [_secretsConfig.PlcRotationKey.Did()];
         if (_identityConfig.RecoveryDidKey != null)
         {
             rotationKeys = [_identityConfig.RecoveryDidKey, ..rotationKeys];
         }
+
         if (createAccountInput.RecoveryKey != null)
         {
             rotationKeys = [createAccountInput.RecoveryKey, ..rotationKeys];
         }
 
-        var plcCreate = await Operations.CreateOpAsync(signingKey.Did(), handle, _serviceConfig.PublicUrl, rotationKeys, _secretsConfig.PlcRotationKey);
+        var plcCreate = await Operations.CreateOpAsync(
+            signingKey.Did(),
+            handle,
+            _serviceConfig.PublicUrl,
+            rotationKeys,
+            _secretsConfig.PlcRotationKey);
         return (plcCreate.Did, plcCreate.Op);
     }
 
+    private static string NormalizeUrl(string url)
+    {
+        return new Uri(url).GetLeftPart(UriPartial.Path).TrimEnd('/');
+    }
+
+    private sealed record ValidatedCreateAccount(
+        string Did,
+        string Handle,
+        string? Email,
+        string? Password,
+        string? InviteCode,
+        Secp256k1Keypair SigningKey,
+        SignedOp<AtProtoOp>? PlcOp,
+        bool Deactivated);
 }

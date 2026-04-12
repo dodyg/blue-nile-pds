@@ -1,5 +1,6 @@
-using AccountManager;
+﻿using AccountManager;
 using atompds.Middleware;
+using atompds.Services;
 using atompds.Services.OAuth;
 using Config;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,7 @@ namespace atompds.Controllers.OAuth;
 public class OAuthAuthorizeController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
+    private readonly EntrywayRelayService _entrywayRelayService;
     private readonly ILogger<OAuthAuthorizeController> _logger;
     private readonly SecretsConfig _secretsConfig;
     private readonly ServiceConfig _serviceConfig;
@@ -22,12 +24,14 @@ public class OAuthAuthorizeController : ControllerBase
         AccountRepository accountRepository,
         ServiceConfig serviceConfig,
         SecretsConfig secretsConfig,
+        EntrywayRelayService entrywayRelayService,
         ILogger<OAuthAuthorizeController> logger)
     {
         _sessionStore = sessionStore;
         _accountRepository = accountRepository;
         _serviceConfig = serviceConfig;
         _secretsConfig = secretsConfig;
+        _entrywayRelayService = entrywayRelayService;
         _logger = logger;
     }
 
@@ -42,6 +46,11 @@ public class OAuthAuthorizeController : ControllerBase
         [FromQuery] string? login_hint,
         [FromQuery] string? response_type)
     {
+        if (_entrywayRelayService.IsConfigured)
+        {
+            return Redirect(_entrywayRelayService.BuildAbsoluteUrl($"/oauth/authorize{Request.QueryString}"));
+        }
+
         if (string.IsNullOrWhiteSpace(client_id))
             return BadRequest(new { error = "invalid_request", error_description = "client_id is required" });
         if (string.IsNullOrWhiteSpace(redirect_uri))
@@ -72,7 +81,6 @@ public class OAuthAuthorizeController : ControllerBase
             }
             catch
             {
-                // not authenticated, will show login page
             }
         }
 
@@ -100,8 +108,13 @@ public class OAuthAuthorizeController : ControllerBase
 
     [HttpPost("oauth/authorize/consent")]
     [AccessStandard]
-    public async Task<IActionResult> ConsentAsync([FromBody] ConsentRequest request)
+    public IActionResult Consent([FromBody] ConsentRequest request)
     {
+        if (_entrywayRelayService.IsConfigured)
+        {
+            return NotFound();
+        }
+
         var auth = _sessionStore.GetAuthorization(request.AuthorizationId);
         if (auth == null)
             throw new XRPCError(new InvalidRequestErrorDetail("Invalid or expired authorization"));

@@ -1,5 +1,4 @@
-using atompds.Services;
-using Crypto.Secp256k1;
+﻿using atompds.Services;
 using atompds.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -24,9 +23,7 @@ public class ReserveSigningKeyController : ControllerBase
     [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> ReserveSigningKeyAsync([FromBody] ReserveSigningKeyInput? request)
     {
-        var signingKey = string.IsNullOrWhiteSpace(request?.Did)
-            ? Secp256k1Keypair.Create(false).Did()
-            : await _reservedSigningKeyStore.ReserveAsync(request.Did);
+        var signingKey = await _reservedSigningKeyStore.ReserveAsync(request?.Did);
 
         return Ok(new
         {
