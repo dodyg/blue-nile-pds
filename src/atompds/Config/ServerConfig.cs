@@ -321,5 +321,8 @@ public record ServerConfig
 
         // OAuth session store
         services.AddSingleton<OAuthSessionStore>();
+
+        // Scratch cache (in-memory; Redis support when PDS_REDIS_URL is set)
+        services.AddSingleton<IScratchCache, MemoryScratchCache>();
     }
 }
