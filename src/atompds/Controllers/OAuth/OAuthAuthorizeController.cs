@@ -1,7 +1,8 @@
-﻿using AccountManager;
+using AccountManager;
 using atompds.Middleware;
 using atompds.Services;
 using atompds.Services.OAuth;
+using atompds.Config;
 using Config;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
@@ -18,12 +19,14 @@ public class OAuthAuthorizeController : ControllerBase
     private readonly SecretsConfig _secretsConfig;
     private readonly ServiceConfig _serviceConfig;
     private readonly OAuthSessionStore _sessionStore;
+    private readonly HashSet<string> _trustedClientIds;
 
     public OAuthAuthorizeController(
         OAuthSessionStore sessionStore,
         AccountRepository accountRepository,
         ServiceConfig serviceConfig,
         SecretsConfig secretsConfig,
+        ServerEnvironment serverEnvironment,
         EntrywayRelayService entrywayRelayService,
         ILogger<OAuthAuthorizeController> logger)
     {
@@ -31,6 +34,7 @@ public class OAuthAuthorizeController : ControllerBase
         _accountRepository = accountRepository;
         _serviceConfig = serviceConfig;
         _secretsConfig = secretsConfig;
+        _trustedClientIds = new HashSet<string>(serverEnvironment.PDS_OAUTH_TRUSTED_CLIENTS, StringComparer.Ordinal);
         _entrywayRelayService = entrywayRelayService;
         _logger = logger;
     }
@@ -44,6 +48,7 @@ public class OAuthAuthorizeController : ControllerBase
         [FromQuery] string? code_challenge,
         [FromQuery] string? code_challenge_method,
         [FromQuery] string? login_hint,
+        [FromQuery] string? prompt,
         [FromQuery] string? response_type)
     {
         if (_entrywayRelayService.IsConfigured)
@@ -84,7 +89,17 @@ public class OAuthAuthorizeController : ControllerBase
             }
         }
 
-        if (did != null)
+        var isTrustedClient = _trustedClientIds.Contains(client_id);
+        if (!isTrustedClient && string.Equals(prompt, "none", StringComparison.Ordinal))
+        {
+            return BadRequest(new
+            {
+                error = "consent_required",
+                error_description = "Public clients must complete interactive consent"
+            });
+        }
+
+        if (did != null && isTrustedClient)
         {
             var oauthCode = _sessionStore.IssueCode(auth.Id, did, scope);
             var redirectParams = new Dictionary<string, string?>
