@@ -1,7 +1,7 @@
-using System.Text.Json;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
+using atompds.Middleware;
 using atompds.Services;
 using atompds.Utils;
 using CarpaNet;
@@ -26,6 +26,7 @@ public class CreateAccountController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
     private readonly ActorRepositoryProvider _actorRepositoryProvider;
+    private readonly AuthVerifier _authVerifier;
     private readonly CaptchaVerifier _captchaVerifier;
     private readonly HandleManager _handle;
     private readonly IdentityConfig _identityConfig;
@@ -41,6 +42,7 @@ public class CreateAccountController : ControllerBase
 
     public CreateAccountController(ILogger<CreateAccountController> logger,
         AccountRepository accountRepository,
+        AuthVerifier authVerifier,
         IdentityConfig identityConfig,
         ServiceConfig serviceConfig,
         InvitesConfig invitesConfig,
@@ -56,6 +58,7 @@ public class CreateAccountController : ControllerBase
     {
         _logger = logger;
         _accountRepository = accountRepository;
+        _authVerifier = authVerifier;
         _identityConfig = identityConfig;
         _serviceConfig = serviceConfig;
         _invitesConfig = invitesConfig;
@@ -71,7 +74,6 @@ public class CreateAccountController : ControllerBase
     }
 
 
-    // TODO: Optional auth used to validate DID transfer
     [HttpPost("com.atproto.server.createAccount")]
     public async Task<IActionResult> CreateAccountAsync([FromBody] CreateAccountInput request)
     {
@@ -167,6 +169,16 @@ public class CreateAccountController : ControllerBase
     private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, SignedOp<AtProtoOp>? plcOp, bool
         deactivated)> ValidateInputsForLocalPdsAsync(CreateAccountInput createAccountInput)
     {
+        if (createAccountInput.PlcOp != null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Unsupported input: \"plcOp\""));
+        }
+
+        if (!string.IsNullOrWhiteSpace(createAccountInput.VerificationPhone))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Unsupported input: \"verificationPhone\""));
+        }
+
         if (_invitesConfig.Required && string.IsNullOrWhiteSpace(createAccountInput.InviteCode))
         {
             throw new XRPCError(new InvalidInviteCodeErrorDetail("No invite code provided"));
@@ -181,6 +193,12 @@ public class CreateAccountController : ControllerBase
         if (createAccountInput.Did != null)
         {
             var did = createAccountInput.Did.Value;
+            var requesterDid = await GetRequesterDidAsync();
+            if (requesterDid != did)
+            {
+                throw new XRPCError(new AuthRequiredErrorDetail($"Missing auth to create account with did: {did}"));
+            }
+
             var handle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, did, false);
             var reservedSigningKey = await _reservedSigningKeyStore.ConsumeAsync(did) ?? Secp256k1Keypair.Create(true);
 
@@ -195,13 +213,7 @@ public class CreateAccountController : ControllerBase
                 throw new XRPCError(new InvalidRequestErrorDetail("Account already exists"));
             }
 
-            SignedOp<AtProtoOp>? plcOp = null;
-            if (createAccountInput.PlcOp != null)
-            {
-                plcOp = DeserializePlcOp(createAccountInput.PlcOp.Value);
-            }
-
-            return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, reservedSigningKey, plcOp, false);
+            return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, reservedSigningKey, null, true);
         }
 
         var validatedHandle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
@@ -213,7 +225,7 @@ public class CreateAccountController : ControllerBase
         }
 
         var handleAcct = await _accountRepository.GetAccountAsync(validatedHandle);
-        var emailAcct = await _accountRepository.GetAccountAsync(createAccountInput.Email);
+        var emailAcct = await _accountRepository.GetAccountByEmailAsync(createAccountInput.Email);
         if (handleAcct != null)
         {
             throw new XRPCError(new HandleNotAvailableErrorDetail($"Handle already taken: {validatedHandle}"));
@@ -228,14 +240,17 @@ public class CreateAccountController : ControllerBase
         return (did2, validatedHandle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp2, false);
     }
 
-    private SignedOp<AtProtoOp> DeserializePlcOp(JsonElement plcOpJson)
+    private async Task<string?> GetRequesterDidAsync()
     {
-        var opStr = plcOpJson.GetRawText();
-        var cborOp = PeterO.Cbor.CBORObject.FromJSONString(opStr);
-        var sig = cborOp.ContainsKey("sig") ? cborOp["sig"].AsString() : "";
-        var op = AtProtoOp.FromCborObject(cborOp);
-        return new SignedOp<AtProtoOp> { Op = op, Sig = sig };
+        if (string.IsNullOrWhiteSpace(Request.Headers.Authorization))
+        {
+            return null;
+        }
+
+        var accessOutput = await _authVerifier.AccessFullAsync(HttpContext);
+        return accessOutput.AccessCredentials.Did;
     }
+
 
     private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOpAsync(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
     {
