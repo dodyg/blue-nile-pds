@@ -35,9 +35,22 @@ public class WellKnownController : ControllerBase
     [HttpGet("oauth-authorization-server")]
     public IActionResult GetOAuthAuthorizationServer()
     {
+        var baseUrl = _serviceConfig.PublicUrl;
         return Ok(new
         {
-            TODO = "TODO"
+            issuer = _serviceConfig.Did,
+            scopes_supported = new[] { "atproto", "transition:generic" },
+            scopes_documentation = "https://atproto.com/specs/oauth",
+            response_types_supported = new[] { "code" },
+            grant_types_supported = new[] { "authorization_code", "refresh_token" },
+            code_challenge_methods_supported = new[] { "S256" },
+            authorization_endpoint = $"{baseUrl}/oauth/authorize",
+            token_endpoint = $"{baseUrl}/oauth/token",
+            token_endpoint_auth_methods_supported = new[] { "none" },
+            revocation_endpoint = $"{baseUrl}/oauth/revoke",
+            dpop_signing_alg_values_supported = new[] { "ES256" },
+            client_id_metadata_document = "https://atproto.com/specs/oauth#client-id-metadata-document",
+            pushed_authorization_request_endpoint = $"{baseUrl}/oauth/par"
         });
     }
 

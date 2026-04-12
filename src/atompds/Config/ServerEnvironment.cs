@@ -118,4 +118,9 @@ public class ServerEnvironment
     public string? PDS_HCAPTCHA_SECRET { get; set; }
     public string? PDS_HCAPTCHA_SITE_KEY { get; set; }
 
+    // OAuth
+    public string? PDS_OAUTH_ENTRYWAY_URL { get; set; }
+    public string? PDS_OAUTH_ENTRYWAY_DID { get; set; }
+    public List<string> PDS_OAUTH_TRUSTED_CLIENTS { get; set; } = [];
+
 }

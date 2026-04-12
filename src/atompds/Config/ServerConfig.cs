@@ -4,6 +4,7 @@ using AccountManager.Db;
 using ActorStore;
 using atompds.Middleware;
 using atompds.Services;
+using atompds.Services.OAuth;
 using BlobStore;
 using Config;
 using Crypto.Secp256k1;
@@ -314,5 +315,8 @@ public record ServerConfig
         {
             services.AddSingleton<IMailer, StubMailer>();
         }
+
+        // OAuth session store
+        services.AddSingleton<OAuthSessionStore>();
     }
 }
