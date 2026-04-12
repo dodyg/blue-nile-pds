@@ -6,6 +6,7 @@ using atompds.Services;
 using Config;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Xrpc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Moderation;
 
@@ -37,14 +38,7 @@ public class CreateReportController : ControllerBase
         if (string.IsNullOrWhiteSpace(_serverEnvironment.PDS_REPORT_SERVICE_URL) ||
             string.IsNullOrWhiteSpace(_serverEnvironment.PDS_REPORT_SERVICE_DID))
         {
-            return Ok(new
-            {
-                id = Guid.NewGuid().ToString(),
-                createdAt = DateTime.UtcNow.ToString("o"),
-                reasonType = input.TryGetProperty("reasonType", out var rt) ? rt.GetString() : "",
-                reason = input.TryGetProperty("reason", out var r) ? r.GetString() : "",
-                subject = input.TryGetProperty("subject", out var s) ? s : default(JsonElement?)
-            });
+            throw new XRPCError(new InvalidRequestErrorDetail("Report service is not configured"));
         }
 
         try
