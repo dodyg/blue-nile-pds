@@ -1,6 +1,4 @@
-using System.Net.Mail;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
@@ -30,7 +28,6 @@ public class CreateAccountController : ControllerBase
     private readonly ActorRepositoryProvider _actorRepositoryProvider;
     private readonly CaptchaVerifier _captchaVerifier;
     private readonly HandleManager _handle;
-    private readonly HttpClient _httpClient;
     private readonly IdentityConfig _identityConfig;
     private readonly IdResolver _idResolver;
     private readonly InvitesConfig _invitesConfig;
@@ -39,27 +36,27 @@ public class CreateAccountController : ControllerBase
     private readonly SecretsConfig _secretsConfig;
     private readonly SequencerRepository _sequencer;
     private readonly ServiceConfig _serviceConfig;
+    private readonly EmailAddressValidator _emailAddressValidator;
 
     public CreateAccountController(ILogger<CreateAccountController> logger,
         AccountRepository accountRepository,
         IdentityConfig identityConfig,
         ServiceConfig serviceConfig,
         InvitesConfig invitesConfig,
-        HttpClient httpClient,
         HandleManager handle,
         ActorRepositoryProvider actorRepositoryProvider,
         IdResolver idResolver,
         SecretsConfig secretsConfig,
         SequencerRepository sequencer,
         PlcClient plcClient,
-        CaptchaVerifier captchaVerifier)
+        CaptchaVerifier captchaVerifier,
+        EmailAddressValidator emailAddressValidator)
     {
         _logger = logger;
         _accountRepository = accountRepository;
         _identityConfig = identityConfig;
         _serviceConfig = serviceConfig;
         _invitesConfig = invitesConfig;
-        _httpClient = httpClient;
         _handle = handle;
         _actorRepositoryProvider = actorRepositoryProvider;
         _idResolver = idResolver;
@@ -67,6 +64,7 @@ public class CreateAccountController : ControllerBase
         _sequencer = sequencer;
         _plcClient = plcClient;
         _captchaVerifier = captchaVerifier;
+        _emailAddressValidator = emailAddressValidator;
     }
 
 
@@ -175,10 +173,7 @@ public class CreateAccountController : ControllerBase
         {
             throw new XRPCError(new InvalidRequestErrorDetail("Email is required"));
         }
-        if (!IsValidEmail(createAccountInput.Email) || await IsDisposableEmailAsync(createAccountInput.Email))
-        {
-            throw new XRPCError(new InvalidRequestErrorDetail("This email address is not supported, please use a different email."));
-        }
+        await _emailAddressValidator.AssertSupportedEmailAsync(createAccountInput.Email);
 
         var signingKey = Secp256k1Keypair.Create(true);
 
@@ -255,38 +250,4 @@ public class CreateAccountController : ControllerBase
         return (plcCreate.Did, plcCreate.Op);
     }
 
-    private bool IsValidEmail(string email)
-    {
-        try
-        {
-            var addr = new MailAddress(email);
-            return addr.Address == email;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-    private async Task<bool> IsDisposableEmailAsync(string email)
-    {
-        try
-        {
-            var response = await _httpClient.GetAsync($"https://open.kickbox.com/v1/disposable/{email}");
-            var content = await response.Content.ReadAsStringAsync();
-            var disposableResponse = JsonSerializer.Deserialize<DisposableResponse>(content);
-            if (disposableResponse == null)
-            {
-                return false;
-            }
-
-            return disposableResponse.Disposable;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Failed to check if email is disposable");
-            return false;
-        }
-    }
-
-    private record DisposableResponse([property: JsonPropertyName("disposable")] bool Disposable);
 }

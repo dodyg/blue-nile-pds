@@ -266,6 +266,7 @@ public record ServerConfig
             var logger = x.GetRequiredService<ILogger<CaptchaVerifier>>();
             return new CaptchaVerifier(httpClient, logger, config._env.PDS_HCAPTCHA_SECRET);
         });
+        services.AddSingleton<EmailAddressValidator>();
 
         // Write snapshot cache
         services.AddSingleton<WriteSnapshotCache>();
