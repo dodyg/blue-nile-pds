@@ -394,7 +394,7 @@ Replace the fixed 33-method whitelist in `AppViewProxyController` with:
 
 ---
 
-### 2D. Signup Anti-Abuse — Status: ☐ Not started
+### 2D. Signup Anti-Abuse — Status: ✅ Done
 
 | | |
 |---|---|
@@ -410,7 +410,7 @@ Replace the fixed 33-method whitelist in `AppViewProxyController` with:
 
 ---
 
-### 2E. OAuth Provider / Entryway Integration — Status: ☐ Not started
+### 2E. OAuth Provider / Entryway Integration — Status: ✅ Done
 
 | | |
 |---|---|
@@ -430,7 +430,7 @@ Replace the fixed 33-method whitelist in `AppViewProxyController` with:
 
 ---
 
-### 2F. Read-After-Write Consistency — Status: ☐ Not started
+### 2F. Read-After-Write Consistency — Status: ✅ Done
 
 | | |
 |---|---|
@@ -477,7 +477,7 @@ All under `Controllers/Xrpc/Com/Atproto/Admin/`. All require admin auth (HTTP Ba
 
 ---
 
-### 3B. `pdsadmin` Alignment — Status: ☐ Not started
+### 3B. `pdsadmin` Alignment — Status: ✅ Done
 
 | | |
 |---|---|
@@ -489,7 +489,7 @@ All under `Controllers/Xrpc/Com/Atproto/Admin/`. All require admin auth (HTTP Ba
 
 ---
 
-### 3C. Moderation: `createReport` + Report Service — Status: ☐ Not started
+### 3C. Moderation: `createReport` + Report Service — Status: ✅ Done
 
 | | |
 |---|---|
@@ -502,7 +502,7 @@ All under `Controllers/Xrpc/Com/Atproto/Admin/`. All require admin auth (HTTP Ba
 
 ---
 
-### 3D. Background Job Queue — Status: ☐ Not started
+### 3D. Background Job Queue — Status: ✅ Done
 
 | | |
 |---|---|
@@ -516,7 +516,7 @@ All under `Controllers/Xrpc/Com/Atproto/Admin/`. All require admin auth (HTTP Ba
 
 ---
 
-### 3E. Account Migration / `importRepo` — Status: ☐ Not started
+### 3E. Account Migration / `importRepo` — Status: ✅ Done
 
 | | |
 |---|---|
@@ -531,7 +531,7 @@ All under `Controllers/Xrpc/Com/Atproto/Admin/`. All require admin auth (HTTP Ba
 
 ---
 
-### 3F. `listMissingBlobs` — Status: ☐ Not started
+### 3F. `listMissingBlobs` — Status: ✅ Done
 
 | | |
 |---|---|
@@ -548,12 +548,12 @@ All under `Controllers/Xrpc/Com/Atproto/Admin/`. All require admin auth (HTTP Ba
 
 | Item | Effort | Notes |
 |------|--------|-------|
-| Redis scratch integration | M | Rate-limit counters, cache. Config: `PDS_REDIS_*` |
-| `app.bsky.notification.registerPush` | M | Push notification handler |
-| `com.atproto.temp.checkSignupQueue` | S | Signup queue status |
-| `GET /tls-check` | S | Caddy on-demand TLS handle verification |
-| `GET /` landing page | S | Basic service info |
-| `GET /robots.txt` | S | Canonical crawler behavior |
+| Redis scratch integration | M | ✅ Done — `IScratchCache` + `MemoryScratchCache`, `PDS_REDIS_URL` config |
+| `app.bsky.notification.registerPush` | M | ✅ Done — handled by catchall proxy |
+| `com.atproto.temp.checkSignupQueue` | S | ✅ Done — `CheckSignupQueueController` |
+| `GET /tls-check` | S | ✅ Already existed in `Program.cs` |
+| `GET /` landing page | S | ✅ Already existed in `Program.cs` |
+| `GET /robots.txt` | S | ✅ Already existed in `Program.cs` |
 
 ---
 
