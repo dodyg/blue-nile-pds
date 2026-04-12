@@ -16,7 +16,7 @@ public class ServiceJwtBuilder
         _actorRepositoryProvider = actorRepositoryProvider;
     }
 
-    public string CreateServiceJwt(string did, string audience, string? lxm)
+    public string CreateServiceJwt(string did, string audience, string? lxm, long? exp = null)
     {
         var signingKeyPair = _actorRepositoryProvider.KeyPair(did, true);
         if (signingKeyPair is not IExportableKeyPair exportable)
@@ -24,7 +24,7 @@ public class ServiceJwtBuilder
             throw new Exception("Signing key is not exportable");
         }
 
-        return BuildJwt(new ServiceJwtPayload(did, audience, null, null, lxm, exportable));
+        return BuildJwt(new ServiceJwtPayload(did, audience, null, exp, lxm, exportable));
     }
 
     private static string BuildJwt(ServiceJwtPayload payload)
