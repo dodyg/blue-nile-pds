@@ -23,6 +23,7 @@
         <PackageReference Include="Scalar.AspNetCore" />
         <PackageReference Include="Scrypt.NET" />
         <PackageReference Include="SimpleBase" />
+        <PackageReference Include="StackExchange.Redis" />
     </ItemGroup>
 
     <ItemGroup>

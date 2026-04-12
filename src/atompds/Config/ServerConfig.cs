@@ -15,6 +15,7 @@ using Mailer;
 using Microsoft.EntityFrameworkCore;
 using Sequencer;
 using Sequencer.Db;
+using StackExchange.Redis;
 
 namespace atompds.Config;
 
@@ -342,7 +343,15 @@ public record ServerConfig
         services.AddSingleton<OAuthSessionStore>();
 
         // Scratch cache
-        services.AddSingleton<IScratchCache, MemoryScratchCache>();
+        if (!string.IsNullOrWhiteSpace(config._env.PDS_REDIS_URL))
+        {
+            services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(config._env.PDS_REDIS_URL));
+            services.AddSingleton<IScratchCache, RedisScratchCache>();
+        }
+        else
+        {
+            services.AddSingleton<IScratchCache, MemoryScratchCache>();
+        }
 
         services.AddSingleton<ReservedSigningKeyStore>();
         services.AddScoped<EntrywayRelayService>();
