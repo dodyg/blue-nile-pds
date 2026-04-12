@@ -97,4 +97,10 @@ public class ServerEnvironment
     public int? PDS_PROXY_MAX_RETRIES { get; set; }
     public bool? PDS_PROXY_PREFER_COMPRESSED { get; set; }
 
+    // Server metadata
+    public string? PDS_PRIVACY_POLICY_URL { get; set; }
+    public string? PDS_TERMS_OF_SERVICE_URL { get; set; }
+    public string? PDS_CONTACT_EMAIL { get; set; }
+    public bool PDS_PHONE_VERIFICATION_REQUIRED { get; set; } = false;
+
 }

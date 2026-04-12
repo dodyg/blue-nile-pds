@@ -19,9 +19,11 @@ namespace atompds.Config;
 
 public record ServerConfig
 {
+    private readonly ServerEnvironment _env;
 
     public ServerConfig(ServerEnvironment env)
     {
+        _env = env;
         // run model validation on env
         var validationContext = new ValidationContext(env);
         var validationResults = new List<ValidationResult>();
@@ -221,6 +223,7 @@ public record ServerConfig
     public static void RegisterServices(IServiceCollection services, ServerConfig config)
     {
         services.AddSingleton(config);
+        services.AddSingleton(config._env);
         services.AddSingleton(config.Service);
         services.AddSingleton(config.Db);
         services.AddSingleton(config.ActorStore);
