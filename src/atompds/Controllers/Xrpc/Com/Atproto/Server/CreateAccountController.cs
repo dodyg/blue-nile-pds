@@ -160,11 +160,6 @@ public class CreateAccountController : ControllerBase
     private async Task<(string did, string handle, string Email, string? Password, string? InviteCode, Secp256k1Keypair signingKey, SignedOp<AtProtoOp>? plcOp, bool
         deactivated)> ValidateInputsForLocalPdsAsync(CreateAccountInput createAccountInput)
     {
-        if (createAccountInput.PlcOp != null)
-        {
-            throw new XRPCError(new InvalidRequestErrorDetail("Unsupported input: \"plcOp\""));
-        }
-
         if (_invitesConfig.Required && string.IsNullOrWhiteSpace(createAccountInput.InviteCode))
         {
             throw new XRPCError(new InvalidInviteCodeErrorDetail("No invite code provided"));
@@ -179,38 +174,63 @@ public class CreateAccountController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("This email address is not supported, please use a different email."));
         }
 
-        var handle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
+        var signingKey = Secp256k1Keypair.Create(true);
+
+        if (createAccountInput.Did != null)
+        {
+            var did = createAccountInput.Did.Value;
+            var handle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, did, false);
+
+            if (_invitesConfig.Required && createAccountInput.InviteCode != null)
+            {
+                await _accountRepository.EnsureInviteIsAvailableAsync(createAccountInput.InviteCode);
+            }
+
+            var existingAccount = await _accountRepository.GetAccountAsync(did);
+            if (existingAccount != null)
+            {
+                throw new XRPCError(new InvalidRequestErrorDetail("Account already exists"));
+            }
+
+            SignedOp<AtProtoOp>? plcOp = null;
+            if (createAccountInput.PlcOp != null)
+            {
+                plcOp = DeserializePlcOp(createAccountInput.PlcOp.Value);
+            }
+
+            return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, false);
+        }
+
+        var validatedHandle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
 
         if (_invitesConfig.Required && createAccountInput.InviteCode != null)
         {
             await _accountRepository.EnsureInviteIsAvailableAsync(createAccountInput.InviteCode);
         }
 
-        var handleAcct = await _accountRepository.GetAccountAsync(handle);
+        var handleAcct = await _accountRepository.GetAccountAsync(validatedHandle);
         var emailAcct = await _accountRepository.GetAccountAsync(createAccountInput.Email);
         if (handleAcct != null)
         {
-            throw new XRPCError(new HandleNotAvailableErrorDetail($"Handle already taken: {handle}"));
+            throw new XRPCError(new HandleNotAvailableErrorDetail($"Handle already taken: {validatedHandle}"));
         }
         if (emailAcct != null)
         {
             throw new XRPCError(new InvalidRequestErrorDetail($"Email already taken: {createAccountInput.Email}"));
         }
 
-        var signingKey = Secp256k1Keypair.Create(true);
+        var (did2, plcOp2) = await FormatDidAndPlcOpAsync(validatedHandle, createAccountInput, signingKey);
 
-        string did;
-        SignedOp<AtProtoOp> plcOp;
-        var deactivated = false;
-        if (createAccountInput.Did != null)
-        {
-            // if did != requested, throw error
-            deactivated = true;
-            throw new XRPCError(new InvalidRequestErrorDetail("This PDS does not support DID transfer"));
-        }
-        (did, plcOp) = await FormatDidAndPlcOpAsync(handle, createAccountInput, signingKey);
+        return (did2, validatedHandle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp2, false);
+    }
 
-        return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, deactivated);
+    private SignedOp<AtProtoOp> DeserializePlcOp(JsonElement plcOpJson)
+    {
+        var opStr = plcOpJson.GetRawText();
+        var cborOp = PeterO.Cbor.CBORObject.FromJSONString(opStr);
+        var sig = cborOp.ContainsKey("sig") ? cborOp["sig"].AsString() : "";
+        var op = AtProtoOp.FromCborObject(cborOp);
+        return new SignedOp<AtProtoOp> { Op = op, Sig = sig };
     }
 
     private async Task<(string Did, SignedOp<AtProtoOp> PlcOp)> FormatDidAndPlcOpAsync(string handle, CreateAccountInput createAccountInput, Secp256k1Keypair signingKey)
