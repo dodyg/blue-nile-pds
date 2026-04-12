@@ -39,6 +39,8 @@ public class Program
 
         builder.Services.AddExceptionHandler<XRPCExceptionHandler>();
 
+        builder.Services.AddPdsRateLimiting(environment.PDS_RATE_LIMITS_ENABLED);
+
 
         var app = builder.Build();
 
@@ -52,6 +54,7 @@ public class Program
         }
 
         app.UseRouting();
+        app.UseRateLimiter();
         app.MapControllers();
         app.UseExceptionHandler("/error");
         app.UseAuthMiddleware();
