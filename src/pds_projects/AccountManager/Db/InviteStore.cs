@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 using Xrpc;
 
 namespace AccountManager.Db;
@@ -53,5 +54,36 @@ public class InviteStore
         });
 
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<string> CreateInviteCodeAsync(string forAccount, string createdBy, int useCount)
+    {
+        var code = GenerateInviteCode();
+        _db.InviteCodes.Add(new InviteCode
+        {
+            Code = code,
+            AvailableUses = useCount,
+            Disabled = false,
+            ForAccount = forAccount,
+            CreatedBy = createdBy,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+        return code;
+    }
+
+    public async Task<List<InviteCode>> GetInviteCodesForAccountAsync(string did)
+    {
+        return await _db.InviteCodes
+            .Where(ic => ic.ForAccount == did)
+            .ToListAsync();
+    }
+
+    private static string GenerateInviteCode()
+    {
+        using var rng = RandomNumberGenerator.Create();
+        var bytes = new byte[8];
+        rng.GetBytes(bytes);
+        return Convert.ToHexString(bytes).ToLower();
     }
 }

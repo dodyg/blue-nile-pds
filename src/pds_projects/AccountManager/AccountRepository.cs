@@ -179,6 +179,21 @@ public class AccountRepository
         await _accountStore.UpdateHandleAsync(did, handle);
     }
 
+    public async Task ConfirmEmailAsync(string did)
+    {
+        await _accountStore.ConfirmEmailAsync(did);
+    }
+
+    public async Task UpdateEmailAsync(string did, string email)
+    {
+        await _accountStore.UpdateEmailAsync(did, email);
+    }
+
+    public async Task UpdatePasswordAsync(string did, string password)
+    {
+        await _accountStore.UpdatePasswordAsync(did, password);
+    }
+
     public record LoginResult(ActorAccount Account, string? AppPasswordName, string? AppPasswordScope);
 
     public async Task<LoginResult> LoginAsync(string identifier, string password)

@@ -1,6 +1,7 @@
 ﻿using Config;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Scrypt;
 using Xrpc;
 
 namespace AccountManager.Db;
@@ -229,6 +230,38 @@ public class AccountStore
         if (actor != null)
         {
             actor.Handle = handle;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task ConfirmEmailAsync(string did)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.EmailConfirmedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateEmailAsync(string did, string email)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.Email = email.ToLower();
+            account.EmailConfirmedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdatePasswordAsync(string did, string password)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            var enc = new ScryptEncoder();
+            account.PasswordSCrypt = enc.Encode(password);
             await _db.SaveChangesAsync();
         }
     }

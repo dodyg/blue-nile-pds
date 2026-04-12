@@ -103,4 +103,12 @@ public class ServerEnvironment
     public string? PDS_CONTACT_EMAIL { get; set; }
     public bool PDS_PHONE_VERIFICATION_REQUIRED { get; set; } = false;
 
+    // SMTP Mailer
+    public string? PDS_SMTP_HOST { get; set; }
+    public int PDS_SMTP_PORT { get; set; } = 587;
+    public string? PDS_SMTP_USERNAME { get; set; }
+    public string? PDS_SMTP_PASSWORD { get; set; }
+    public string? PDS_SMTP_FROM_ADDRESS { get; set; }
+    public bool PDS_SMTP_USE_TLS { get; set; } = true;
+
 }

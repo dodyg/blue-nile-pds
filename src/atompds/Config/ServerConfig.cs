@@ -290,6 +290,21 @@ public record ServerConfig
         services.AddSingleton<PlcClient>();
 
         // Mailer
-        services.AddSingleton<IMailer, StubMailer>();
+        if (!string.IsNullOrWhiteSpace(config._env.PDS_SMTP_HOST))
+        {
+            var smtpConfig = new SmtpMailerConfig(
+                config._env.PDS_SMTP_HOST,
+                config._env.PDS_SMTP_PORT,
+                config._env.PDS_SMTP_USERNAME,
+                config._env.PDS_SMTP_PASSWORD,
+                config._env.PDS_SMTP_FROM_ADDRESS ?? $"noreply@{config._env.PDS_HOSTNAME}",
+                config._env.PDS_SMTP_USE_TLS);
+            services.AddSingleton<IMailer>(new SmtpMailer(smtpConfig,
+                services.BuildServiceProvider().GetRequiredService<ILogger<SmtpMailer>>()));
+        }
+        else
+        {
+            services.AddSingleton<IMailer, StubMailer>();
+        }
     }
 }
