@@ -39,7 +39,7 @@ public class CreateSessionController : ControllerBase
             throw new XRPCError(new InvalidRequestErrorDetail("Identifier and password are required"));
         }
 
-        var login = await _accountRepository.LoginAsync(request.Identifier, request.Password);
+        var login = await _accountRepository.LoginAsync(request.Identifier, request.Password, request.AllowTakendown == true);
         var creds = await _accountRepository.CreateSessionAsync(login.Account.Did, login.AppPasswordName, login.AppPasswordScope);
         var didDoc = await DidDocForSessionAsync(login.Account.Did);
         var (active, status) = AccountStore.FormatAccountStatus(login.Account);

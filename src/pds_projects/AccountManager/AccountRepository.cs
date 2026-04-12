@@ -211,7 +211,7 @@ public class AccountRepository
 
     public record LoginResult(ActorAccount Account, string? AppPasswordName, string? AppPasswordScope);
 
-    public async Task<LoginResult> LoginAsync(string identifier, string password)
+    public async Task<LoginResult> LoginAsync(string identifier, string password, bool allowTakendown = false)
     {
         var start = DateTime.UtcNow;
         try
@@ -236,7 +236,7 @@ public class AccountRepository
             var validAccountPass = await _passwordStore.VerifyAccountPasswordAsync(user.Did, password);
             if (validAccountPass)
             {
-                if (user.SoftDeleted)
+                if (user.SoftDeleted && !allowTakendown)
                 {
                     throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
                 }
@@ -247,7 +247,7 @@ public class AccountRepository
             var appPassResult = await _appPasswordStore.VerifyAppPasswordAsync(user.Did, password);
             if (appPassResult != null && appPassResult.Value.Valid)
             {
-                if (user.SoftDeleted)
+                if (user.SoftDeleted && !allowTakendown)
                 {
                     throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
                 }
