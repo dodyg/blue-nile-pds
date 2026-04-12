@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AppBsky.Actor;
 using ActorStore;
 using atompds.Middleware;
@@ -67,6 +68,33 @@ public class AppViewProxyController : ControllerBase
     {
         var auth = HttpContext.GetAuthOutput();
         return Ok();
+    }
+
+    [HttpPost("app.bsky.notification.registerPush")]
+    public async Task<IActionResult> RegisterPushAsync([FromBody] RegisterPushRequest request)
+    {
+        try
+        {
+            var authVerifier = HttpContext.RequestServices.GetRequiredService<AuthVerifier>();
+            var auth = await authVerifier.ValidateAccessTokenAsync(HttpContext,
+            [
+                AuthVerifier.ScopeMap[AuthVerifier.AuthScope.Access],
+                AuthVerifier.ScopeMap[AuthVerifier.AuthScope.AppPass],
+                AuthVerifier.ScopeMap[AuthVerifier.AuthScope.AppPassPrivileged],
+                AuthVerifier.ScopeMap[AuthVerifier.AuthScope.SignupQueued]
+            ]);
+
+            return await InnerRegisterPushAsync(auth, request);
+        }
+        catch (XRPCError)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in AppViewProxyController");
+            return StatusCode(500);
+        }
     }
 
     // static appview proxy
@@ -196,6 +224,46 @@ public class AppViewProxyController : ControllerBase
         throw new XRPCError(405);
     }
 
+    private async Task<IActionResult> InnerRegisterPushAsync(AuthVerifier.AccessOutput auth, RegisterPushRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ServiceDid))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("serviceDid is required"));
+        }
+
+        const string reqNsid = "app.bsky.notification.registerPush";
+        var proxyTarget = await ResolveNotificationTargetAsync(request.ServiceDid);
+        var url = $"{proxyTarget.Url}/xrpc/{reqNsid}";
+        var jwt = _serviceJwtBuilder.CreateServiceJwt(
+            auth.AccessCredentials.Did,
+            proxyTarget.Did,
+            reqNsid);
+
+        using var proxyRequest = new HttpRequestMessage(HttpMethod.Post, url);
+        proxyRequest.Headers.Add("x-bsky-topics", HttpContext.Request.Headers["x-bsky-topics"].ToArray());
+        proxyRequest.Headers.Add("atproto-accept-labelers", HttpContext.Request.Headers["atproto-accept-labelers"].ToArray());
+        var acceptLanguage = HttpContext.Request.Headers["Accept-Language"];
+        if (acceptLanguage.Count > 0)
+        {
+            proxyRequest.Headers.Add("Accept-Language", acceptLanguage.ToArray());
+        }
+
+        proxyRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+        proxyRequest.Content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+
+        var response = await _client.SendAsync(proxyRequest);
+        var content = await response.Content.ReadAsStringAsync();
+
+        _logger.LogInformation("[PROXY][{status}] {path} via {serviceDid} response {content}", response.StatusCode, url, proxyTarget.Did, content);
+
+        return new ContentResult
+        {
+            Content = content,
+            StatusCode = (int)response.StatusCode,
+            ContentType = response.Content.Headers.ContentType?.ToString()
+        };
+    }
+
     private async Task<ProxyServiceDestination> ResolveProxyTargetAsync()
     {
         var proxyHeader = HttpContext.Request.Headers["atproto-proxy"];
@@ -243,6 +311,24 @@ public class AppViewProxyController : ControllerBase
         {
             throw new XRPCError(new InvalidRequestErrorDetail("could not resolve atproto-proxy service DID"), e);
         }
+    }
+
+    private async Task<ProxyServiceDestination> ResolveNotificationTargetAsync(string serviceDid)
+    {
+        if (_config is BskyAppViewConfig appViewConfig &&
+            string.Equals(serviceDid, appViewConfig.Did, StringComparison.Ordinal))
+        {
+            return new ProxyServiceDestination(serviceDid, NormalizeServiceUrl(appViewConfig.Url));
+        }
+
+        var didDoc = await ResolveProxyDidDocumentAsync(serviceDid);
+        var endpoint = DidDoc.GetServiceEndpoint(didDoc, "bsky_notif", null);
+        if (endpoint == null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail($"invalid notification service details in did document: {serviceDid}"));
+        }
+
+        return new ProxyServiceDestination(serviceDid, NormalizeServiceUrl(endpoint));
     }
 
     private static (string serviceDid, string serviceId) ParseAtprotoProxyHeader(string headerValue)
@@ -467,4 +553,10 @@ public class AppViewProxyController : ControllerBase
 
     private readonly record struct ProxyServiceDestination(string Did, string Url);
     private record ServiceJwtPayload(string iss, string? aud, long? iat, long? exp, string? lxm, IKeyPair KeyPair);
+    public sealed record RegisterPushRequest(
+        [property: JsonPropertyName("serviceDid")] string ServiceDid,
+        [property: JsonPropertyName("token")] string Token,
+        [property: JsonPropertyName("platform")] string Platform,
+        [property: JsonPropertyName("appId")] string AppId,
+        [property: JsonPropertyName("ageRestricted")] bool? AgeRestricted);
 }
