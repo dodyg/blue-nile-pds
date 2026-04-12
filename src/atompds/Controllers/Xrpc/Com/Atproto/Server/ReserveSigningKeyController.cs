@@ -2,6 +2,7 @@ using atompds.Services;
 using Crypto.Secp256k1;
 using atompds.Middleware;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Xrpc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
@@ -20,6 +21,7 @@ public class ReserveSigningKeyController : ControllerBase
     }
 
     [HttpPost("com.atproto.server.reserveSigningKey")]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> ReserveSigningKeyAsync([FromBody] ReserveSigningKeyInput? request)
     {
         var signingKey = string.IsNullOrWhiteSpace(request?.Did)

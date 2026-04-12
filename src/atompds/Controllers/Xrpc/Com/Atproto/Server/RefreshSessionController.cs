@@ -8,6 +8,7 @@ using ComAtproto.Server;
 using Config;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Xrpc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
@@ -34,6 +35,7 @@ public class RefreshSessionController : ControllerBase
 
     [HttpPost("com.atproto.server.refreshSession")]
     [Refresh]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> RefreshSessionAsync()
     {
         var auth = HttpContext.GetRefreshOutput();

@@ -14,6 +14,7 @@ using DidLib;
 using Handle;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Repo;
 using Sequencer;
 using Xrpc;
@@ -92,6 +93,7 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.putRecord")]
     [AccessStandard(true, true)]
+    [EnableRateLimiting("repo-write")]
     public async Task<IActionResult> PutRecordAsync(JsonDocument json)
     {
         var tx = PutRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid record payload."));
@@ -135,6 +137,7 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.deleteRecord")]
     [AccessStandard(true, true)]
+    [EnableRateLimiting("repo-write")]
     public async Task<IActionResult> DeleteRecordAsync(JsonDocument json)
     {
         var tx = DeleteRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete payload."));
@@ -149,6 +152,7 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.createRecord")]
     [AccessStandard(true, true)]
+    [EnableRateLimiting("repo-write")]
     public async Task<IActionResult> createRecordAsync(JsonDocument json)
     {
         var tx = CreateRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid create payload."));
@@ -166,6 +170,7 @@ public class ApplyWritesController : ControllerBase
 
     [HttpPost("com.atproto.repo.applyWrites")]
     [AccessStandard(true, true)]
+    [EnableRateLimiting("repo-write")]
     public async Task<IActionResult> ApplyWritesAsync(JsonDocument json)
     {
         var tx = JsonSerializer.Deserialize<ApplyWritesInput>(json.RootElement.GetRawText(), ApplyWritesJsonOptions)

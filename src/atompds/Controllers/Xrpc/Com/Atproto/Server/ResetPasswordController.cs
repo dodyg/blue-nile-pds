@@ -1,6 +1,7 @@
 using AccountManager;
 using AccountManager.Db;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Scrypt;
 using Xrpc;
 
@@ -20,6 +21,7 @@ public class ResetPasswordController : ControllerBase
     }
 
     [HttpPost("com.atproto.server.resetPassword")]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> ResetPasswordAsync([FromBody] ResetPasswordInput request)
     {
         if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.Password))

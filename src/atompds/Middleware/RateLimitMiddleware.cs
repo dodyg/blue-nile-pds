@@ -21,34 +21,29 @@ public static class RateLimitExtensions
                 await context.HttpContext.Response.WriteAsync("Rate limit exceeded", ct);
             };
 
-            options.AddSlidingWindowLimiter("per-ip-global", opt =>
-            {
-                opt.PermitLimit = 500;
-                opt.Window = TimeSpan.FromMinutes(1);
-                opt.SegmentsPerWindow = 4;
-                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                opt.QueueLimit = 0;
-            });
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                RateLimitPartition.GetSlidingWindowLimiter(GetClientIpPartition(context), _ => CreateSlidingWindowOptions(500)));
 
-            options.AddSlidingWindowLimiter("auth-sensitive", opt =>
-            {
-                opt.PermitLimit = 30;
-                opt.Window = TimeSpan.FromMinutes(1);
-                opt.SegmentsPerWindow = 4;
-                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                opt.QueueLimit = 0;
-            });
+            options.AddPolicy("auth-sensitive", context =>
+                RateLimitPartition.GetSlidingWindowLimiter(GetClientIpPartition(context), _ => CreateSlidingWindowOptions(30)));
 
-            options.AddSlidingWindowLimiter("repo-write", opt =>
-            {
-                opt.PermitLimit = 100;
-                opt.Window = TimeSpan.FromMinutes(1);
-                opt.SegmentsPerWindow = 4;
-                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                opt.QueueLimit = 0;
-            });
+            options.AddPolicy("repo-write", context =>
+                RateLimitPartition.GetSlidingWindowLimiter(GetClientIpPartition(context), _ => CreateSlidingWindowOptions(100)));
         });
 
         return services;
     }
+
+    private static string GetClientIpPartition(HttpContext context)
+        => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    private static SlidingWindowRateLimiterOptions CreateSlidingWindowOptions(int permitLimit) =>
+        new()
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 4,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        };
 }

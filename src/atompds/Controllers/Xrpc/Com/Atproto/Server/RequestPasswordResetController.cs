@@ -2,6 +2,7 @@ using AccountManager;
 using AccountManager.Db;
 using Mailer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Xrpc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
@@ -25,6 +26,7 @@ public class RequestPasswordResetController : ControllerBase
     }
 
     [HttpPost("com.atproto.server.requestPasswordReset")]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> RequestPasswordResetAsync([FromBody] RequestPasswordResetInput request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))

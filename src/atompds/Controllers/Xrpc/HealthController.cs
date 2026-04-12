@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace atompds.Controllers.Xrpc;
@@ -8,6 +9,7 @@ namespace atompds.Controllers.Xrpc;
 public class HealthController : ControllerBase
 {
     [HttpGet("_health")]
+    [DisableRateLimiting]
     public IActionResult GetHealth()
     {
         return Ok(new HealthResponse(StaticConfig.Version));

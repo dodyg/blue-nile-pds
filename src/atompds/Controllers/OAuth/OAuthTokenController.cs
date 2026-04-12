@@ -5,6 +5,7 @@ using System.Text.Json;
 using atompds.Services.OAuth;
 using Config;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
@@ -31,6 +32,7 @@ public class OAuthTokenController : ControllerBase
     }
 
     [HttpPost("oauth/token")]
+    [EnableRateLimiting("auth-sensitive")]
     public IActionResult Token([FromForm] string? grant_type,
         [FromForm] string? code,
         [FromForm] string? redirect_uri,

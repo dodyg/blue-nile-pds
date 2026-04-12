@@ -7,6 +7,7 @@ using ComAtproto.Server;
 using Config;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Xrpc;
 
 namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
@@ -32,6 +33,7 @@ public class CreateSessionController : ControllerBase
     }
 
     [HttpPost("com.atproto.server.createSession")]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> CreateSessionAsync([FromBody] CreateSessionInput request)
     {
         if (request.Identifier == null || request.Password == null)

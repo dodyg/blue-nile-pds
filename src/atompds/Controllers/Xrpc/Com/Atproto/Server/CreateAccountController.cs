@@ -13,6 +13,7 @@ using DidLib;
 using Handle;
 using Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.Sqlite;
 using Sequencer;
 using Xrpc;
@@ -75,6 +76,7 @@ public class CreateAccountController : ControllerBase
 
 
     [HttpPost("com.atproto.server.createAccount")]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> CreateAccountAsync([FromBody] CreateAccountInput request)
     {
         string? validatedDid = null;

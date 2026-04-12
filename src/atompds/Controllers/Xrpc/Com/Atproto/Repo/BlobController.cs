@@ -5,6 +5,7 @@ using atompds.Middleware;
 using CID;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Xrpc;
 using static ActorStore.Repo.BlobTransactor;
 
@@ -20,9 +21,9 @@ public class BlobController(
 {
     
     // TODO: there is some authorization stuff regarding scopes that needs to be done here (consult the reference implemenation)
-    // TODO: rate limiting
     [HttpPost("com.atproto.repo.uploadBlob")]
     [AccessStandard(true, true)]
+    [EnableRateLimiting("repo-write")]
     public async Task<IActionResult> UploadBlobAsync()
     {
         var auth = HttpContext.GetAuthOutput();
