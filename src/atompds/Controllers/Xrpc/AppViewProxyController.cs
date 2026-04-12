@@ -7,6 +7,7 @@ using ActorStore;
 using atompds.Middleware;
 using atompds.Services;
 using Config;
+using CommonWeb;
 using Crypto;
 using Identity;
 using Jose;
@@ -106,6 +107,10 @@ public class AppViewProxyController : ControllerBase
         {
             return await InnerAsync();
         }
+        catch (XRPCError)
+        {
+            throw;
+        }
         catch (Exception e)
         {
             _logger.LogError(e, "Error in AppViewProxyController");
@@ -115,33 +120,25 @@ public class AppViewProxyController : ControllerBase
 
     private async Task<IActionResult> InnerAsync()
     {
-        if (_config is not BskyAppViewConfig config)
-        {
-            throw new XRPCError(404);
-        }
-
         var auth = HttpContext.GetAuthOutput();
         var reqNsid = ParseUrlNsid(HttpContext.Request.Path);
-        var url = $"{config.Url}/xrpc/{reqNsid}";
-
+        var proxyTarget = await ResolveProxyTargetAsync();
+        var url = $"{proxyTarget.Url}/xrpc/{reqNsid}";
 
         var signingKeyPair = _actorRepositoryProvider.KeyPair(auth.AccessCredentials.Did, true);
-        if (signingKeyPair is not IExportableKeyPair exportable)
+        if (signingKeyPair is not IExportableKeyPair)
         {
             throw new XRPCError(500);
         }
 
         var jwt = _serviceJwtBuilder.CreateServiceJwt(
             auth.AccessCredentials.Did,
-            config.Did,
+            proxyTarget.Did,
             reqNsid
         );
-        //await AssertValidJwt(jwt, config.Did, reqNsid);
 
-        // if get
         if (HttpContext.Request.Method == "GET")
         {
-            // add params if any
             url += HttpContext.Request.QueryString;
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("x-bsky-topics", HttpContext.Request.Headers["x-bsky-topics"].ToArray());
@@ -156,7 +153,7 @@ public class AppViewProxyController : ControllerBase
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
 
-            _logger.LogInformation("[PROXY][{status}] {path} response {content}", response.StatusCode, url, content);
+            _logger.LogInformation("[PROXY][{status}] {path} via {serviceDid} response {content}", response.StatusCode, url, proxyTarget.Did, content);
 
             return new ContentResult
             {
@@ -177,7 +174,6 @@ public class AppViewProxyController : ControllerBase
             }
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
 
-            // add body if any
             if (HttpContext.Request.ContentLength > 0)
             {
                 var body = await HttpContext.Request.BodyReader.ReadAsync();
@@ -188,7 +184,7 @@ public class AppViewProxyController : ControllerBase
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
 
-            _logger.LogInformation("[PROXY][{status}] {path} response {content}", response.StatusCode, url, content);
+            _logger.LogInformation("[PROXY][{status}] {path} via {serviceDid} response {content}", response.StatusCode, url, proxyTarget.Did, content);
 
             return new ContentResult
             {
@@ -199,6 +195,77 @@ public class AppViewProxyController : ControllerBase
         }
         throw new XRPCError(405);
     }
+
+    private async Task<ProxyServiceDestination> ResolveProxyTargetAsync()
+    {
+        var proxyHeader = HttpContext.Request.Headers["atproto-proxy"];
+        if (proxyHeader.Count == 0)
+        {
+            if (_config is not BskyAppViewConfig config)
+            {
+                throw new XRPCError(404);
+            }
+
+            return new ProxyServiceDestination(config.Did, NormalizeServiceUrl(config.Url));
+        }
+
+        if (proxyHeader.Count != 1 || string.IsNullOrWhiteSpace(proxyHeader[0]))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("invalid atproto-proxy header"));
+        }
+
+        var (serviceDid, serviceId) = ParseAtprotoProxyHeader(proxyHeader[0]!);
+
+        if (_config is BskyAppViewConfig appViewConfig &&
+            string.Equals(serviceDid, appViewConfig.Did, StringComparison.Ordinal) &&
+            string.Equals(serviceId, "bsky_appview", StringComparison.Ordinal))
+        {
+            return new ProxyServiceDestination(serviceDid, NormalizeServiceUrl(appViewConfig.Url));
+        }
+
+        var didDoc = await ResolveProxyDidDocumentAsync(serviceDid);
+        var endpoint = DidDoc.GetServiceEndpoint(didDoc, serviceId, null);
+        if (endpoint == null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("requested proxy service was not found"));
+        }
+
+        return new ProxyServiceDestination(serviceDid, NormalizeServiceUrl(endpoint));
+    }
+
+    private async Task<DidDocument> ResolveProxyDidDocumentAsync(string serviceDid)
+    {
+        try
+        {
+            return await _idResolver.DidResolver.EnsureResolveAsync(serviceDid);
+        }
+        catch (Exception e)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("could not resolve atproto-proxy service DID"), e);
+        }
+    }
+
+    private static (string serviceDid, string serviceId) ParseAtprotoProxyHeader(string headerValue)
+    {
+        var value = headerValue.Trim();
+        var separator = value.LastIndexOf('#');
+        if (separator <= 0 || separator == value.Length - 1)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("invalid atproto-proxy header"));
+        }
+
+        var serviceDid = value[..separator];
+        var serviceId = value[(separator + 1)..];
+        if (!serviceDid.StartsWith("did:", StringComparison.Ordinal) ||
+            serviceId.Any(ch => char.IsWhiteSpace(ch) || ch is '#' or '/' or '?'))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("invalid atproto-proxy header"));
+        }
+
+        return (serviceDid, serviceId);
+    }
+
+    private static string NormalizeServiceUrl(string url) => url.TrimEnd('/');
     private string CreateServiceJwt(ServiceJwtPayload payload)
     {
         var iat = payload.iat ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -387,6 +454,10 @@ public class AppViewProxyController : ControllerBase
         {
             return NotFound();
         }
+        catch (XRPCError)
+        {
+            throw;
+        }
         catch (Exception e)
         {
             _logger.LogError(e, "Error in catchall proxy for {nsid}", nsid);
@@ -394,5 +465,6 @@ public class AppViewProxyController : ControllerBase
         }
     }
 
+    private readonly record struct ProxyServiceDestination(string Did, string Url);
     private record ServiceJwtPayload(string iss, string? aud, long? iat, long? exp, string? lxm, IKeyPair KeyPair);
 }
