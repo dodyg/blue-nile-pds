@@ -47,10 +47,8 @@ public class WellKnownController : ControllerBase
             authorization_endpoint = $"{baseUrl}/oauth/authorize",
             token_endpoint = $"{baseUrl}/oauth/token",
             token_endpoint_auth_methods_supported = new[] { "none" },
-            revocation_endpoint = $"{baseUrl}/oauth/revoke",
             dpop_signing_alg_values_supported = new[] { "ES256" },
-            client_id_metadata_document = "https://atproto.com/specs/oauth#client-id-metadata-document",
-            pushed_authorization_request_endpoint = $"{baseUrl}/oauth/par"
+            client_id_metadata_document = "https://atproto.com/specs/oauth#client-id-metadata-document"
         });
     }
 
