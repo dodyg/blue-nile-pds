@@ -15,7 +15,7 @@ public class CheckSignupQueueController : ControllerBase
     }
 
     [HttpGet("com.atproto.temp.checkSignupQueue")]
-    public async Task<IActionResult> CheckSignupQueue()
+    public async Task<IActionResult> CheckSignupQueueAsync()
     {
         await _authVerifier.ValidateAccessTokenAsync(HttpContext,
         [
