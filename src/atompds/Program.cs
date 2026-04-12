@@ -3,6 +3,7 @@ using AccountManager.Db;
 using atompds.Config;
 using atompds.ExceptionHandler;
 using atompds.Middleware;
+using atompds.Services;
 using Config;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,10 @@ public class Program
         builder.Services.AddExceptionHandler<XRPCExceptionHandler>();
 
         builder.Services.AddPdsRateLimiting(environment.PDS_RATE_LIMITS_ENABLED);
+
+        // Background job queue
+        builder.Services.AddSingleton<BackgroundJobQueue>();
+        builder.Services.AddHostedService<BackgroundJobWorker>();
 
 
         var app = builder.Build();
