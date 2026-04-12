@@ -123,4 +123,8 @@ public class ServerEnvironment
     public string? PDS_OAUTH_ENTRYWAY_DID { get; set; }
     public List<string> PDS_OAUTH_TRUSTED_CLIENTS { get; set; } = [];
 
+    // Moderation
+    public string? PDS_REPORT_SERVICE_URL { get; set; }
+    public string? PDS_REPORT_SERVICE_DID { get; set; }
+
 }
