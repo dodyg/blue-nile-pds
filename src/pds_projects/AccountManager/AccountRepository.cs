@@ -110,6 +110,11 @@ public class AccountRepository
         return await _accountStore.GetAccountAsync(handleOrDid, flags);
     }
 
+    public async Task<Dictionary<string, ActorAccount>> GetAccountsAsync(string[] dids, AvailabilityFlags? flags = null)
+    {
+        return await _accountStore.GetAccountsAsync(dids, flags);
+    }
+
     public async Task<ActorAccount?> GetAccountByEmailAsync(string email, AvailabilityFlags? flags = null)
     {
         return await _accountStore.GetAccountByEmailAsync(email, flags);
@@ -192,6 +197,16 @@ public class AccountRepository
     public async Task UpdatePasswordAsync(string did, string password)
     {
         await _accountStore.UpdatePasswordAsync(did, password);
+    }
+
+    public async Task UpdateTakedownRefAsync(string did, string? takedownRef)
+    {
+        await _accountStore.UpdateTakedownRefAsync(did, takedownRef);
+    }
+
+    public async Task UpdateInvitesDisabledAsync(string did, bool disabled)
+    {
+        await _accountStore.UpdateInvitesDisabledAsync(did, disabled);
     }
 
     public record LoginResult(ActorAccount Account, string? AppPasswordName, string? AppPasswordScope);

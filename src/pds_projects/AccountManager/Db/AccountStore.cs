@@ -265,4 +265,24 @@ public class AccountStore
             await _db.SaveChangesAsync();
         }
     }
+
+    public async Task UpdateTakedownRefAsync(string did, string? takedownRef)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.TakedownRef = takedownRef;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateInvitesDisabledAsync(string did, bool disabled)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.InvitesDisabled = disabled;
+            await _db.SaveChangesAsync();
+        }
+    }
 }
