@@ -3,6 +3,7 @@ using AccountManager.Db;
 using atompds.Config;
 using atompds.ExceptionHandler;
 using atompds.Middleware;
+using Config;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Sequencer.Db;
@@ -70,7 +71,22 @@ public class Program
 
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
         var version = typeof(Program).Assembly.GetName().Version!.ToString(3);
-        app.MapGet("/", () => $"Hello! This is an ATProto PDS instance, running atompds v{version}.");
+        var serviceConfig = app.Services.GetRequiredService<ServiceConfig>();
+        app.MapGet("/", () => Results.Json(new
+        {
+            did = serviceConfig.Did,
+            version,
+            availableUserDomains = serviceConfig.Hostname
+        }));
+
+        app.MapGet("/robots.txt", () => "User-agent: *\nAllow: /xrpc/\nDisallow: /");
+
+        app.MapGet("/tls-check", (HttpContext ctx) =>
+        {
+            var proto = ctx.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? ctx.Request.Scheme;
+            return Results.Ok(new { proto, host = ctx.Request.Host.Host });
+        });
+
         await app.RunAsync();
     }
 }
