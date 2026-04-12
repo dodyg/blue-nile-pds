@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AppBsky.Actor;
 using ActorStore;
@@ -27,12 +28,14 @@ public class AppViewProxyController : ControllerBase
     private readonly IdResolver _idResolver;
     private readonly ILogger<AppViewProxyController> _logger;
     private readonly ServiceJwtBuilder _serviceJwtBuilder;
+    private readonly WriteSnapshotCache _writeSnapshotCache;
     public AppViewProxyController(IBskyAppViewConfig config,
         ILogger<AppViewProxyController> logger,
         HttpClient client,
         ActorRepositoryProvider actorRepositoryProvider,
         IdResolver idResolver,
-        ServiceJwtBuilder serviceJwtBuilder)
+        ServiceJwtBuilder serviceJwtBuilder,
+        WriteSnapshotCache writeSnapshotCache)
     {
         _config = config;
         _logger = logger;
@@ -40,6 +43,7 @@ public class AppViewProxyController : ControllerBase
         _actorRepositoryProvider = actorRepositoryProvider;
         _idResolver = idResolver;
         _serviceJwtBuilder = serviceJwtBuilder;
+        _writeSnapshotCache = writeSnapshotCache;
     }
 
     [HttpGet("app.bsky.actor.getPreferences")]
@@ -180,6 +184,7 @@ public class AppViewProxyController : ControllerBase
 
             var response = await _client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
+            content = PatchReadAfterWriteResponse(reqNsid, auth.AccessCredentials.Did, response, content);
 
             _logger.LogInformation("[PROXY][{status}] {path} via {serviceDid} response {content}", response.StatusCode, url, proxyTarget.Did, content);
 
@@ -263,6 +268,221 @@ public class AppViewProxyController : ControllerBase
             ContentType = response.Content.Headers.ContentType?.ToString()
         };
     }
+
+    private string PatchReadAfterWriteResponse(string reqNsid, string did, HttpResponseMessage response, string content)
+    {
+        if (!response.IsSuccessStatusCode ||
+            !ShouldPatchReadAfterWrite(reqNsid) ||
+            string.IsNullOrWhiteSpace(content))
+        {
+            return content;
+        }
+
+        var mediaType = response.Content.Headers.ContentType?.MediaType;
+        if (!string.Equals(mediaType, "application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            return content;
+        }
+
+        JsonNode? root;
+        try
+        {
+            root = JsonNode.Parse(content);
+        }
+        catch (JsonException)
+        {
+            return content;
+        }
+
+        if (root == null || !PatchNode(root, did))
+        {
+            return content;
+        }
+
+        return root.ToJsonString();
+    }
+
+    private bool PatchNode(JsonNode? node, string did)
+    {
+        if (node == null)
+        {
+            return false;
+        }
+
+        var modified = false;
+        switch (node)
+        {
+            case JsonObject obj:
+                modified |= PatchUriSnapshot(obj, did);
+                modified |= PatchProfileSnapshot(obj, did);
+
+                foreach (var child in obj.ToArray())
+                {
+                    modified |= PatchNode(child.Value, did);
+                }
+                break;
+            case JsonArray arr:
+                foreach (var item in arr)
+                {
+                    modified |= PatchNode(item, did);
+                }
+                break;
+        }
+
+        return modified;
+    }
+
+    private bool PatchUriSnapshot(JsonObject obj, string did)
+    {
+        if (!obj.TryGetPropertyValue("uri", out var uriNode) ||
+            uriNode is not JsonValue uriValue)
+        {
+            return false;
+        }
+
+        if (!uriValue.TryGetValue<string>(out var uri) ||
+            !TryParseAtUri(uri, out var uriDid, out var collection, out var rkey) ||
+            !string.Equals(uriDid, did, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var snapshot = _writeSnapshotCache.GetSnapshot(uriDid, collection, rkey);
+        if (snapshot == null)
+        {
+            return false;
+        }
+
+        JsonNode? recordNode;
+        try
+        {
+            recordNode = JsonNode.Parse(snapshot.RecordJson);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        var modified = false;
+        if (obj.ContainsKey("cid"))
+        {
+            obj["cid"] = snapshot.Cid;
+            modified = true;
+        }
+
+        if (obj.ContainsKey("record"))
+        {
+            obj["record"] = recordNode?.DeepClone();
+            modified = true;
+        }
+
+        if (obj.ContainsKey("value"))
+        {
+            obj["value"] = recordNode?.DeepClone();
+            modified = true;
+        }
+
+        if (recordNode is JsonObject recordObject)
+        {
+            modified |= PromoteKnownViewFields(obj, recordObject);
+        }
+
+        return modified;
+    }
+
+    private bool PatchProfileSnapshot(JsonObject obj, string did)
+    {
+        if (!obj.TryGetPropertyValue("did", out var didNode) ||
+            didNode is not JsonValue didValue ||
+            !didValue.TryGetValue<string>(out var profileDid) ||
+            !string.Equals(profileDid, did, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var snapshot = _writeSnapshotCache.GetSnapshot(did, "app.bsky.actor.profile", "self");
+        if (snapshot == null)
+        {
+            return false;
+        }
+
+        JsonNode? recordNode;
+        try
+        {
+            recordNode = JsonNode.Parse(snapshot.RecordJson);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        return recordNode is JsonObject recordObject && PromoteKnownViewFields(obj, recordObject);
+    }
+
+    private static bool PromoteKnownViewFields(JsonObject target, JsonObject source)
+    {
+        var modified = false;
+        foreach (var field in new[] { "displayName", "description", "name" })
+        {
+            if (source.TryGetPropertyValue(field, out var value))
+            {
+                target[field] = value?.DeepClone();
+                modified = true;
+            }
+        }
+
+        return modified;
+    }
+
+    private static bool TryParseAtUri(string uri, out string did, out string collection, out string rkey)
+    {
+        did = string.Empty;
+        collection = string.Empty;
+        rkey = string.Empty;
+
+        if (!uri.StartsWith("at://", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var segments = uri[5..].Split('/', 3, StringSplitOptions.None);
+        if (segments.Length != 3 ||
+            string.IsNullOrWhiteSpace(segments[0]) ||
+            string.IsNullOrWhiteSpace(segments[1]) ||
+            string.IsNullOrWhiteSpace(segments[2]))
+        {
+            return false;
+        }
+
+        did = segments[0];
+        collection = segments[1];
+        rkey = segments[2];
+        return true;
+    }
+
+    private static bool ShouldPatchReadAfterWrite(string reqNsid) => reqNsid switch
+    {
+        "app.bsky.actor.getProfile" => true,
+        "app.bsky.actor.getProfiles" => true,
+        "app.bsky.feed.getTimeline" => true,
+        "app.bsky.feed.getAuthorFeed" => true,
+        "app.bsky.feed.getActorFeeds" => true,
+        "app.bsky.feed.getFeed" => true,
+        "app.bsky.feed.getListFeed" => true,
+        "app.bsky.feed.getFeedGenerator" => true,
+        "app.bsky.feed.getFeedGenerators" => true,
+        "app.bsky.feed.getPostThread" => true,
+        "app.bsky.feed.getPosts" => true,
+        "app.bsky.feed.getLikes" => true,
+        "app.bsky.feed.getActorLikes" => true,
+        "app.bsky.feed.getRepostedBy" => true,
+        "app.bsky.graph.getList" => true,
+        "app.bsky.graph.getLists" => true,
+        "app.bsky.graph.getStarterPack" => true,
+        "app.bsky.graph.getActorStarterPacks" => true,
+        "app.bsky.unspecced.getPopularFeedGenerators" => true,
+        _ => false
+    };
 
     private async Task<ProxyServiceDestination> ResolveProxyTargetAsync()
     {
