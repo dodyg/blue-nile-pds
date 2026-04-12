@@ -174,6 +174,11 @@ public class AccountRepository
         return await _accountStore.GetAccountStatusAsync(did);
     }
 
+    public async Task UpdateHandleAsync(string did, string handle)
+    {
+        await _accountStore.UpdateHandleAsync(did, handle);
+    }
+
     public record LoginResult(ActorAccount Account, string? AppPasswordName, string? AppPasswordScope);
 
     public async Task<LoginResult> LoginAsync(string identifier, string password)

@@ -222,4 +222,14 @@ public class AccountStore
             await _db.SaveChangesAsync();
         }
     }
+
+    public async Task UpdateHandleAsync(string did, string handle)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.Handle = handle;
+            await _db.SaveChangesAsync();
+        }
+    }
 }
