@@ -44,6 +44,7 @@ public class RequestPlcOperationSignatureController : ControllerBase
         }
 
         var token = await _accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.plc_operation);
+        await _mailer.SendPlcOperationSignatureAsync(token, account.Email);
 
         return Ok();
     }
