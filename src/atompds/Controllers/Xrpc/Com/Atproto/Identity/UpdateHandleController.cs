@@ -70,6 +70,7 @@ public class UpdateHandleController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, "Failed to update PLC handle for {did}", did);
+            throw new XRPCError(new InvalidRequestErrorDetail("Failed to update PLC handle"), e);
         }
 
         await _accountRepository.UpdateHandleAsync(did, validatedHandle);
