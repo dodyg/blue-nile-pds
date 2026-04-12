@@ -81,11 +81,23 @@ public class Program
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
         var version = typeof(Program).Assembly.GetName().Version!.ToString(3);
         var serviceConfig = app.Services.GetRequiredService<ServiceConfig>();
+        var identityConfig = app.Services.GetRequiredService<IdentityConfig>();
         app.MapGet("/", () => Results.Json(new
         {
+            serviceName = environment.PDS_SERVICE_NAME,
             did = serviceConfig.Did,
             version,
-            availableUserDomains = serviceConfig.Hostname
+            publicUrl = serviceConfig.PublicUrl,
+            availableUserDomains = identityConfig.ServiceHandleDomains,
+            contactEmail = environment.PDS_CONTACT_EMAIL,
+            logoUrl = environment.PDS_LOGO_URL,
+            links = new
+            {
+                home = environment.PDS_HOME_URL ?? serviceConfig.PublicUrl,
+                support = environment.PDS_SUPPORT_URL,
+                privacyPolicy = environment.PDS_PRIVACY_POLICY_URL,
+                termsOfService = environment.PDS_TERMS_OF_SERVICE_URL
+            }
         }));
 
         app.MapGet("/robots.txt", () => "User-agent: *\nAllow: /xrpc/\nDisallow: /");

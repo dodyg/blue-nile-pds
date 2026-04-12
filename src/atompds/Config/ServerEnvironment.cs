@@ -100,6 +100,9 @@ public class ServerEnvironment
     // Server metadata
     public string? PDS_PRIVACY_POLICY_URL { get; set; }
     public string? PDS_TERMS_OF_SERVICE_URL { get; set; }
+    public string? PDS_HOME_URL { get; set; }
+    public string? PDS_SUPPORT_URL { get; set; }
+    public string? PDS_LOGO_URL { get; set; }
     public string? PDS_CONTACT_EMAIL { get; set; }
     public bool PDS_PHONE_VERIFICATION_REQUIRED { get; set; } = false;
 

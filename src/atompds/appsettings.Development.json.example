@@ -11,6 +11,7 @@
   "Config": {
     "PDS_PORT": 2583,
     "PDS_HOSTNAME": "example.com",
+    "PDS_SERVICE_NAME": "Example PDS",
     "PDS_DATA_DIRECTORY": "~/.pds_data/data",
     "PDS_BLOBSTORE_DISK_LOCATION": "~/.pds_data/blocks",
     "PDS_BLOBSTORE_DISK_TMP_LOCATION": "~/.pds_data/temp",
@@ -27,6 +28,12 @@
     "PDS_BSKY_APP_VIEW_URL": "https://api.bsky.app",
     "PDS_BSKY_APP_VIEW_DID": "did:web:api.bsky.app",
     "PDS_CRAWLERS": [ "https://bsky.network" ],
-    "PDS_DID_PLC_URL": "https://plc.directory"
+    "PDS_DID_PLC_URL": "https://plc.directory",
+    "PDS_HOME_URL": "https://example.com",
+    "PDS_SUPPORT_URL": "https://example.com/support",
+    "PDS_LOGO_URL": "https://example.com/logo.png",
+    "PDS_CONTACT_EMAIL": "support@example.com",
+    "PDS_PRIVACY_POLICY_URL": "https://example.com/privacy",
+    "PDS_TERMS_OF_SERVICE_URL": "https://example.com/terms"
   }
 }
