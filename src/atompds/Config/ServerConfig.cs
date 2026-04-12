@@ -267,6 +267,9 @@ public record ServerConfig
             return new CaptchaVerifier(httpClient, logger, config._env.PDS_HCAPTCHA_SECRET);
         });
 
+        // Write snapshot cache
+        services.AddSingleton<WriteSnapshotCache>();
+
         // blobstore
         services.AddSingleton<BlobStoreFactory>();
 

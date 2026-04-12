@@ -4,6 +4,7 @@ using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
 using atompds.Middleware;
+using atompds.Services;
 using CarpaNet;
 using CarpaNet.Json;
 using CID;
@@ -33,6 +34,7 @@ public class ApplyWritesController : ControllerBase
     private readonly IBskyAppViewConfig _bskyAppViewConfig;
     private readonly ILogger<ApplyWritesController> _logger;
     private readonly SequencerRepository _sequencer;
+    private readonly WriteSnapshotCache _writeSnapshotCache;
 
     public ApplyWritesController(
         ILogger<ApplyWritesController> logger,
@@ -47,13 +49,15 @@ public class ApplyWritesController : ControllerBase
         SecretsConfig secretsConfig,
         SequencerRepository sequencer,
         IBskyAppViewConfig bskyAppViewConfig,
-        PlcClient plcClient)
+        PlcClient plcClient,
+        WriteSnapshotCache writeSnapshotCache)
     {
         _logger = logger;
         _accountRepository = accountRepository;
         _actorRepositoryProvider = actorRepositoryProvider;
         _sequencer = sequencer;
         _bskyAppViewConfig = bskyAppViewConfig;
+        _writeSnapshotCache = writeSnapshotCache;
     }
 
     [HttpGet("com.atproto.repo.getRecord")]
@@ -261,6 +265,24 @@ public class ApplyWritesController : ControllerBase
 
         await _sequencer.SequenceCommitAsync(did, commit, writeArr);
         await _accountRepository.UpdateRepoRootAsync(did, commit.Cid, commit.Rev);
+
+        foreach (var w in writeArr)
+        {
+            switch (w)
+            {
+                case PreparedCreate c:
+                    _writeSnapshotCache.AddWrite(did, c.Uri.Collection ?? "", c.Uri.RecordKey ?? "",
+                        c.Record?.ToJSONString() ?? "{}", c.Cid.ToString(), commit.Rev);
+                    break;
+                case PreparedUpdate u:
+                    _writeSnapshotCache.AddWrite(did, u.Uri.Collection ?? "", u.Uri.RecordKey ?? "",
+                        u.Record?.ToJSONString() ?? "{}", u.Cid.ToString(), commit.Rev);
+                    break;
+                case PreparedDelete d:
+                    _writeSnapshotCache.RemoveWrite(did, d.Uri.Collection ?? "", d.Uri.RecordKey ?? "");
+                    break;
+            }
+        }
 
         return (commit, writeArr);
     }
