@@ -33,6 +33,7 @@ public class CreateAccountController : ControllerBase
     private readonly InvitesConfig _invitesConfig;
     private readonly ILogger<CreateAccountController> _logger;
     private readonly PlcClient _plcClient;
+    private readonly ReservedSigningKeyStore _reservedSigningKeyStore;
     private readonly SecretsConfig _secretsConfig;
     private readonly SequencerRepository _sequencer;
     private readonly ServiceConfig _serviceConfig;
@@ -50,6 +51,7 @@ public class CreateAccountController : ControllerBase
         SequencerRepository sequencer,
         PlcClient plcClient,
         CaptchaVerifier captchaVerifier,
+        ReservedSigningKeyStore reservedSigningKeyStore,
         EmailAddressValidator emailAddressValidator)
     {
         _logger = logger;
@@ -64,6 +66,7 @@ public class CreateAccountController : ControllerBase
         _sequencer = sequencer;
         _plcClient = plcClient;
         _captchaVerifier = captchaVerifier;
+        _reservedSigningKeyStore = reservedSigningKeyStore;
         _emailAddressValidator = emailAddressValidator;
     }
 
@@ -175,12 +178,11 @@ public class CreateAccountController : ControllerBase
         }
         await _emailAddressValidator.AssertSupportedEmailAsync(createAccountInput.Email);
 
-        var signingKey = Secp256k1Keypair.Create(true);
-
         if (createAccountInput.Did != null)
         {
             var did = createAccountInput.Did.Value;
             var handle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, did, false);
+            var reservedSigningKey = await _reservedSigningKeyStore.ConsumeAsync(did) ?? Secp256k1Keypair.Create(true);
 
             if (_invitesConfig.Required && createAccountInput.InviteCode != null)
             {
@@ -199,10 +201,11 @@ public class CreateAccountController : ControllerBase
                 plcOp = DeserializePlcOp(createAccountInput.PlcOp.Value);
             }
 
-            return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, signingKey, plcOp, false);
+            return (did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, reservedSigningKey, plcOp, false);
         }
 
         var validatedHandle = await _handle.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
+        var signingKey = Secp256k1Keypair.Create(true);
 
         if (_invitesConfig.Required && createAccountInput.InviteCode != null)
         {
