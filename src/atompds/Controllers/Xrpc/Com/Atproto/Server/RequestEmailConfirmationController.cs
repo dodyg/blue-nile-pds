@@ -1,7 +1,7 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
-using Mailer;
+using atompds.Services;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
 
@@ -12,12 +12,12 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 public class RequestEmailConfirmationController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
-    private readonly IMailer _mailer;
+    private readonly BackgroundEmailDispatcher _mailer;
     private readonly ILogger<RequestEmailConfirmationController> _logger;
 
     public RequestEmailConfirmationController(
         AccountRepository accountRepository,
-        IMailer mailer,
+        BackgroundEmailDispatcher mailer,
         ILogger<RequestEmailConfirmationController> logger)
     {
         _accountRepository = accountRepository;

@@ -1,7 +1,7 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
-using Mailer;
+using atompds.Services;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
 
@@ -12,10 +12,10 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Admin;
 public class SendEmailAdminController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
-    private readonly IMailer _mailer;
+    private readonly BackgroundEmailDispatcher _mailer;
     private readonly ILogger<SendEmailAdminController> _logger;
 
-    public SendEmailAdminController(AccountRepository accountRepository, IMailer mailer, ILogger<SendEmailAdminController> logger)
+    public SendEmailAdminController(AccountRepository accountRepository, BackgroundEmailDispatcher mailer, ILogger<SendEmailAdminController> logger)
     {
         _accountRepository = accountRepository;
         _mailer = mailer;

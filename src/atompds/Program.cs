@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Threading.Channels;
 using AccountManager.Db;
 using atompds.Config;
 using atompds.ExceptionHandler;
@@ -45,6 +46,9 @@ public class Program
 
         // Background job queue
         builder.Services.AddSingleton<BackgroundJobQueue>();
+        builder.Services.AddSingleton<IBackgroundJobQueue>(sp => sp.GetRequiredService<BackgroundJobQueue>());
+        builder.Services.AddSingleton<ChannelWriter<Func<IServiceProvider, Task>>>(sp => sp.GetRequiredService<BackgroundJobQueue>().Writer);
+        builder.Services.AddSingleton<BackgroundEmailDispatcher>();
         builder.Services.AddHostedService<BackgroundJobWorker>();
 
 

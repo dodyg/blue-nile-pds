@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -19,6 +20,8 @@ public class BackgroundJobQueue : IBackgroundJobQueue
             SingleWriter = false
         });
 
+    public ChannelWriter<Func<IServiceProvider, Task>> Writer => _channel.Writer;
+
     public ValueTask EnqueueAsync(Func<IServiceProvider, Task> job, CancellationToken ct = default)
     {
         return _channel.Writer.WriteAsync(job, ct);
@@ -33,16 +36,16 @@ public class BackgroundJobQueue : IBackgroundJobQueue
 public class BackgroundJobWorker : BackgroundService
 {
     private readonly BackgroundJobQueue _queue;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<BackgroundJobWorker> _logger;
 
     public BackgroundJobWorker(
         BackgroundJobQueue queue,
-        IServiceProvider serviceProvider,
+        IServiceScopeFactory scopeFactory,
         ILogger<BackgroundJobWorker> logger)
     {
         _queue = queue;
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -53,7 +56,8 @@ public class BackgroundJobWorker : BackgroundService
         {
             try
             {
-                await job(_serviceProvider);
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                await job(scope.ServiceProvider);
             }
             catch (Exception e)
             {

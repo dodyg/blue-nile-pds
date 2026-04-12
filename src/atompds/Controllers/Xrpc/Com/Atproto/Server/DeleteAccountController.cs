@@ -1,8 +1,8 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
+using atompds.Services;
 using ComAtproto.Server;
-using Mailer;
 using Microsoft.AspNetCore.Mvc;
 using Sequencer;
 using Xrpc;
@@ -15,12 +15,12 @@ public class DeleteAccountController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
     private readonly ILogger<DeleteAccountController> _logger;
-    private readonly IMailer _mailer;
+    private readonly BackgroundEmailDispatcher _mailer;
     private readonly SequencerRepository _sequencer;
     public DeleteAccountController(ILogger<DeleteAccountController> logger,
         AccountRepository accountRepository,
         SequencerRepository sequencer,
-        IMailer mailer)
+        BackgroundEmailDispatcher mailer)
     {
         _logger = logger;
         _accountRepository = accountRepository;

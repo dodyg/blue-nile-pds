@@ -1,7 +1,7 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
-using Mailer;
+using atompds.Services;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
 
@@ -13,11 +13,11 @@ public class RequestPlcOperationSignatureController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
     private readonly ILogger<RequestPlcOperationSignatureController> _logger;
-    private readonly IMailer _mailer;
+    private readonly BackgroundEmailDispatcher _mailer;
 
     public RequestPlcOperationSignatureController(
         AccountRepository accountRepository,
-        IMailer mailer,
+        BackgroundEmailDispatcher mailer,
         ILogger<RequestPlcOperationSignatureController> logger)
     {
         _accountRepository = accountRepository;

@@ -1,6 +1,6 @@
 using AccountManager;
 using AccountManager.Db;
-using Mailer;
+using atompds.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Xrpc;
@@ -12,12 +12,12 @@ namespace atompds.Controllers.Xrpc.Com.Atproto.Server;
 public class RequestPasswordResetController : ControllerBase
 {
     private readonly AccountRepository _accountRepository;
-    private readonly IMailer _mailer;
+    private readonly BackgroundEmailDispatcher _mailer;
     private readonly ILogger<RequestPasswordResetController> _logger;
 
     public RequestPasswordResetController(
         AccountRepository accountRepository,
-        IMailer mailer,
+        BackgroundEmailDispatcher mailer,
         ILogger<RequestPasswordResetController> logger)
     {
         _accountRepository = accountRepository;

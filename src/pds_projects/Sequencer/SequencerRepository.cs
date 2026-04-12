@@ -1,4 +1,5 @@
-﻿using AccountManager.Db;
+﻿using System.Threading.Channels;
+using AccountManager.Db;
 using CID;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,16 +19,18 @@ public class SequencerRepository : IDisposable
     private readonly Crawlers _crawlers;
     private readonly CancellationTokenSource _cts = new();
 
+    private readonly ChannelWriter<Func<IServiceProvider, Task>> _backgroundJobWriter;
     private readonly SequencerDb _db;
     private readonly ILogger<SequencerRepository> _logger;
     private readonly SequencerDb _pollDb;
     private readonly Task _pollTask;
 
-    public SequencerRepository(IDbContextFactory<SequencerDb> seqDbFactory, Crawlers crawlers, ILogger<SequencerRepository> logger)
+    public SequencerRepository(IDbContextFactory<SequencerDb> seqDbFactory, Crawlers crawlers, ChannelWriter<Func<IServiceProvider, Task>> backgroundJobWriter, ILogger<SequencerRepository> logger)
     {
         _db = seqDbFactory.CreateDbContext();
         _pollDb = seqDbFactory.CreateDbContext();
         _crawlers = crawlers;
+        _backgroundJobWriter = backgroundJobWriter;
         _logger = logger;
         _pollTask = Task.Run(PollTaskAsync, _cts.Token);
     }
@@ -231,7 +234,8 @@ public class SequencerRepository : IDisposable
     {
         _db.RepoSeqs.Add(evt);
         await _db.SaveChangesAsync();
-        await _crawlers.NotifyOfUpdateAsync();
+        var crawlers = _crawlers;
+        await _backgroundJobWriter.WriteAsync(_ => crawlers.NotifyOfUpdateAsync());
         return evt.Seq;
     }
 
