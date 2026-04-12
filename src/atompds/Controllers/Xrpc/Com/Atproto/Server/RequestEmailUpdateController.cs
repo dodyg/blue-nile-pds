@@ -27,24 +27,36 @@ public class RequestEmailUpdateController : ControllerBase
 
     [HttpPost("com.atproto.server.requestEmailUpdate")]
     [AccessPrivileged]
-    public async Task<IActionResult> RequestEmailUpdateAsync([FromBody] RequestEmailUpdateInput request)
+    public async Task<IActionResult> RequestEmailUpdateAsync()
     {
         var auth = HttpContext.GetAuthOutput();
         var did = auth.AccessCredentials.Did;
-
-        if (string.IsNullOrWhiteSpace(request.Email))
+        var account = await _accountRepository.GetAccountAsync(did, new AvailabilityFlags(true, true));
+        if (account == null)
         {
-            throw new XRPCError(new InvalidRequestErrorDetail("email is required"));
+            throw new XRPCError(new InvalidRequestErrorDetail("Account not found"));
         }
 
-        var token = await _accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.update_email);
-        await _mailer.SendEmailUpdateAsync(token, request.Email);
+        if (string.IsNullOrWhiteSpace(account.Email))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Account does not have an email address"));
+        }
 
-        return Ok();
+        var tokenRequired = account.EmailConfirmedAt != null;
+        if (tokenRequired)
+        {
+            var token = await _accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.update_email);
+            await _mailer.SendEmailUpdateAsync(token, account.Email);
+        }
+
+        return Ok(new RequestEmailUpdateOutput
+        {
+            TokenRequired = tokenRequired
+        });
     }
 }
 
-public class RequestEmailUpdateInput
+public class RequestEmailUpdateOutput
 {
-    public string? Email { get; set; }
+    public bool TokenRequired { get; set; }
 }
