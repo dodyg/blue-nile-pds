@@ -288,7 +288,7 @@ public static class ApplyWritesEndpoints
                 ValidationStatus = update.ValidationStatus.ToString()
             },
             PreparedDelete => new ApplyWritesDeleteResult(),
-            _ => throw new Exception("Invalid write type.")
+            _ => throw new XRPCError(new InvalidRequestErrorDetail("Invalid write type."))
         };
     }
 }

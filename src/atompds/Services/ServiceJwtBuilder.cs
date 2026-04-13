@@ -21,7 +21,7 @@ public class ServiceJwtBuilder
         var signingKeyPair = _actorRepositoryProvider.KeyPair(did, true);
         if (signingKeyPair is not IExportableKeyPair exportable)
         {
-            throw new Exception("Signing key is not exportable");
+            throw new InvalidOperationException("Signing key is not exportable");
         }
 
         return BuildJwt(new ServiceJwtPayload(did, audience, null, exp, lxm, exportable));
