@@ -15,6 +15,8 @@ public class DiskBlobStore : IBlobStore
         string location
     )
     {
+        if (did.Contains("..") || did.Contains('/') || did.Contains('\\'))
+            throw new ArgumentException("Invalid DID: potential path traversal");
         Did = did;
         TempLocation = ExpandPath(tempLocation);
         Location = ExpandPath(location);
