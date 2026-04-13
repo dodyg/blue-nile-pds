@@ -64,7 +64,10 @@ public class Program
         }
 
         app.UseRouting();
-        app.UseRateLimiter();
+        if (environment.PDS_RATE_LIMITS_ENABLED)
+        {
+            app.UseRateLimiter();
+        }
         app.MapControllers();
         app.UseExceptionHandler("/error");
         app.UseAuthMiddleware();
