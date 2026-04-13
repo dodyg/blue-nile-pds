@@ -6,6 +6,7 @@ using AccountManager.Db;
 using Crypto;
 using Identity;
 using Jose;
+using Microsoft.Extensions.Logging;
 using Xrpc;
 
 namespace atompds.Middleware;
@@ -44,11 +45,13 @@ public class AuthVerifier
     private readonly AuthVerifierConfig _config;
     private readonly IdResolver _idResolver;
     private readonly string? _entrywayJwtDidKey;
-    public AuthVerifier(AccountRepository accountRepository, IdResolver idResolver, AuthVerifierConfig config)
+    private readonly ILogger<AuthVerifier> _logger;
+    public AuthVerifier(AccountRepository accountRepository, IdResolver idResolver, AuthVerifierConfig config, ILogger<AuthVerifier> logger)
     {
         _accountRepository = accountRepository;
         _idResolver = idResolver;
         _config = config;
+        _logger = logger;
         _entrywayJwtDidKey = string.IsNullOrWhiteSpace(config.EntrywayJwtVerifyKeyK256PublicKeyHex)
             ? null
             : Did.FormatDidKey(Const.SECP256K1_JWT_ALG, Convert.FromHexString(config.EntrywayJwtVerifyKeyK256PublicKeyHex));
@@ -636,6 +639,7 @@ public class AuthVerifier
         }
         catch (Exception e)
         {
+            _logger.LogWarning("JWT validation failed: {Error}", e.Message);
             throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
         }
     }

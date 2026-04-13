@@ -12,12 +12,14 @@ public static class AdminDeleteAccountEndpoints
         return group;
     }
 
-    private static async Task<IResult> HandleAsync(AdminDeleteAccountInput request, AccountRepository accountRepository)
+    private static async Task<IResult> HandleAsync(AdminDeleteAccountInput request, AccountRepository accountRepository, ILoggerFactory loggerFactory)
     {
         if (string.IsNullOrWhiteSpace(request.Did))
             throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
 
         await accountRepository.DeleteAccountAsync(request.Did);
+        var logger = loggerFactory.CreateLogger("AdminDeleteAccountEndpoints");
+        logger.LogWarning("Admin account deleted: {Did}", request.Did);
         return Results.Ok();
     }
 }

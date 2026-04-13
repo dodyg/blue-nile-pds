@@ -40,6 +40,7 @@ public static class DeleteAccountEndpoints
         DeleteAccountInput input,
         AccountRepository accountRepository,
         SequencerRepository sequencer,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
         var did = input.Did.Value;
@@ -56,6 +57,8 @@ public static class DeleteAccountEndpoints
 
         await accountRepository.AssertValidEmailTokenAsync(did, input.Token!, EmailToken.EmailTokenPurpose.delete_account);
         await accountRepository.DeleteAccountAsync(did);
+        var logger = loggerFactory.CreateLogger("DeleteAccountEndpoints");
+        logger.LogWarning("Account deleted: {Did}", did);
         var accountSeq = await sequencer.SequenceAccountEventAsync(did, AccountStore.AccountStatus.Deleted);
         var tombstoneSeq = await sequencer.SequenceTombstoneEventAsync(did);
         await sequencer.DeleteAllForUserAsync(did, [accountSeq, tombstoneSeq]);
