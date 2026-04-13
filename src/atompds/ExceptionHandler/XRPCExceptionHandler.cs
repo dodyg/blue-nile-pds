@@ -1,4 +1,4 @@
-using System;
+using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics;
 using Xrpc;
 
@@ -24,6 +24,24 @@ public class XRPCExceptionHandler(
             };
             
             await httpContext.Response.WriteAsJsonAsync(errorResponse, cancellationToken);
+            return true;
+        }
+
+        if (exception is JsonException jsonEx)
+        {
+            logger.LogInformation(jsonEx, "JSON deserialization error");
+            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            httpContext.Response.ContentType = "application/json";
+            await httpContext.Response.WriteAsJsonAsync(new { error = "InvalidRequest", message = jsonEx.Message }, cancellationToken);
+            return true;
+        }
+
+        if (exception is BadHttpRequestException badRequest)
+        {
+            logger.LogInformation(badRequest, "Bad HTTP request");
+            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            httpContext.Response.ContentType = "application/json";
+            await httpContext.Response.WriteAsJsonAsync(new { error = "InvalidRequest", message = badRequest.Message }, cancellationToken);
             return true;
         }
 

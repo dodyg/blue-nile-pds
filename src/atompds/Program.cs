@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using AccountManager.Db;
 using atompds.Config;
+using atompds.Endpoints;
 using atompds.ExceptionHandler;
 using atompds.Middleware;
 using atompds.Services;
@@ -28,9 +29,9 @@ public class Program
         ServerConfig.RegisterServices(builder.Services, serverConfig);
 
         // response serialize, ignore when writing default
-        builder.Services.AddControllers().AddJsonOptions(options =>
+        builder.Services.ConfigureHttpJsonOptions(options =>
         {
-            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
+            options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
         });
 
         builder.Services.AddHttpLogging(logging =>
@@ -68,7 +69,10 @@ public class Program
         {
             app.UseRateLimiter();
         }
-        app.MapControllers();
+        app.MapEndpoints(
+            environment,
+            app.Services.GetRequiredService<ServiceConfig>(),
+            app.Services.GetRequiredService<IdentityConfig>());
         app.UseExceptionHandler("/error");
         app.UseAuthMiddleware();
         app.UseNotFoundMiddleware();
@@ -82,34 +86,6 @@ public class Program
         }
 
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        var version = typeof(Program).Assembly.GetName().Version!.ToString(3);
-        var serviceConfig = app.Services.GetRequiredService<ServiceConfig>();
-        var identityConfig = app.Services.GetRequiredService<IdentityConfig>();
-        app.MapGet("/", () => Results.Json(new
-        {
-            serviceName = environment.PDS_SERVICE_NAME,
-            did = serviceConfig.Did,
-            version,
-            publicUrl = serviceConfig.PublicUrl,
-            availableUserDomains = identityConfig.ServiceHandleDomains,
-            contactEmail = environment.PDS_CONTACT_EMAIL,
-            logoUrl = environment.PDS_LOGO_URL,
-            links = new
-            {
-                home = environment.PDS_HOME_URL ?? serviceConfig.PublicUrl,
-                support = environment.PDS_SUPPORT_URL,
-                privacyPolicy = environment.PDS_PRIVACY_POLICY_URL,
-                termsOfService = environment.PDS_TERMS_OF_SERVICE_URL
-            }
-        }));
-
-        app.MapGet("/robots.txt", () => "User-agent: *\nAllow: /xrpc/\nDisallow: /");
-
-        app.MapGet("/tls-check", (HttpContext ctx) =>
-        {
-            var proto = ctx.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? ctx.Request.Scheme;
-            return Results.Ok(new { proto, host = ctx.Request.Host.Host });
-        });
 
         await app.RunAsync();
     }
