@@ -6,7 +6,7 @@ This document is a structured map of the `blue-nile-pds` codebase. Read this fir
 
 ## 1. Project Overview
 
-`blue-nile-pds` is a .NET 10 preview C# implementation of an ATProto Personal Data Server (PDS). It is a fork of `atompds`, experimental and learning-focused. It hosts user accounts, stores repos (Merkle Search Trees), serves blobs, sequences events to a firehose, and exposes 65 `com.atproto.*` XRPC endpoints plus 36 AppView proxy route registrations, OAuth (4 endpoints), health, 3 well-known endpoints, and an error handler. Total: 111 HTTP route registrations across 65 controller files.
+`blue-nile-pds` is a .NET 10 preview C# implementation of an ATProto Personal Data Server (PDS). It is a fork of `atompds`, experimental and learning-focused. It hosts user accounts, stores repos (Merkle Search Trees), serves blobs, sequences events to a firehose, and exposes 65 `com.atproto.*` XRPC endpoints plus 36 AppView proxy route registrations, OAuth (4 endpoints), health, 3 well-known endpoints, and an error handler. Total: ~111 HTTP route registrations implemented as ASP.NET Core Minimal API endpoints across ~65 endpoint files under `src/atompds/Endpoints/`.
 
 - **SDK:** .NET 10 (`10.0.100`, pinned in `global.json`, `rollForward: latestMinor`, test runner: `Microsoft.Testing.Platform`)
 - **Test framework:** TUnit (NOT xUnit despite what AGENTS.md says)
@@ -20,7 +20,7 @@ This document is a structured map of the `blue-nile-pds` codebase. Read this fir
 
 ```
 atompds.slnx
-├── src/atompds/              ASP.NET Core host (web app entry point)
+├── src/atompds/              ASP.NET Core host (web app entry point, Minimal API endpoints, middleware, services)
 ├── src/pdsadmin/              Admin CLI tool (ConsoleAppFramework)
 ├── src/migration/             Batch actor store migration utility (DurableTask)
 ├── src/pds_projects/          PDS-specific service libraries
@@ -45,7 +45,7 @@ atompds.slnx
     ├── CID.Tests/             CID parsing, creation, round-trip (12 tests)
     ├── Common.Tests/          TID, S32 encoding, CBOR round-trip (10 tests)
     ├── ActorStore.Tests/      `Prepare.ExtractBlobReferences` — blob reference extraction from JSON (156 tests)
-    ├── atompds.Tests/         Integration tests — all XRPC namespaces via WebApplicationFactory (143 tests)
+    ├── atompds.Tests/         Integration tests — all XRPC namespaces via WebApplicationFactory (150 tests)
     ├── SubscribeTester/       Manual WebSocket subscription test tool
     └── data/                  Shared test data (blob files)
 ```
@@ -95,12 +95,12 @@ atompds host references ALL pds_projects + Repo
 2. Reads `Config` section from appsettings → `ServerEnvironment`
 3. Creates `ServerConfig` (validates env, expands paths, maps sub-configs)
 4. `ServerConfig.RegisterServices()` wires all DI (see DI section below)
-5. Configures JSON serialization (ignore defaults), HTTP logging as a service (middleware call commented out), XRPC exception handler
+5. Configures JSON serialization via `ConfigureHttpJsonOptions` (ignore defaults), HTTP logging as a service (middleware call commented out), XRPC exception handler
 6. Enables rate limiting (`AddPdsRateLimiting`) when `PDS_RATE_LIMITS_ENABLED` is true
 7. Registers `BackgroundJobQueue` (singleton), `IBackgroundJobQueue` (singleton), `ChannelWriter<Func<IServiceProvider, Task>>` (singleton), `BackgroundEmailDispatcher` (singleton), `BackgroundJobWorker` (hosted service) — all in Program.cs, NOT in `RegisterServices()`
 8. Auto-migrates `AccountManagerDb` and `SequencerDb` on startup
-9. Middleware pipeline: routing → rate limiter → map controllers → exception handler → auth middleware → not-found middleware → WebSockets → CORS
-10. Static endpoints: `/` (server info JSON), `/robots.txt`, `/tls-check`
+9. Middleware pipeline: routing → rate limiter (conditional) → `MapEndpoints(...)` → exception handler (`/error`) → auth middleware → not-found middleware → WebSockets → CORS
+10. Root/static endpoints (`/`, `/robots.txt`, `/tls-check`) are registered in `RootEndpoints.cs` via `MapRootEndpoints()`
 
 Note: `Microsoft.AspNetCore.OpenApi` and `Scalar.AspNetCore` packages are referenced in the .csproj but not configured or invoked in Program.cs.
 
@@ -142,58 +142,70 @@ Registered in `Program.cs` (NOT in `RegisterServices()`):
 
 ---
 
-## 5. Controller Architecture
+## 5. Endpoint Architecture
 
 ### Location & Naming
 
-All XRPC controllers live under `src/atompds/Controllers/Xrpc/Com/Atproto/` organized by namespace. Additional controllers exist under `Controllers/OAuth/`, `Controllers/WellKnownController.cs`, `Controllers/ErrorController.cs`, and `Controllers/Xrpc/AppViewProxyController.cs`.
+All HTTP endpoints use ASP.NET Core Minimal APIs. No MVC controllers exist. Endpoint files live under `src/atompds/Endpoints/` organized by ATProto namespace. `EndpointRegistration.cs` contains the `MapEndpoints()` extension method that wires all routes into the app.
 
 | Namespace | Directory | Endpoints | Notes |
 |-----------|-----------|-----------|-------|
-| `com.atproto.admin.*` | `Admin/` | 13 | 11 controller files; `AccountInvitesAdminController` has enable+disable (2), `SubjectStatusController` has get+update (2) |
-| `com.atproto.identity.*` | `Identity/` | 6 | |
-| `com.atproto.repo.*` | `Repo/` | 8 | `ApplyWritesController` has 5 endpoints (getRecord, putRecord, deleteRecord, createRecord, applyWrites) |
-| `com.atproto.server.*` | `Server/` | 25 | `DeleteAccountController` has requestAccountDelete + deleteAccount (2) |
-| `com.atproto.sync.*` | `Sync/` | 11 | Includes `listMissingBlobs`, `importRepo` |
-| `com.atproto.moderation.*` | `Moderation/` | 1 | `createReport` |
-| `com.atproto.temp.*` | `Temp/` | 1 | `checkSignupQueue` |
-| `app.bsky.*` + `chat.bsky.*` | `AppViewProxyController.cs` | 36 route registrations | Proxies to Bsky AppView (30 specific + 4 standalone + 2 catch-all) |
-| (health) | `HealthController.cs` | 1 | `_health` |
-| (OAuth) | `Controllers/OAuth/` | 4 | 3 files: `authorize` (GET), `authorize/consent` (POST), `token` (POST), `client-metadata.json` (GET) |
-| (well-known) | `WellKnownController.cs` | 3 | `oauth-protected-resource`, `oauth-authorization-server`, `atproto-did` |
-| (error) | `ErrorController.cs` | 1 method (GET+POST) | Exception handler target for `/error` |
+| `com.atproto.admin.*` | `Endpoints/Xrpc/Com/Atproto/Admin/` | 13 | 11 files; `AccountInvitesAdminEndpoints` has enable+disable (2), `SubjectStatusEndpoints` has get+update (2) |
+| `com.atproto.identity.*` | `Endpoints/Xrpc/Com/Atproto/Identity/` | 6 | |
+| `com.atproto.repo.*` | `Endpoints/Xrpc/Com/Atproto/Repo/` | 8 | `ApplyWritesEndpoints` has 5 endpoints (getRecord, putRecord, deleteRecord, createRecord, applyWrites) |
+| `com.atproto.server.*` | `Endpoints/Xrpc/Com/Atproto/Server/` | 25 | `DeleteAccountEndpoints` has requestAccountDelete + deleteAccount (2) |
+| `com.atproto.sync.*` | `Endpoints/Xrpc/Com/Atproto/Sync/` | 11 | Includes `listMissingBlobs`, `importRepo` |
+| `com.atproto.moderation.*` | `Endpoints/Xrpc/Com/Atproto/Moderation/` | 1 | `createReport` |
+| `com.atproto.temp.*` | `Endpoints/Xrpc/Com/Atproto/Temp/` | 1 | `checkSignupQueue` |
+| `app.bsky.*` + `chat.bsky.*` | `Endpoints/Xrpc/AppViewProxyEndpoints.cs` | 36 route registrations | Catchall `{nsid}` GET+POST; **must be registered last** so specific routes take priority |
+| (health) | `Endpoints/Xrpc/HealthEndpoints.cs` | 1 | `_health` |
+| (OAuth) | `Endpoints/OAuth/` | 4 | 3 files: `authorize` (GET), `authorize/consent` (POST), `token` (POST), `client-metadata.json` (GET) |
+| (well-known) | `Endpoints/WellKnownEndpoints.cs` | 3 | `oauth-protected-resource`, `oauth-authorization-server`, `atproto-did` |
+| (error) | `Endpoints/ErrorEndpoints.cs` | 1 method (GET+POST) | Exception handler target for `/error` |
+| (root) | `Endpoints/RootEndpoints.cs` | 3 | `/` (server info JSON), `/robots.txt`, `/tls-check` |
 
-### Controller Pattern
+### Endpoint Pattern
 
 ```csharp
-[ApiController]
-[Route("xrpc")]
-public class XxxController : ControllerBase
+namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+
+public static class XxxEndpoints
 {
-    // Constructor-injected dependencies
-    private readonly SomeService _service;
-    
-    [HttpGet("com.atproto.namespace.method")]
-    [AccessStandard]  // or [AdminToken], [AccessPrivileged], [AccessFull], [Refresh]
-    public async Task<IActionResult> MethodAsync([FromQuery] string param)
+    public static RouteGroupBuilder MapXxxEndpoints(this RouteGroupBuilder group)
     {
-        var auth = HttpContext.GetAuthOutput(); // extract auth when needed
+        group.MapGet("com.atproto.namespace.method", Handle)
+            .WithMetadata(new AccessStandardAttribute()); // auth
+        // .RequireRateLimiting("auth-sensitive") for rate-limited endpoints
+        return group;
+    }
+
+    public static async Task<IResult> Handle(
+        HttpContext context,
+        SomeService someService)   // DI via method parameters
+    {
+        var auth = context.GetAuthOutput(); // extract auth when needed
         // validate input, throw XRPCError on failure
         // call services
-        return Ok(new { ... });
+        return Results.Ok(new { ... });
     }
 }
 ```
 
+### Streaming & Upload Patterns
+
+- **CAR/blob streaming** (`GetRepo`, `GetBlocks`, `GetBlob`, `GetRecord`): return `Results.Stream(stream, contentType)` instead of writing to `Response.Body`
+- **File upload** (`BlobEndpoints`, `ImportRepoEndpoints`): accept `HttpRequest request` parameter and read `request.Body`
+- **WebSocket** (`SubscribeReposEndpoints`): accept `HttpContext context`, call `context.WebSockets.AcceptWebSocketAsync()`; registered as `MapGet`
+
 ### Auth Attributes (defined in `AuthMiddleware.cs`)
 
-| Attribute | Meaning | Typical Use |
+| Attribute | Meaning | Applied via |
 |-----------|---------|-------------|
-| `[AdminToken]` | Basic auth admin:password | Admin endpoints |
-| `[AccessStandard]` | Accepts access + appPass + appPassPrivileged JWTs | Record writes, reads |
-| `[AccessFull]` | Accepts only access JWT (no app passwords) | Account deletion, deactivation |
-| `[AccessPrivileged]` | Accepts access + appPassPrivileged JWTs | Handle update, invite codes |
-| `[Refresh]` | Requires refresh JWT | Session refresh/delete |
+| `[AdminToken]` | Basic auth admin:password | `.WithMetadata(new AdminTokenAttribute())` |
+| `[AccessStandard]` | Accepts access + appPass + appPassPrivileged JWTs | `.WithMetadata(new AccessStandardAttribute())` |
+| `[AccessFull]` | Accepts only access JWT (no app passwords) | `.WithMetadata(new AccessFullAttribute())` |
+| `[AccessPrivileged]` | Accepts access + appPassPrivileged JWTs | `.WithMetadata(new AccessPrivilegedAttribute())` |
+| `[Refresh]` | Requires refresh JWT | `.WithMetadata(new RefreshAttribute())` |
 
 Attributes take optional `(bool checkTakenDown, bool checkDeactivated)` params.
 
@@ -302,7 +314,7 @@ Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 
 ### 6i. Other Host Code
 
-- `ExceptionHandler/XRPCExceptionHandler.cs` — implements `IExceptionHandler`; intercepts `XRPCError` and writes JSON `{ error, message }` with appropriate HTTP status
+- `ExceptionHandler/XRPCExceptionHandler.cs` — implements `IExceptionHandler`; handles three exception types: `XRPCError` → XRPC-formatted JSON `{ error, message }` with appropriate HTTP status; `JsonException` → 400 `InvalidRequest`; `BadHttpRequestException` → 400 `InvalidRequest`
 - `StaticConfig.cs` — constants: `DbVersion` ("1.0.0"), `Version` (assembly-derived version string)
 - `Utils/Extensions.cs` — C# 13 extension adding `ToJsonElement()` to `DidDocument`
 - `Utils/CursorUtils.cs` — pagination cursor packing/unpacking (two-part `::`-separated strings)
@@ -352,10 +364,10 @@ All config is immutable records mapped from `ServerEnvironment`:
 
 | Project | What it tests |
 |---------|---------------|
-| `test/CID.Tests/` | CID v0/v1 creation, parsing, round-trip, multibase encoding, blob hashing (12 tests) |
+| `test/CID.Tests/` | CID parsing, creation, round-trip, multibase encoding, blob hashing (12 tests) |
 | `test/Common.Tests/` | TID generation/parsing/ordering, S32 encoding, CBOR round-trip (10 tests) |
 | `test/ActorStore.Tests/` | `Prepare.ExtractBlobReferences` — comprehensive validation of blob reference extraction from JSON (156 tests) |
-| `test/atompds.Tests/` | Integration tests via `WebApplicationFactory<Program>` (143 tests): auth gatekeeping, route existence, response shape for all XRPC namespaces (Admin 26, Server 32, Sync 18, Repo 16, Root 15, Health/Error/WellKnown 14, Identity 12, OAuth 6, Moderation/Temp 4). Uses `TestWebAppFactory` + `AuthTestHelper` in `Infrastructure/` |
+| `test/atompds.Tests/` | Integration tests via `WebApplicationFactory<Program>` (150 tests): auth gatekeeping, route existence, response shape for all XRPC namespaces (Admin 26, Server 32, Sync 18, Repo 16, Root 15, Health/Error/WellKnown 14, Identity 12, OAuth 6, Moderation/Temp 4 + additional endpoint coverage). Uses `TestWebAppFactory` + `AuthTestHelper` in `Infrastructure/` |
 | `test/SubscribeTester/` | NOT a test — manual WebSocket diagnostic tool |
 
 **Test commands:**
@@ -382,7 +394,7 @@ dotnet test test/atompds.Tests/atompds.Tests.csproj
 | **Plugin architecture** | `IDidKeyPlugin` for crypto key types (currently only secp256k1) |
 | **CarpaNet source generation** | Lexicon JSONs in `CommonWeb/lexicons/` generate JSON/CBOR serializer contexts |
 | **Central Package Management** | All NuGet versions in `Directory.Packages.props` |
-| **Auth via middleware attributes** | `[AccessStandard]`, `[AccessPrivileged]`, etc. on controller actions, processed by `AuthMiddleware` |
+| **Auth via endpoint metadata** | `[AccessStandard]`, `[AccessPrivileged]`, etc. applied to Minimal API routes via `.WithMetadata(new AccessStandardAttribute())`, processed by `AuthMiddleware` |
 | **Background job queue** | `BackgroundJobQueue` (bounded `Channel`, capacity 1000, `DropOldest`) → `BackgroundJobWorker` (`BackgroundService`) |
 | **Rate limiting** | Three sliding-window policies: `per-ip-global` (500/min), `auth-sensitive` (30/min), `repo-write` (100/min) — disabled by default |
 | **OAuth PKCE flow** | `OAuthSessionStore` manages in-memory authorizations + code exchange with S256 challenge |
@@ -420,9 +432,11 @@ dotnet test test/atompds.Tests/atompds.Tests.csproj
 | `src/atompds/Services/EntrywayRelayService.cs` | OAuth entryway request forwarding |
 | `src/atompds/ExceptionHandler/XRPCExceptionHandler.cs` | `IExceptionHandler` for `XRPCError` → JSON responses |
 | `src/atompds/Utils/CursorUtils.cs` | Pagination cursor packing/unpacking |
-| `src/atompds/Controllers/OAuth/` | OAuth authorize/token flow |
-| `src/atompds/Controllers/WellKnownController.cs` | .well-known endpoints |
-| `src/atompds/Controllers/Xrpc/AppViewProxyController.cs` | AppView proxy (36 route registrations) |
+| `src/atompds/Endpoints/EndpointRegistration.cs` | Wires all route registrations; controls endpoint order (AppViewProxy last) |
+| `src/atompds/Endpoints/RootEndpoints.cs` | `/`, `/robots.txt`, `/tls-check` — server info JSON |
+| `src/atompds/Endpoints/OAuth/` | OAuth authorize/token flow |
+| `src/atompds/Endpoints/WellKnownEndpoints.cs` | `.well-known/` endpoints |
+| `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs` | AppView proxy (catchall `{nsid}` GET+POST, registered last) |
 | `src/pds_projects/AccountManager/AccountRepository.cs` | Account creation, login, session management |
 | `src/pds_projects/AccountManager/Auth.cs` | JWT creation, refresh token rotation |
 | `src/pds_projects/ActorStore/ActorRepositoryProvider.cs` | Per-actor store lifecycle |
