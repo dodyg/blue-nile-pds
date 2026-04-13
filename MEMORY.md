@@ -45,10 +45,9 @@ atompds.slnx
     ├── CID.Tests/             CID parsing, creation, round-trip (12 tests)
     ├── Common.Tests/          TID, S32 encoding, CBOR round-trip (10 tests)
     ├── ActorStore.Tests/      `Prepare.ExtractBlobReferences` — blob reference extraction from JSON (156 tests)
+    ├── atompds.Tests/         Integration tests — all XRPC namespaces via WebApplicationFactory (143 tests)
     ├── SubscribeTester/       Manual WebSocket subscription test tool
-    ├── data/                  Shared test data (blob files)
-    ├── ActorStore.Test/       (remnant — no .csproj or source files)
-    └── Common.Test/           (remnant — no .csproj or source files)
+    └── data/                  Shared test data (blob files)
 ```
 
 ---
@@ -65,18 +64,23 @@ Crypto (leaf)              CID (leaf)
   │    └─ DidResolver        │
   │    └─ HandleResolver     ├─ DidLib ──── Crypto
   │                          │
-  └─ Repo                    ├─ Repo ────── Crypto, CID, CommonWeb
+  └─ Repo                    ├─ Repo ────── Crypto, CID, Common, CommonWeb
        └─ MST, CAR, commits  │
-                             ├─ CommonWeb ── Xrpc (pds_projects)
-                             │    └─ DidDocument, Util, CarpaNet types
-                             │
-                             └─ Handle ──── Identity, Config, Xrpc
+                              ├─ CommonWeb ── Xrpc (pds_projects)
+                              │    └─ DidDocument, Util, CarpaNet types
+                              │
+                              └─ Handle ──── Identity, Config, Xrpc
 
-pds_projects layer:
-  Config ←─ AccountManager ←─ ActorStore ←─ BlobStore
-          ←─ Sequencer
+pds_projects layer (Config depends on Crypto):
+  Config ←─ AccountManager ←── Sequencer
+          ←─ ActorStore   ←──┘
+          ←─ BlobStore ←─ Repo
           ←─ Mailer
           ←─ Xrpc (error types used by nearly everything)
+
+  AccountManager → CID, CommonDb, Config, Xrpc
+  ActorStore → BlobStore, CID, CommonDb, DidLib, Handle, Repo, Config, Xrpc
+  Sequencer → AccountManager, ActorStore
 
 atompds host references ALL pds_projects + Repo
 ```
@@ -87,21 +91,24 @@ atompds host references ALL pds_projects + Repo
 
 ### Web Host: `src/atompds/Program.cs`
 
-1. Reads `Config` section from appsettings → `ServerEnvironment`
-2. Creates `ServerConfig` (validates env, expands paths, maps sub-configs)
-3. `ServerConfig.RegisterServices()` wires all DI (see DI section below)
-4. Auto-migrates `AccountManagerDb` and `SequencerDb` on startup
-5. Registers `BackgroundJobQueue` (singleton) + `BackgroundJobWorker` (hosted service)
-6. Configures JSON serialization (ignore defaults), HTTP logging, XRPC exception handler
-7. Enables rate limiting (`AddPdsRateLimiting`) when `PDS_RATE_LIMITS_ENABLED` is true
-8. Middleware pipeline: routing → rate limiter → map controllers → exception handler → auth middleware → not-found middleware → WebSockets → CORS
-9. Static endpoints: `/` (server info JSON), `/robots.txt`, `/tls-check`
+1. Creates `WebApplication.CreateSlimBuilder(args)` with `AddCors()` + `AddHttpClient()`
+2. Reads `Config` section from appsettings → `ServerEnvironment`
+3. Creates `ServerConfig` (validates env, expands paths, maps sub-configs)
+4. `ServerConfig.RegisterServices()` wires all DI (see DI section below)
+5. Configures JSON serialization (ignore defaults), HTTP logging as a service (middleware call commented out), XRPC exception handler
+6. Enables rate limiting (`AddPdsRateLimiting`) when `PDS_RATE_LIMITS_ENABLED` is true
+7. Registers `BackgroundJobQueue` (singleton), `IBackgroundJobQueue` (singleton), `ChannelWriter<Func<IServiceProvider, Task>>` (singleton), `BackgroundEmailDispatcher` (singleton), `BackgroundJobWorker` (hosted service) — all in Program.cs, NOT in `RegisterServices()`
+8. Auto-migrates `AccountManagerDb` and `SequencerDb` on startup
+9. Middleware pipeline: routing → rate limiter → map controllers → exception handler → auth middleware → not-found middleware → WebSockets → CORS
+10. Static endpoints: `/` (server info JSON), `/robots.txt`, `/tls-check`
+
+Note: `Microsoft.AspNetCore.OpenApi` and `Scalar.AspNetCore` packages are referenced in the .csproj but not configured or invoked in Program.cs.
 
 ### Config: `src/atompds/Config/ServerEnvironment.cs`
 
 All config is bound from `appsettings.Development.json` `Config` section. Contains **71 properties** (70 `PDS_*` + `InviteEpoch`). Key required fields: `PDS_JWT_SECRET`, `PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX`, `PDS_BLOBSTORE_DISK_LOCATION`, `PDS_BLOBSTORE_DISK_TMP_LOCATION`. See `appsettings.Development.json.example`.
 
-Property groups: Service Configuration (7), Data Directories (4), Actor Store (2), Blobstore Disk (2), Blobstore S3 (7), Identity (7), Invites (3), Subscription (2), Bsky AppView (3), Crawlers (1), Secrets (2), Fetch (2), Proxy (6), Server Metadata/Branding (7 — `PDS_SERVICE_NAME`, `PDS_PRIVACY_POLICY_URL`, `PDS_TERMS_OF_SERVICE_URL`, `PDS_HOME_URL`, `PDS_SUPPORT_URL`, `PDS_LOGO_URL`, `PDS_CONTACT_EMAIL`), Phone Verification (1), SMTP (6), Rate Limiting (1), Anti-Abuse/hCaptcha (2), OAuth Entryway (4 — `PDS_OAUTH_ENTRYWAY_URL`, `PDS_OAUTH_ENTRYWAY_DID`, `PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX`, `PDS_OAUTH_TRUSTED_CLIENTS`), Moderation (2 — `PDS_REPORT_SERVICE_URL`, `PDS_REPORT_SERVICE_DID`), Redis (1 — `PDS_REDIS_URL`).
+Property groups: Service Configuration (7), Data Directories (4), Actor Store (2), Blobstore Disk (2), Blobstore S3 (7), Identity (7), Invites (3), Subscription (2), Bsky AppView (3), Crawlers (1), Secrets (2), Fetch (2), Proxy (6), Server Metadata/Branding (8 — `PDS_SERVICE_NAME`, `PDS_PRIVACY_POLICY_URL`, `PDS_TERMS_OF_SERVICE_URL`, `PDS_HOME_URL`, `PDS_SUPPORT_URL`, `PDS_LOGO_URL`, `PDS_CONTACT_EMAIL`, `PDS_PHONE_VERIFICATION_REQUIRED`), SMTP (6), Rate Limiting (1), Anti-Abuse/hCaptcha (2), OAuth Entryway (4 — `PDS_OAUTH_ENTRYWAY_URL`, `PDS_OAUTH_ENTRYWAY_DID`, `PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX`, `PDS_OAUTH_TRUSTED_CLIENTS`), Moderation (2 — `PDS_REPORT_SERVICE_URL`, `PDS_REPORT_SERVICE_DID`), Redis (1 — `PDS_REDIS_URL`).
 
 ### DI Wiring: `src/atompds/Config/ServerConfig.cs`
 
@@ -127,8 +134,11 @@ Property groups: Service Configuration (7), Data Directories (4), Actor Store (2
 - `IConnectionMultiplexer` (singleton, StackExchange.Redis, only when `PDS_REDIS_URL` is set)
 - `ReservedSigningKeyStore` (singleton, reserves signing keys in scratch cache with 1hr TTL)
 - `EntrywayRelayService` (scoped, forwards requests to OAuth entryway)
-- `BackgroundJobQueue` (singleton) + `IBackgroundJobQueue` (singleton) + `BackgroundJobWorker` (hosted service, bounded channel)
+
+Registered in `Program.cs` (NOT in `RegisterServices()`):
+- `BackgroundJobQueue` (singleton) + `IBackgroundJobQueue` (singleton) + `ChannelWriter<Func<IServiceProvider, Task>>` (singleton)
 - `BackgroundEmailDispatcher` (singleton, enqueues email-sending jobs onto background queue)
+- `BackgroundJobWorker` (hosted service, bounded channel)
 
 ---
 
@@ -200,18 +210,21 @@ Attributes take optional `(bool checkTakenDown, bool checkDeactivated)` params.
 
 ### 6a. Actor Store (`src/pds_projects/ActorStore/`)
 
-Each user gets their own SQLite database at `<actor_dir>/<sha256(did)>/store.sqlite`.
+Each user gets their own SQLite database at `<actor_dir>/<sha256(did)>/<did_colons_as_underscores>/store.sqlite`.
 
 **Key classes:**
-- `ActorRepositoryProvider` — factory: `Open(did)`, `Create(did, keyPair)`, `Destroy(did)`, `Exists(did)`
-- `ActorRepository` — unit-of-work facade wrapping `ActorStoreDb` + sub-repositories: `Repo`, `Record`, blobs
-- `SqlRepoTransactor` — implements `IRepoStorage`, bridges MST layer to SQLite blocks table
-- `RepoRepository` — `CreateRepoAsync`, `ProcessWritesAsync`, `FormatCommitAsync`
-- `RecordRepository` — `GetRecordAsync`, `IndexRecordAsync`, `DeleteRecordAsync`, `ListRecordsForCollectionAsync`
-- `BlobTransactor` — blob lifecycle (temp→permanent, deref cleanup)
-- `Prepare` — static helpers: `PrepareCreate`, `PrepareUpdate`, `PrepareDelete`, `ExtractBlobReferences`
+- `ActorRepositoryProvider` — factory: `GetLocation(did)`, `Open(did)`, `Create(did, keyPair)`, `Destroy(did)`, `Exists(did)`, `KeyPair(did)`
+- `ActorRepository` — unit-of-work facade wrapping `ActorStoreDb` + sub-repositories: `Repo`, `Record`, blobs. Methods: `TransactDbAsync`, `TransactRepoAsync`, `ListCollections`
+- `ActorStoreDb` — `DbContext` with 7 `DbSet<>` properties, full `OnModelCreating` configuration
+- `SqlRepoTransactor` — implements `IRepoStorage`, bridges MST layer to SQLite blocks table. Methods: `GetRootAsync`, `PutBlockAsync`, `PutManyAsync`, `UpdateRootAsync`, `ApplyCommitAsync`, `GetBytesAsync`, `HasAsync`, `GetBlocksAsync`, `ReadObjAndBytesAsync`, `AttemptReadAsync`, `GetRootDetailedAsync`, `CacheRevAsync`, `DeleteManyAsync`, `IterateCarBlocksAsync`, `GetBlockRangeAsync`
+- `RepoRepository` — `CreateRepoAsync`, `ProcessWritesAsync`, `FormatCommitAsync`, `GetCollectionsAsync`, `IndexWritesAsync`
+- `RecordRepository` — `GetRecordAsync`, `IndexRecordAsync`, `DeleteRecordAsync`, `ListRecordsForCollectionAsync`, `RemoveBacklinksByUriAsync`, `AddBacklinksAsync`, `GetBacklinks`
+- `BlobTransactor` — blob lifecycle (temp→permanent, deref cleanup). Methods: `GetBlobAsync`, `GetRecordsForBlobAsync`, `ListBlobsAsync`, `GenerateTempBlobMetadataAsync`, `SaveBlobRecordAsync`, `UpdateBlobAsync`, `ProcessWriteBlobsAsync`
+- `Prepare` — static helpers: `PrepareCreate`, `PrepareUpdate`, `PrepareDelete`, `ExtractBlobReferences` (string + JsonElement overloads), `TryExtractBlobReference`, `CidForSafeRecord`, `AssertNoExplicitSlurs`
 
 **DB tables (per actor):** `repo_root`, `repo_block`, `record`, `backlink`, `blob`, `record_blob`, `account_pref`
+
+**Enums:** `BlobStatus` (`Temporary`, `Permanent`, `GarbageCollected`)
 
 **Migrations:** `20241207005453_Init`, `20260112165417_BlobStatus`
 
@@ -232,19 +245,22 @@ Global SQLite database (`account.sqlite`) shared across all accounts.
 Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 
 **Key classes:**
-- `SequencerRepository` — `SequenceCommitAsync`, `SequenceHandleUpdateAsync`, `SequenceIdentityEventAsync`, `SequenceAccountEventAsync`, `SequenceTombstoneEventAsync`, `SequenceEventAsync`, `GetRangeAsync`. Background polling with `OnEvents` event.
+- `SequencerRepository` — `SequenceCommitAsync`, `SequenceHandleUpdateAsync`, `SequenceIdentityEventAsync`, `SequenceAccountEventAsync`, `SequenceTombstoneEventAsync`, `SequenceEventAsync`, `GetRangeAsync`, `CurrentAsync`, `NextAsync`, `EarliestAfterTimeAsync`, `DeleteAllForUserAsync`. Background polling with `OnEvents` event and `OnClose` event. Constructor takes `ChannelWriter<Func<IServiceProvider, Task>>` for background job integration.
 - `Outbox` — bounded `Channel<ISeqEvt>` fan-out to WebSocket consumers. Supports backfill + live cutover.
-- `Crawlers` — rate-limited notification to relay/BGS hosts (POST `requestCrawl`)
+- `Crawlers` — rate-limited notification to relay/BGS hosts (POST `requestCrawl`, 20-min notify threshold)
 
-**Event types:** `CommitEvt`, `HandleEvt`, `IdentityEvt`, `AccountEvt`, `TombstoneEvt` (all `ICborEncodable<T>`, stored as CBOR `byte[]`). Typed wrappers `TypedCommitEvt`, `TypedHandleEvt`, `TypedIdentityEvt`, `TypedAccountEvt`, `TypedTombstoneEvt` implement `ISeqEvt` (adds `Seq`, `Time`). `CommitEvtOp` holds per-operation action/path/cid.
+**Event types:** `CommitEvt`, `HandleEvt`, `IdentityEvt`, `AccountEvt`, `TombstoneEvt` (all `ICborEncodable<T>`, stored as CBOR `byte[]`). Typed wrappers `TypedCommitEvt`, `TypedHandleEvt`, `TypedIdentityEvt`, `TypedAccountEvt`, `TypedTombstoneEvt` implement `ISeqEvt` (adds `Type`, `Seq`, `Time`). `CommitEvtOp` holds per-operation action/path/cid. `CommitEvtAction` enum: `Create`, `Update`, `Delete`.
+
+**Enums:** `RepoSeqEventType` (`Append`, `Rebase`, `Handle`, `Migrate`, `Identity`, `Account`, `Tombstone`), `TypedCommitType` (`Commit`, `Handle`, `Identity`, `Account`, `Tombstone`)
 
 **DB table:** `RepoSeqs` (Seq auto-inc PK, Did, EventType, Event bytes, Invalidated, SequencedAt)
 
 ### 6d. Blob Store (`src/pds_projects/BlobStore/`)
 
+- `IBlobStore` — blob storage abstraction (defined in `src/projects/Repo/IRepoStorage.cs`)
 - `BlobStoreFactory` — creates `DiskBlobStore` or `S3BlobStore` per config
 - `DiskBlobStore` — file system: `<location>/<did>/<cid>` permanent, `<tmp>/<did>/<key>` temp
-- `S3BlobStore` — AWS S3: `blocks/<did>/<cid>` permanent, `tmp/<did>/<key>` temp
+- `S3BlobStore` — AWS S3: `blocks/<did>/<cid>` permanent, `tmp/<did>/<key>` temp. Also defines `BlobNotFoundException`
 
 ### 6e. Repo / MST (`src/projects/Repo/`)
 
@@ -307,15 +323,15 @@ All config is immutable records mapped from `ServerEnvironment`:
 | Record | Key Fields |
 |--------|------------|
 | `ServiceConfig` | Port, Hostname, PublicUrl, Did, Version, BlobUploadLimitInBytes, DevMode |
-| `DatabaseConfig` | AccountDbLoc, SequencerDbLoc, DidCacheDbLoc |
-| `ActorStoreConfig` | Directory, CacheSize |
-| `BlobStoreConfig` | (base) → `DiskBlobstoreConfig` / `S3BlobstoreConfig` |
+| `DatabaseConfig` | AccountDbLoc, SequencerDbLoc, DidCacheDbLoc, DisableWalAutoCheckpoint |
+| `ActorStoreConfig` | Directory, CacheSize, DisableWalAutoCheckpoint |
+| `BlobStoreConfig` | (base) → `DiskBlobstoreConfig` (Provider, Location, TempLocation) / `S3BlobstoreConfig` (Provider, Bucket, Region, Endpoint, ForcePathStyle, AccessKeyId, SecretAccessKey, UploadTimeoutMs) |
 | `IdentityConfig` | PlcUrl, CacheStaleTTL, CacheMaxTTL, ResolverTimeout, ServiceHandleDomains, RecoveryDidKey, EnableDidDocWithSession |
-| `InvitesConfig` | (abstract) → `RequiredInvitesConfig` / `NonRequiredInvitesConfig` |
+| `InvitesConfig` | (abstract) → `RequiredInvitesConfig` (Interval, Epoch) / `NonRequiredInvitesConfig` |
 | `SubscriptionConfig` | MaxSubscriptionBuffer, RepoBackfillLimitMs |
-| `SecretsConfig` | JwtSecret, PlcRotationKey |
+| `SecretsConfig` | JwtSecret, PlcRotationKey (`Secp256k1Keypair` type, not string) |
 | `ProxyConfig` | DisableSsrfProtection, AllowHTTP2, HeadersTimeout, BodyTimeout, MaxResponseSize, MaxRetries, PreferCompressed |
-| `IBskyAppViewConfig` | → `BskyAppViewConfig` / `DisabledBskyAppViewConfig` |
+| `IBskyAppViewConfig` | → `BskyAppViewConfig` (Url, Did, CdnUrlPattern) / `DisabledBskyAppViewConfig` |
 
 ---
 
@@ -339,6 +355,7 @@ All config is immutable records mapped from `ServerEnvironment`:
 | `test/CID.Tests/` | CID v0/v1 creation, parsing, round-trip, multibase encoding, blob hashing (12 tests) |
 | `test/Common.Tests/` | TID generation/parsing/ordering, S32 encoding, CBOR round-trip (10 tests) |
 | `test/ActorStore.Tests/` | `Prepare.ExtractBlobReferences` — comprehensive validation of blob reference extraction from JSON (156 tests) |
+| `test/atompds.Tests/` | Integration tests via `WebApplicationFactory<Program>` (143 tests): auth gatekeeping, route existence, response shape for all XRPC namespaces (Admin 26, Server 32, Sync 18, Repo 16, Root 15, Health/Error/WellKnown 14, Identity 12, OAuth 6, Moderation/Temp 4). Uses `TestWebAppFactory` + `AuthTestHelper` in `Infrastructure/` |
 | `test/SubscribeTester/` | NOT a test — manual WebSocket diagnostic tool |
 
 **Test commands:**
@@ -346,6 +363,7 @@ All config is immutable records mapped from `ServerEnvironment`:
 dotnet test test/CID.Tests/CID.Tests.csproj
 dotnet test test/Common.Tests/Common.Tests.csproj
 dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
+dotnet test test/atompds.Tests/atompds.Tests.csproj
 ```
 
 ---
@@ -442,7 +460,7 @@ Uses DurableTask to batch-migrate all per-actor SQLite databases. Discovers acto
 
 | Package | Purpose |
 |---------|---------|
-| `PeterO.Cbor` | CBOR encoding/decoding (used throughout for repo blocks and events) |
+| `PeterO.Cbor` | CBOR encoding/decoding — version-pinned in CPM but not referenced by any .csproj |
 | `jose-jwt` | JWT creation and verification |
 | `Microsoft.IdentityModel.JsonWebTokens` | JWT handling for DPoP/auth |
 | `Microsoft.AspNetCore.Authentication.JwtBearer` | JWT bearer auth middleware |
@@ -456,13 +474,16 @@ Uses DurableTask to batch-migrate all per-actor SQLite databases. Discovers acto
 | `ConsoleAppFramework` | CLI framework for pdsadmin |
 | `TUnit` | Test framework |
 | `MailKit` | SMTP email sending |
-| `Newtonsoft.Json` | Legacy JSON handling |
-| `Scalar.AspNetCore` | OpenAPI/Scalar API documentation UI |
-| `System.Drawing.Common` | Image dimension detection for blobs |
+| `Newtonsoft.Json` | Legacy JSON handling — version-pinned in CPM but not referenced by any .csproj |
+| `Scalar.AspNetCore` | OpenAPI/Scalar API documentation UI — referenced but not configured in Program.cs |
+| `System.Drawing.Common` | Image dimension detection — version-pinned in CPM but not referenced by any .csproj |
 | `AWSSDK.S3` | S3 blob storage backend |
 | `Microsoft.EntityFrameworkCore.Sqlite` | SQLite ORM for all databases |
+| `Microsoft.EntityFrameworkCore.Design` | EF Core design-time tooling for migrations |
 | `Microsoft.Azure.DurableTask.Core` | Durable task framework for migration tool |
 | `Microsoft.DurableTask.SqlServer` | SQL Server backend for DurableTask (migration tool) |
 | `StackExchange.Redis` | Redis client for `RedisScratchCache` |
-| `Microsoft.AspNetCore.OpenApi` | OpenAPI support |
+| `Microsoft.AspNetCore.OpenApi` | OpenAPI support — referenced but not configured in Program.cs |
+| `Microsoft.AspNetCore.Mvc.Testing` | Integration test host (`WebApplicationFactory`) for atompds.Tests |
+| `Microsoft.VisualStudio.Threading.Analyzers` | Roslyn analyzer (applied via `Directory.Build.props`) |
 | `Microsoft.Extensions.Logging.*` | Logging abstractions, console, debug providers |
