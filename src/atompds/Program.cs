@@ -43,9 +43,15 @@ public class Program
         {
             var accountManager = scope.ServiceProvider.GetRequiredService<AccountManagerDb>();
             await accountManager.Database.MigrateAsync();
+            await accountManager.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL");
+            await accountManager.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000");
+            await accountManager.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL");
 
             var seqDb = scope.ServiceProvider.GetRequiredService<SequencerDb>();
             await seqDb.Database.MigrateAsync();
+            await seqDb.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL");
+            await seqDb.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000");
+            await seqDb.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL");
         }
 
         app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
