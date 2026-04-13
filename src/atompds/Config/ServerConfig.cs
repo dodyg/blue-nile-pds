@@ -45,9 +45,10 @@ public record ServerConfig
 
         var hasEntrywayUrl = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_URL);
         var hasEntrywayDid = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_DID);
-        if (hasEntrywayUrl != hasEntrywayDid)
+        var hasEntrywayJwtVerifyKey = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX);
+        if (hasEntrywayUrl != hasEntrywayDid || hasEntrywayUrl != hasEntrywayJwtVerifyKey)
         {
-            throw new Exception("PDS_OAUTH_ENTRYWAY_URL and PDS_OAUTH_ENTRYWAY_DID must be configured together");
+            throw new Exception("PDS_OAUTH_ENTRYWAY_URL, PDS_OAUTH_ENTRYWAY_DID, and PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX must be configured together");
         }
 
         if (hasEntrywayUrl)
@@ -309,7 +310,14 @@ public record ServerConfig
         // AuthVerifier
         services.AddScoped<AuthVerifier>();
         services.AddSingleton<AuthVerifierConfig>(x =>
-            new AuthVerifierConfig(config.SecretsConfig.JwtSecret, "secret", config.Service.PublicUrl, config.Service.Did));
+            new AuthVerifierConfig(
+                config.SecretsConfig.JwtSecret,
+                "secret",
+                config.Service.PublicUrl,
+                config.Service.Did,
+                config._env.PDS_OAUTH_ENTRYWAY_URL,
+                config._env.PDS_OAUTH_ENTRYWAY_DID,
+                config._env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX));
 
         // Sequencer
         services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));

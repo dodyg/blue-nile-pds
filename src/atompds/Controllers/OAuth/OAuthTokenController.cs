@@ -125,6 +125,7 @@ public class OAuthTokenController : ControllerBase
         var accessClaims = new List<Claim>
         {
             new("sub", did),
+            new("iss", _serviceConfig.PublicUrl),
             new("scope", scope),
             new("aud", _serviceConfig.Did),
             new("iat", now.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
@@ -150,6 +151,7 @@ public class OAuthTokenController : ControllerBase
         var refreshClaims = new List<Claim>
         {
             new("sub", did),
+            new("iss", _serviceConfig.PublicUrl),
             new("scope", scope),
             new("aud", _serviceConfig.Did),
             new("iat", now.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
@@ -178,7 +180,8 @@ public class OAuthTokenController : ControllerBase
             var handler = new JwtSecurityTokenHandler();
             var parameters = new TokenValidationParameters
             {
-                ValidateIssuer = false,
+                ValidateIssuer = true,
+                ValidIssuer = _serviceConfig.PublicUrl,
                 ValidateAudience = true,
                 ValidAudience = _serviceConfig.Did,
                 ValidateLifetime = true,

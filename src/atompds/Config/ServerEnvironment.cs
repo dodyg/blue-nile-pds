@@ -124,6 +124,7 @@ public class ServerEnvironment
     // OAuth
     public string? PDS_OAUTH_ENTRYWAY_URL { get; set; }
     public string? PDS_OAUTH_ENTRYWAY_DID { get; set; }
+    public string? PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX { get; set; }
     public List<string> PDS_OAUTH_TRUSTED_CLIENTS { get; set; } = [];
 
     // Moderation

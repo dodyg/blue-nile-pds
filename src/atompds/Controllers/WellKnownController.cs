@@ -53,7 +53,7 @@ public class WellKnownController : ControllerBase
         var baseUrl = _serviceConfig.PublicUrl;
         return Ok(new
         {
-            issuer = _serviceConfig.Did,
+            issuer = baseUrl,
             scopes_supported = new[] { "atproto", "transition:generic" },
             scopes_documentation = "https://atproto.com/specs/oauth",
             response_types_supported = new[] { "code" },

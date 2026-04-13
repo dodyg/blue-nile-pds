@@ -3,13 +3,21 @@ using System.Text;
 using System.Text.Json;
 using AccountManager;
 using AccountManager.Db;
+using Crypto;
 using Identity;
 using Jose;
 using Xrpc;
 
 namespace atompds.Middleware;
 
-public record AuthVerifierConfig(string JwtKey, string AdminPass, string PublicUrl, string PdsDid);
+public record AuthVerifierConfig(
+    string JwtKey,
+    string AdminPass,
+    string PublicUrl,
+    string PdsDid,
+    string? EntrywayUrl,
+    string? EntrywayDid,
+    string? EntrywayJwtVerifyKeyK256PublicKeyHex);
 
 public class AuthVerifier
 {
@@ -35,11 +43,15 @@ public class AuthVerifier
     private readonly AccountRepository _accountRepository;
     private readonly AuthVerifierConfig _config;
     private readonly IdResolver _idResolver;
+    private readonly string? _entrywayJwtDidKey;
     public AuthVerifier(AccountRepository accountRepository, IdResolver idResolver, AuthVerifierConfig config)
     {
         _accountRepository = accountRepository;
         _idResolver = idResolver;
         _config = config;
+        _entrywayJwtDidKey = string.IsNullOrWhiteSpace(config.EntrywayJwtVerifyKeyK256PublicKeyHex)
+            ? null
+            : Did.FormatDidKey(Const.SECP256K1_JWT_ALG, Convert.FromHexString(config.EntrywayJwtVerifyKeyK256PublicKeyHex));
     }
 
     public async Task<AccessOutput> AccessStandardAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
@@ -168,30 +180,53 @@ public class AuthVerifier
     private AccessOutput ValidateDpopAccessToken(HttpContext ctx, string[] scopes)
     {
         var auth = ParseAuthorizationHeader(ctx.Request.Headers.Authorization);
-        var validated = ValidateBearerToken(auth, scopes, new VerifyOptions
+        if (IsOAuthToken(auth.Token))
+        {
+            var validated = ValidateOAuthToken(auth.Token);
+
+            var dpopProof = ctx.Request.Headers["DPoP"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(dpopProof))
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Missing DPoP proof header"));
+            }
+
+            var requestUrl = $"{_config.PublicUrl}{ctx.Request.Path}{ctx.Request.QueryString}";
+            ValidateDpopProof(dpopProof, validated.Payload, ctx.Request.Method, requestUrl);
+
+            return new AccessOutput(new AccessCredentials
+            {
+                Did = validated.Did,
+                Scope = validated.Scope,
+                Audience = validated.Audience,
+                IsPrivileged = false
+            }, validated.Token);
+        }
+
+        var legacyValidated = ValidateBearerToken(auth, scopes, new VerifyOptions
         {
             Audience = _config.PdsDid,
             Type = "at+jwt"
         }, allowCnf: true);
 
-        var dpopProof = ctx.Request.Headers["DPoP"].FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(dpopProof))
+        var legacyDpopProof = ctx.Request.Headers["DPoP"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(legacyDpopProof))
         {
             throw new XRPCError(new InvalidTokenErrorDetail("Missing DPoP proof header"));
         }
 
-        ValidateDpopProof(dpopProof, validated.Payload, ctx.Request.Method, ctx.Request.Path);
+        var requestPath = $"{_config.PublicUrl}{ctx.Request.Path}{ctx.Request.QueryString}";
+        ValidateDpopProof(legacyDpopProof, legacyValidated.Payload, ctx.Request.Method, requestPath);
 
         return new AccessOutput(new AccessCredentials
         {
-            Did = validated.Did,
-            Scope = validated.Scope,
-            Audience = validated.Audience,
+            Did = legacyValidated.Did,
+            Scope = legacyValidated.Scope,
+            Audience = legacyValidated.Audience,
             IsPrivileged = false
-        }, validated.Token);
+        }, legacyValidated.Token);
     }
 
-    private void ValidateDpopProof(string dpopProof, string accessTokenPayload, string method, string path)
+    private void ValidateDpopProof(string dpopProof, string accessTokenPayload, string method, string requestUrl)
     {
         string[] parts;
         try
@@ -239,6 +274,8 @@ public class AuthVerifier
             throw new XRPCError(new InvalidTokenErrorDetail("Missing jwk in DPoP proof"));
         }
 
+        VerifyDpopProofSignature(parts, headerJson, jwkElement);
+
         var jwkThumbprint = ComputeJwkThumbprint(jwkElement);
 
         var tokenData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(accessTokenPayload);
@@ -254,19 +291,23 @@ public class AuthVerifier
             }
         }
 
-        if (payloadJson.TryGetValue("htm", out var htm) && htm.GetString() != method)
+        if (!payloadJson.TryGetValue("htm", out var htm) || htm.GetString() != method)
         {
             throw new XRPCError(new InvalidTokenErrorDetail("DPoP proof method mismatch"));
         }
 
-        if (payloadJson.TryGetValue("htu", out var htu))
+        if (!payloadJson.TryGetValue("htu", out var htu) ||
+            !string.Equals(htu.GetString(), requestUrl, StringComparison.Ordinal))
         {
-            var proofUri = htu.GetString() ?? "";
-            var expectedPrefix = _config.PublicUrl + "/xrpc";
-            if (!proofUri.StartsWith(expectedPrefix) && !path.StartsWith("/xrpc"))
-            {
-                throw new XRPCError(new InvalidTokenErrorDetail("DPoP proof URI mismatch"));
-            }
+            throw new XRPCError(new InvalidTokenErrorDetail("DPoP proof URI mismatch"));
+        }
+
+        if (!payloadJson.TryGetValue("iat", out var iat) ||
+            iat.ValueKind != JsonValueKind.Number ||
+            !iat.TryGetInt64(out var issuedAt) ||
+            Math.Abs(DateTimeOffset.UtcNow.ToUnixTimeSeconds() - issuedAt) > 300)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Invalid DPoP proof freshness"));
         }
     }
 
@@ -283,6 +324,238 @@ public class AuthVerifier
         var canonicalJson = JsonSerializer.Serialize(normalized);
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonicalJson));
         return Base64Url.Encode(hash);
+    }
+
+    private static void VerifyDpopProofSignature(string[] parts, Dictionary<string, JsonElement> headerJson, JsonElement jwkElement)
+    {
+        if (!headerJson.TryGetValue("alg", out var alg) || alg.GetString() != Const.P256_JWT_ALG)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Unsupported DPoP proof algorithm"));
+        }
+
+        if (!jwkElement.TryGetProperty("kty", out var kty) || kty.GetString() != "EC" ||
+            !jwkElement.TryGetProperty("crv", out var crv) || crv.GetString() != "P-256" ||
+            !jwkElement.TryGetProperty("x", out var x) || !jwkElement.TryGetProperty("y", out var y))
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Unsupported DPoP proof key"));
+        }
+
+        try
+        {
+            var parameters = new ECParameters
+            {
+                Curve = ECCurve.NamedCurves.nistP256,
+                Q = new ECPoint
+                {
+                    X = Base64Url.Decode(x.GetString()!),
+                    Y = Base64Url.Decode(y.GetString()!)
+                }
+            };
+
+            using var ecdsa = ECDsa.Create(parameters);
+            var signingInput = Encoding.UTF8.GetBytes($"{parts[0]}.{parts[1]}");
+            var signature = Base64Url.Decode(parts[2]);
+            var valid = ecdsa.VerifyData(
+                signingInput,
+                signature,
+                HashAlgorithmName.SHA256,
+                DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+
+            if (!valid)
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Invalid DPoP proof signature"));
+            }
+        }
+        catch (XRPCError)
+        {
+            throw;
+        }
+        catch
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Invalid DPoP proof signature"));
+        }
+    }
+
+    private bool IsOAuthToken(string token)
+    {
+        var payload = DecodeJwtSection(token, 1);
+        if (payload == null)
+        {
+            return false;
+        }
+
+        if (payload.TryGetValue("scope", out var scopeElement) &&
+            scopeElement.ValueKind == JsonValueKind.String &&
+            scopeElement.GetString()?.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Contains("atproto", StringComparer.Ordinal) == true)
+        {
+            return true;
+        }
+
+        return payload.TryGetValue("iss", out var issElement) &&
+               issElement.ValueKind == JsonValueKind.String &&
+               string.Equals(issElement.GetString(), _config.EntrywayUrl, StringComparison.Ordinal);
+    }
+
+    private ValidatedBearer ValidateOAuthToken(string token)
+    {
+        var payload = VerifyOAuthJwt(token);
+        var data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payload)
+                   ?? throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+
+        if (!data.TryGetValue("sub", out var didElement) ||
+            didElement.ValueKind != JsonValueKind.String ||
+            string.IsNullOrWhiteSpace(didElement.GetString()) ||
+            !didElement.GetString()!.StartsWith("did:", StringComparison.Ordinal))
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Malformed token"));
+        }
+
+        if (!data.TryGetValue("scope", out var scopeElement) ||
+            scopeElement.ValueKind != JsonValueKind.String)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Malformed token"));
+        }
+
+        var scope = scopeElement.GetString()!;
+        var scopeTokens = scope.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (!scopeTokens.Contains("atproto", StringComparer.Ordinal))
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Bad token scope"));
+        }
+
+        if (!data.TryGetValue("aud", out var audienceElement) ||
+            audienceElement.ValueKind != JsonValueKind.String ||
+            audienceElement.GetString() != _config.PdsDid)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Invalid token audience"));
+        }
+
+        if (!data.TryGetValue("cnf", out var cnfElement) ||
+            cnfElement.ValueKind != JsonValueKind.Object ||
+            !cnfElement.TryGetProperty("jkt", out var jktElement) ||
+            jktElement.ValueKind != JsonValueKind.String ||
+            string.IsNullOrWhiteSpace(jktElement.GetString()))
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Malformed token"));
+        }
+
+        return new ValidatedBearer(didElement.GetString()!, scope, token, payload, audienceElement.GetString());
+    }
+
+    private string VerifyOAuthJwt(string token)
+    {
+        var payload = DecodeJwtSection(token, 1)
+                      ?? throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+
+        if (payload.TryGetValue("iss", out var issElement) &&
+            issElement.ValueKind == JsonValueKind.String &&
+            string.Equals(issElement.GetString(), _config.EntrywayUrl, StringComparison.Ordinal))
+        {
+            return VerifyEntrywayOAuthJwt(token);
+        }
+
+        return JwtVerify(token, new VerifyOptions
+        {
+            Audience = _config.PdsDid,
+            Type = "at+jwt"
+        }).payload;
+    }
+
+    private string VerifyEntrywayOAuthJwt(string token)
+    {
+        if (string.IsNullOrWhiteSpace(_config.EntrywayUrl) || string.IsNullOrWhiteSpace(_entrywayJwtDidKey))
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+        }
+
+        var parts = token.Split('.');
+        if (parts.Length != 3)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+        }
+
+        try
+        {
+            var headerJson = Encoding.UTF8.GetString(Base64Url.Decode(parts[0]));
+            var payloadJson = Encoding.UTF8.GetString(Base64Url.Decode(parts[1]));
+            var header = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(headerJson)
+                         ?? throw new Exception();
+            var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadJson)
+                          ?? throw new Exception();
+
+            if (header.TryGetValue("typ", out var typElement) &&
+                typElement.ValueKind == JsonValueKind.String &&
+                typElement.GetString() != "at+jwt")
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Invalid token type"));
+            }
+
+            if (!header.TryGetValue("alg", out var algElement) ||
+                algElement.ValueKind != JsonValueKind.String ||
+                algElement.GetString() != Const.SECP256K1_JWT_ALG)
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+            }
+
+            if (!payload.TryGetValue("iss", out var issElement) ||
+                issElement.ValueKind != JsonValueKind.String ||
+                !string.Equals(issElement.GetString(), _config.EntrywayUrl, StringComparison.Ordinal))
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+            }
+
+            if (!payload.TryGetValue("aud", out var audienceElement) ||
+                audienceElement.ValueKind != JsonValueKind.String ||
+                audienceElement.GetString() != _config.PdsDid)
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Invalid token audience"));
+            }
+
+            if (!payload.TryGetValue("exp", out var expElement) ||
+                expElement.ValueKind != JsonValueKind.Number ||
+                !expElement.TryGetInt64(out var exp) ||
+                exp < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+            }
+
+            var signingInput = Encoding.UTF8.GetBytes($"{parts[0]}.{parts[1]}");
+            var sig = Base64Url.Decode(parts[2]);
+            if (!Verify.VerifySignature(_entrywayJwtDidKey, signingInput, sig, null, algElement.GetString()))
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+            }
+
+            return payloadJson;
+        }
+        catch (XRPCError)
+        {
+            throw;
+        }
+        catch
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
+        }
+    }
+
+    private static Dictionary<string, JsonElement>? DecodeJwtSection(string token, int partIndex)
+    {
+        var parts = token.Split('.');
+        if (parts.Length != 3)
+        {
+            return null;
+        }
+
+        try
+        {
+            var json = Encoding.UTF8.GetString(Base64Url.Decode(parts[partIndex]));
+            return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private ValidatedBearer ValidateBearerToken(ParsedAuthHeader auth, string[] scopes, VerifyOptions options, bool allowCnf = false)

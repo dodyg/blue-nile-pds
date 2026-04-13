@@ -106,7 +106,7 @@ public class OAuthAuthorizeController : ControllerBase
             {
                 ["code"] = oauthCode.Code,
                 ["state"] = state,
-                ["iss"] = _serviceConfig.Did
+                ["iss"] = _serviceConfig.PublicUrl
             };
             var redirectUrl = QueryHelpers.AddQueryString(redirect_uri, redirectParams);
             return Redirect(redirectUrl);
@@ -143,7 +143,7 @@ public class OAuthAuthorizeController : ControllerBase
         {
             ["code"] = oauthCode.Code,
             ["state"] = auth.State,
-            ["iss"] = _serviceConfig.Did
+            ["iss"] = _serviceConfig.PublicUrl
         };
         var redirectUrl = QueryHelpers.AddQueryString(auth.RedirectUri, redirectParams);
         return Ok(new { redirect = redirectUrl });
