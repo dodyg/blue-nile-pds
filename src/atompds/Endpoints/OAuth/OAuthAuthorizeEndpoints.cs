@@ -26,6 +26,7 @@ public static class OAuthAuthorizeEndpoints
         SecretsConfig secretsConfig,
         ServerEnvironment serverEnvironment,
         EntrywayRelayService entrywayRelayService,
+        ILogger<Program> logger,
         string? client_id,
         string? redirect_uri,
         string? scope,
@@ -75,8 +76,9 @@ public static class OAuthAuthorizeEndpoints
                 var accessOutput = await authVerifier.AccessStandardAsync(context);
                 did = accessOutput.AccessCredentials.Did;
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogDebug(ex, "OAuth auth verification failed during authorize");
             }
         }
 

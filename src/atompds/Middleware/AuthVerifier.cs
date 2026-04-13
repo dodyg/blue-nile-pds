@@ -117,7 +117,7 @@ public class AuthVerifier
     {
         if (ctx.Response.HasStarted)
         {
-            throw new Exception("Response has already started");
+            throw new InvalidOperationException("Response has already started");
         }
 
         ctx.Response.OnStarting(() =>
@@ -255,8 +255,8 @@ public class AuthVerifier
         {
             var headerBytes = Base64Url.Decode(parts[0]);
             var payloadBytes = Base64Url.Decode(parts[1]);
-            headerJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(headerBytes) ?? throw new Exception();
-            payloadJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadBytes) ?? throw new Exception();
+            headerJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(headerBytes) ?? throw new XRPCError(new InvalidTokenErrorDetail("Invalid token"));
+            payloadJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadBytes) ?? throw new XRPCError(new InvalidTokenErrorDetail("Invalid token"));
         }
         catch (XRPCError)
         {
@@ -542,7 +542,7 @@ public class AuthVerifier
         }
     }
 
-    private static Dictionary<string, JsonElement>? DecodeJwtSection(string token, int partIndex)
+    private Dictionary<string, JsonElement>? DecodeJwtSection(string token, int partIndex)
     {
         var parts = token.Split('.');
         if (parts.Length != 3)
@@ -555,8 +555,9 @@ public class AuthVerifier
             var json = Encoding.UTF8.GetString(Base64Url.Decode(parts[partIndex]));
             return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "Failed to decode JWT section at index {PartIndex}", partIndex);
             return null;
         }
     }
@@ -565,7 +566,7 @@ public class AuthVerifier
     {
         if (auth.Type != AuthType.BEARER && auth.Type != AuthType.DPOP)
         {
-            throw new Exception("Invalid auth type");
+            throw new XRPCError(new AuthRequiredErrorDetail("Invalid auth type"));
         }
 
         if (string.IsNullOrWhiteSpace(auth.Token))

@@ -4,6 +4,7 @@ using BlobStore;
 using Crypto;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Repo;
 
 namespace ActorStore;
@@ -13,10 +14,10 @@ public class ActorRepository : IDisposable, IAsyncDisposable
     private readonly ActorStoreDb _db;
     private readonly SqlRepoTransactor _sqlRepoTransactor;
 
-    public ActorRepository(ActorStoreDb db, string did, IKeyPair keyPair, IBlobStore blobStore)
+    public ActorRepository(ActorStoreDb db, string did, IKeyPair keyPair, IBlobStore blobStore, ILogger<ActorRepository> logger)
     {
         _db = db;
-        _sqlRepoTransactor = new SqlRepoTransactor(db, did);
+        _sqlRepoTransactor = new SqlRepoTransactor(db, did, logger);
         Record = new RecordRepository(db, did, keyPair, _sqlRepoTransactor);
         Repo = new RepoRepository(db, did, keyPair, _sqlRepoTransactor, Record, blobStore);
     }

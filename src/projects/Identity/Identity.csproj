@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="DnsClient"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     </ItemGroup>
 
     <ItemGroup>

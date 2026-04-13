@@ -43,13 +43,13 @@ public static class OAuthTokenEndpoints
 
         return grantType switch
         {
-            "authorization_code" => HandleAuthorizationCode(code, codeVerifier, clientId, sessionStore, serviceConfig, secretsConfig, context),
+            "authorization_code" => HandleAuthorizationCode(code, codeVerifier, clientId, sessionStore, serviceConfig, secretsConfig, context, logger),
             "refresh_token" => HandleRefreshToken(refreshToken, sessionStore, serviceConfig, secretsConfig, context, logger),
             _ => Results.BadRequest(new { error = "unsupported_grant_type", error_description = $"Grant type '{grantType}' is not supported" })
         };
     }
 
-    private static IResult HandleAuthorizationCode(string? code, string? codeVerifier, string? clientId, OAuthSessionStore sessionStore, ServiceConfig serviceConfig, SecretsConfig secretsConfig, HttpContext context)
+    private static IResult HandleAuthorizationCode(string? code, string? codeVerifier, string? clientId, OAuthSessionStore sessionStore, ServiceConfig serviceConfig, SecretsConfig secretsConfig, HttpContext context, ILogger logger)
     {
         if (string.IsNullOrWhiteSpace(code))
             return Results.BadRequest(new { error = "invalid_request", error_description = "code is required" });
@@ -60,7 +60,7 @@ public static class OAuthTokenEndpoints
         if (oauthCode == null)
             return Results.BadRequest(new { error = "invalid_grant", error_description = "Invalid or expired authorization code" });
 
-        var (accessToken, refreshToken, expiresIn) = GenerateTokens(oauthCode.Did, oauthCode.Scope, serviceConfig, secretsConfig, context);
+        var (accessToken, refreshToken, expiresIn) = GenerateTokens(oauthCode.Did, oauthCode.Scope, serviceConfig, secretsConfig, context, logger);
 
         return Results.Ok(new TokenResponse
         {
@@ -87,7 +87,7 @@ public static class OAuthTokenEndpoints
         if (did == null)
             return Results.BadRequest(new { error = "invalid_grant", error_description = "Invalid refresh token" });
 
-        var (accessToken, newRefreshToken, expiresIn) = GenerateTokens(did, scope, serviceConfig, secretsConfig, context);
+        var (accessToken, newRefreshToken, expiresIn) = GenerateTokens(did, scope, serviceConfig, secretsConfig, context, logger);
 
         return Results.Ok(new TokenResponse
         {
@@ -100,14 +100,14 @@ public static class OAuthTokenEndpoints
         });
     }
 
-    private static (string accessToken, string refreshToken, long expiresIn) GenerateTokens(string did, string scope, ServiceConfig serviceConfig, SecretsConfig secretsConfig, HttpContext context)
+    private static (string accessToken, string refreshToken, long expiresIn) GenerateTokens(string did, string scope, ServiceConfig serviceConfig, SecretsConfig secretsConfig, HttpContext context, ILogger logger)
     {
         var now = DateTimeOffset.UtcNow;
         var accessExpiry = now.AddMinutes(15);
         var refreshExpiry = now.AddDays(90);
 
         var dpopJwk = context.Request.Headers["DPoP"].FirstOrDefault();
-        var cnfClaim = dpopJwk != null ? ExtractJwkThumbprint(dpopJwk) : null;
+        var cnfClaim = dpopJwk != null ? ExtractJwkThumbprint(dpopJwk, logger) : null;
 
         var accessClaims = new List<Claim>
         {
@@ -184,7 +184,7 @@ public static class OAuthTokenEndpoints
         }
     }
 
-    private static string? ExtractJwkThumbprint(string dpopProof)
+    private static string? ExtractJwkThumbprint(string dpopProof, ILogger logger)
     {
         try
         {
@@ -195,8 +195,9 @@ public static class OAuthTokenEndpoints
             if (header == null || !header.TryGetValue("jwk", out var jwk)) return null;
             return ComputeJwkThumbprint(jwk);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogDebug(ex, "Failed to extract JWK thumbprint from DPoP proof");
             return null;
         }
     }
