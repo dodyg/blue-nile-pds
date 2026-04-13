@@ -43,8 +43,8 @@ public static class RefreshSessionEndpoints
         var rotateTask = accountRepository.RotateRefreshTokenAsync(tokenId);
         await Task.WhenAll(didDocTask, rotateTask);
 
-        var didDoc = didDocTask.Result;
-        var rotated = rotateTask.Result;
+        var didDoc = await didDocTask;
+        var rotated = await rotateTask;
 
         if (rotated == null)
             throw new XRPCError(new ExpiredTokenErrorDetail("Token has been revoked"));
