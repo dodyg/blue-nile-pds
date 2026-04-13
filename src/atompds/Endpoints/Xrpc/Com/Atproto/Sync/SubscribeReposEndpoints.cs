@@ -22,6 +22,7 @@ public static class SubscribeReposEndpoints
         HttpContext context,
         SubscriptionConfig subscriptionConfig,
         SequencerRepository sequencer,
+        Sequencer.ISequencerEventSource eventSource,
         ILogger<Program> logger,
         ILoggerFactory loggerFactory,
         int? cursor,
@@ -35,7 +36,7 @@ public static class SubscribeReposEndpoints
         var cborOpts = CBOREncodeOptions.Default;
         try
         {
-            var outbox = new Outbox(sequencer, new OutboxOpts(subscriptionConfig.MaxSubscriptionBuffer), loggerFactory.CreateLogger<Outbox>());
+            var outbox = new Outbox(sequencer, eventSource, new OutboxOpts(subscriptionConfig.MaxSubscriptionBuffer), loggerFactory.CreateLogger<Outbox>());
             var backfillTime = DateTime.UtcNow - TimeSpan.FromMilliseconds(subscriptionConfig.RepoBackfillLimitMs);
             int? outboxCursor = null;
             if (cursor != null)

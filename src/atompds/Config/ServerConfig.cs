@@ -335,6 +335,9 @@ public record ServerConfig
         // Sequencer
         services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
         services.AddScoped<SequencerRepository>();
+        services.AddSingleton<Services.SequencerPollingService>();
+        services.AddSingleton<Sequencer.ISequencerEventSource>(sp => sp.GetRequiredService<Services.SequencerPollingService>());
+        services.AddHostedService(sp => sp.GetRequiredService<Services.SequencerPollingService>());
         services.AddSingleton<Crawlers>();
         services.AddSingleton(x => new CrawlersConfig(config.Service.Hostname, config.Crawlers));
 

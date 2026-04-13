@@ -8,6 +8,11 @@ using Xrpc;
 
 namespace Sequencer;
 
+public interface ISequencerEventSource
+{
+    event EventHandler<ISeqEvt[]> OnEvents;
+}
+
 public record OutboxOpts(int MaxBufferSize);
 
 public class Outbox
@@ -15,12 +20,14 @@ public class Outbox
     private readonly ILogger<Outbox> _logger;
     private readonly OutboxOpts _opts;
     private readonly SequencerRepository _sequencer;
+    private readonly ISequencerEventSource _eventSource;
     private volatile bool _caughtUp;
     private readonly object _cutoverLock = new();
 
-    public Outbox(SequencerRepository sequencer, OutboxOpts opts, ILogger<Outbox> logger)
+    public Outbox(SequencerRepository sequencer, ISequencerEventSource eventSource, OutboxOpts opts, ILogger<Outbox> logger)
     {
         _sequencer = sequencer;
+        _eventSource = eventSource;
         _opts = opts;
         _logger = logger;
         OutBuffer = Channel.CreateBounded<ISeqEvt>(opts.MaxBufferSize);
@@ -48,15 +55,12 @@ public class Outbox
             _caughtUp = true;
         }
 
-        _sequencer.OnEvents += OnEvents;
-        _sequencer.OnClose += (sender, args) => _sequencer.OnEvents -= OnEvents;
+        _eventSource.OnEvents += OnEvents;
 
         try
         {
             await CutoverAsync(backfillCursor);
 
-            // there is a potential problem here as the channel will only throw the too slow exception only when the consumer consumes to the end 
-            // it will now throw when it gets full immediately
             await foreach (var evt in OutBuffer.Reader.ReadAllAsync(token))
             {
                 if (webSocket.State != WebSocketState.Open)
@@ -73,7 +77,7 @@ public class Outbox
         }
         finally
         {
-            _sequencer.OnEvents -= OnEvents;
+            _eventSource.OnEvents -= OnEvents;
         }
     }
 
@@ -118,7 +122,8 @@ public class Outbox
                 yield return t;
             }
 
-            var seqCursor = _sequencer.LastSeen ?? -1;
+            var current = await _sequencer.CurrentAsync();
+            var seqCursor = current ?? -1;
             if (seqCursor - LastSeen < PAGE_SIZE / 2)
             {
                 break;
