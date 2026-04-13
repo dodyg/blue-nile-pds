@@ -64,6 +64,7 @@ public class Program
             await seqDb.Database.MigrateAsync();
         }
 
+        app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
         app.UseRouting();
         if (environment.PDS_RATE_LIMITS_ENABLED)
         {
@@ -77,8 +78,6 @@ public class Program
         app.UseAuthMiddleware();
         app.UseNotFoundMiddleware();
         app.UseWebSockets();
-
-        app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
         if (app.Environment.IsDevelopment())
         {
