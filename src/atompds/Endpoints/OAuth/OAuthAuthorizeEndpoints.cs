@@ -47,6 +47,10 @@ public static class OAuthAuthorizeEndpoints
             return Results.BadRequest(new { error = "invalid_request", error_description = "client_id is required" });
         if (string.IsNullOrWhiteSpace(redirect_uri))
             return Results.BadRequest(new { error = "invalid_request", error_description = "redirect_uri is required" });
+
+        var allowedUris = new HashSet<string>(serverEnvironment.PDS_OAUTH_ALLOWED_REDIRECT_URIS, StringComparer.OrdinalIgnoreCase);
+        if (allowedUris.Count > 0 && !allowedUris.Contains(redirect_uri))
+            return Results.BadRequest(new { error = "invalid_request", error_description = "redirect_uri is not registered" });
         if (string.IsNullOrWhiteSpace(code_challenge))
             return Results.BadRequest(new { error = "invalid_request", error_description = "code_challenge is required (PKCE)" });
         if (response_type != "code")

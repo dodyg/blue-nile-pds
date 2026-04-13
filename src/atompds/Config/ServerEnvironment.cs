@@ -134,6 +134,9 @@ public class ServerEnvironment
     // Admin
     public string? PDS_ADMIN_PASSWORD { get; set; }
 
+    // OAuth
+    public List<string> PDS_OAUTH_ALLOWED_REDIRECT_URIS { get; set; } = [];
+
     // Redis
     public string? PDS_REDIS_URL { get; set; }
 
