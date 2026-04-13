@@ -7,7 +7,6 @@ using atompds.ExceptionHandler;
 using atompds.Middleware;
 using atompds.Services;
 using Config;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using Sequencer.Db;
 
@@ -34,12 +33,6 @@ public class Program
             options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
         });
 
-        builder.Services.AddHttpLogging(logging =>
-        {
-            logging.LoggingFields = HttpLoggingFields.RequestPath | HttpLoggingFields.ResponseStatusCode |
-                                    HttpLoggingFields.RequestMethod;
-            logging.CombineLogs = true;
-        });
 
         builder.Services.AddExceptionHandler<XRPCExceptionHandler>();
 
@@ -79,10 +72,6 @@ public class Program
         app.UseNotFoundMiddleware();
         app.UseWebSockets();
 
-        if (app.Environment.IsDevelopment())
-        {
-            //app.UseHttpLogging();
-        }
 
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
