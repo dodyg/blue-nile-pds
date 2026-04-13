@@ -216,8 +216,14 @@ public static class CreateAccountEndpoints
             if (existingAccount != null)
                 throw new XRPCError(new InvalidRequestErrorDetail("Account already exists"));
 
+            if (string.IsNullOrEmpty(createAccountInput.Password) || createAccountInput.Password.Length < 8)
+                throw new XRPCError(new InvalidRequestErrorDetail("Password must be at least 8 characters"));
+
             return new ValidatedCreateAccount(did, handle, createAccountInput.Email, createAccountInput.Password, createAccountInput.InviteCode, reservedSigningKey, null, true);
         }
+
+        if (string.IsNullOrEmpty(createAccountInput.Password) || createAccountInput.Password.Length < 8)
+            throw new XRPCError(new InvalidRequestErrorDetail("Password must be at least 8 characters"));
 
         var validatedHandle = await handleManager.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, createAccountInput.Did?.Value, false);
         var signingKey = Secp256k1Keypair.Create(true);

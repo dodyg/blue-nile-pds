@@ -19,6 +19,9 @@ public static class ResetPasswordEndpoints
         if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.Password))
             throw new XRPCError(new InvalidRequestErrorDetail("token and password are required"));
 
+        if (request.Password.Length < 8)
+            throw new XRPCError(new InvalidRequestErrorDetail("Password must be at least 8 characters"));
+
         if (string.IsNullOrWhiteSpace(request.Did))
             throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
 
