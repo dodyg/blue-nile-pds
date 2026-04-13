@@ -6,7 +6,7 @@ This document is a structured map of the `blue-nile-pds` codebase. Read this fir
 
 ## 1. Project Overview
 
-`blue-nile-pds` is a .NET 10 preview C# implementation of an ATProto Personal Data Server (PDS). It is a fork of `atompds`, experimental and learning-focused. It hosts user accounts, stores repos (Merkle Search Trees), serves blobs, sequences events to a firehose, and exposes ~63 `com.atproto.*` XRPC endpoints plus ~35 AppView proxy endpoints, OAuth, and well-known endpoints.
+`blue-nile-pds` is a .NET 10 preview C# implementation of an ATProto Personal Data Server (PDS). It is a fork of `atompds`, experimental and learning-focused. It hosts user accounts, stores repos (Merkle Search Trees), serves blobs, sequences events to a firehose, and exposes 65 `com.atproto.*` XRPC endpoints plus 36 AppView proxy route registrations, OAuth (4 endpoints), health, 3 well-known endpoints, and an error handler. Total: 111 HTTP route registrations across 65 controller files.
 
 - **SDK:** .NET 10 (`10.0.100`, pinned in `global.json`, `rollForward: latestMinor`, test runner: `Microsoft.Testing.Platform`)
 - **Test framework:** TUnit (NOT xUnit despite what AGENTS.md says)
@@ -99,7 +99,9 @@ atompds host references ALL pds_projects + Repo
 
 ### Config: `src/atompds/Config/ServerEnvironment.cs`
 
-All config is bound from `appsettings.Development.json` `Config` section. Key required fields: `PDS_JWT_SECRET`, `PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX`. See `appsettings.Development.json.example`.
+All config is bound from `appsettings.Development.json` `Config` section. Contains **71 properties** (70 `PDS_*` + `InviteEpoch`). Key required fields: `PDS_JWT_SECRET`, `PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX`, `PDS_BLOBSTORE_DISK_LOCATION`, `PDS_BLOBSTORE_DISK_TMP_LOCATION`. See `appsettings.Development.json.example`.
+
+Property groups: Service Configuration (7), Data Directories (4), Actor Store (2), Blobstore Disk (2), Blobstore S3 (7), Identity (7), Invites (3), Subscription (2), Bsky AppView (3), Crawlers (1), Secrets (2), Fetch (2), Proxy (6), Server Metadata/Branding (7 — `PDS_SERVICE_NAME`, `PDS_PRIVACY_POLICY_URL`, `PDS_TERMS_OF_SERVICE_URL`, `PDS_HOME_URL`, `PDS_SUPPORT_URL`, `PDS_LOGO_URL`, `PDS_CONTACT_EMAIL`), Phone Verification (1), SMTP (6), Rate Limiting (1), Anti-Abuse/hCaptcha (2), OAuth Entryway (4 — `PDS_OAUTH_ENTRYWAY_URL`, `PDS_OAUTH_ENTRYWAY_DID`, `PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX`, `PDS_OAUTH_TRUSTED_CLIENTS`), Moderation (2 — `PDS_REPORT_SERVICE_URL`, `PDS_REPORT_SERVICE_DID`), Redis (1 — `PDS_REDIS_URL`).
 
 ### DI Wiring: `src/atompds/Config/ServerConfig.cs`
 
@@ -111,16 +113,22 @@ All config is bound from `appsettings.Development.json` `Config` section. Key re
 - `ActorRepositoryProvider` (scoped, creates per-actor repos)
 - `BlobStoreFactory` (singleton)
 - `IdResolver`, `HandleManager`, `IDidCache` → `MemoryCache` (singleton)
+- `IdentityResolverOpts` (singleton)
 - `AuthVerifier`, `ServiceJwtBuilder` (scoped)
 - `AuthVerifierConfig` (singleton)
 - `SequencerRepository` (scoped), `Crawlers` (singleton), `CrawlersConfig` (singleton)
 - `PlcClient`, `PlcClientConfig` (singleton)
 - `IMailer` → `SmtpMailer` or `StubMailer` based on SMTP config (singleton)
 - `CaptchaVerifier` (singleton, for hCaptcha token verification)
+- `EmailAddressValidator` (singleton, validates emails + checks disposable domains via Kickbox API)
 - `WriteSnapshotCache` (singleton, read-after-write consistency for records)
 - `OAuthSessionStore` (singleton, in-memory OAuth PKCE flow state)
-- `IScratchCache` → `MemoryScratchCache` (singleton, ephemeral key-value cache)
-- `BackgroundJobQueue` (singleton) + `BackgroundJobWorker` (hosted service, bounded channel)
+- `IScratchCache` → `MemoryScratchCache` or `RedisScratchCache` based on `PDS_REDIS_URL` (singleton)
+- `IConnectionMultiplexer` (singleton, StackExchange.Redis, only when `PDS_REDIS_URL` is set)
+- `ReservedSigningKeyStore` (singleton, reserves signing keys in scratch cache with 1hr TTL)
+- `EntrywayRelayService` (scoped, forwards requests to OAuth entryway)
+- `BackgroundJobQueue` (singleton) + `IBackgroundJobQueue` (singleton) + `BackgroundJobWorker` (hosted service, bounded channel)
+- `BackgroundEmailDispatcher` (singleton, enqueues email-sending jobs onto background queue)
 
 ---
 
@@ -132,18 +140,18 @@ All XRPC controllers live under `src/atompds/Controllers/Xrpc/Com/Atproto/` orga
 
 | Namespace | Directory | Endpoints | Notes |
 |-----------|-----------|-----------|-------|
-| `com.atproto.admin.*` | `Admin/` | 11 | `AccountInvitesAdminController` has enable+disable (2), `SubjectStatusController` has get+update (2) |
+| `com.atproto.admin.*` | `Admin/` | 13 | 11 controller files; `AccountInvitesAdminController` has enable+disable (2), `SubjectStatusController` has get+update (2) |
 | `com.atproto.identity.*` | `Identity/` | 6 | |
 | `com.atproto.repo.*` | `Repo/` | 8 | `ApplyWritesController` has 5 endpoints (getRecord, putRecord, deleteRecord, createRecord, applyWrites) |
 | `com.atproto.server.*` | `Server/` | 25 | `DeleteAccountController` has requestAccountDelete + deleteAccount (2) |
 | `com.atproto.sync.*` | `Sync/` | 11 | Includes `listMissingBlobs`, `importRepo` |
 | `com.atproto.moderation.*` | `Moderation/` | 1 | `createReport` |
 | `com.atproto.temp.*` | `Temp/` | 1 | `checkSignupQueue` |
-| `app.bsky.*` + `chat.bsky.*` | `AppViewProxyController.cs` | 33+ specific + 2 catch-all | Proxies to Bsky AppView |
-| (health) | `HealthController.cs` | 1 | `health` |
-| (OAuth) | `Controllers/OAuth/` | 4 | `authorize` (GET+POST consent), `token`, `client-metadata.json` |
+| `app.bsky.*` + `chat.bsky.*` | `AppViewProxyController.cs` | 36 route registrations | Proxies to Bsky AppView (30 specific + 4 standalone + 2 catch-all) |
+| (health) | `HealthController.cs` | 1 | `_health` |
+| (OAuth) | `Controllers/OAuth/` | 4 | 3 files: `authorize` (GET), `authorize/consent` (POST), `token` (POST), `client-metadata.json` (GET) |
 | (well-known) | `WellKnownController.cs` | 3 | `oauth-protected-resource`, `oauth-authorization-server`, `atproto-did` |
-| (error) | `ErrorController.cs` | — | Exception handler target |
+| (error) | `ErrorController.cs` | 1 method (GET+POST) | Exception handler target for `/error` |
 
 ### Controller Pattern
 
@@ -264,14 +272,26 @@ Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 
 ### 6h. Host Services (`src/atompds/Services/`)
 
-- `BackgroundJobQueue` + `BackgroundJobWorker` — bounded `Channel<Func<IServiceProvider, Task>>` (capacity 1000, `DropOldest`), consumed by a `BackgroundService` host
+- `BackgroundJobQueue` + `BackgroundJobWorker` — bounded `Channel<Func<IServiceProvider, Task>>` (capacity 1000, `DropOldest`), `IBackgroundJobQueue` interface, consumed by a `BackgroundService` host
+- `BackgroundEmailDispatcher` — enqueues email-sending jobs (`SendCustomEmail`, `SendAccountDelete`, `SendEmailConfirmation`, `SendEmailUpdate`, `SendPasswordReset`, `SendPlcOperationSignature`) onto `IBackgroundJobQueue`
 - `WriteSnapshotCache` — tracks recent repo writes by DID+collection (2-min TTL) for read-after-write consistency; `WriteSnapshot` data class holds Did, Collection, Rkey, RecordJson, Cid, Rev
 - `OAuthSessionStore` — in-memory OAuth PKCE flow: `OAuthAuthorization` (10-min expiry, codeChallenge) → `OAuthCode` (1-min expiry, one-time use, S256 verification)
 - `CaptchaVerifier` — validates hCaptcha tokens via `https://api.hcaptcha.com/siteverify` when secret configured
+- `EmailAddressValidator` — validates email structure + checks disposable email domains via Kickbox API (`https://open.kickbox.com/v1/disposable/{email}`)
 - `ServiceJwtBuilder` — creates signed service JWTs (iss/aud/lxm/iati/exp/jti claims) using actor signing key
 - `IScratchCache` → `MemoryScratchCache` — `ConcurrentDictionary`-backed ephemeral cache with optional TTL
+- `IScratchCache` → `RedisScratchCache` — Redis-backed ephemeral cache (via StackExchange.Redis `IConnectionMultiplexer`), used when `PDS_REDIS_URL` is configured
+- `ReservedSigningKeyStore` — generates and reserves secp256k1 signing keypairs in scratch cache (1hr TTL); `ReserveAsync(did)` creates, `ConsumeAsync(did)` retrieves and deletes
+- `EntrywayRelayService` — HTTP reverse-proxy to OAuth entryway server; `ForwardJsonAsync`, `ForwardFormAsync`, `ForwardWithoutBodyAsync`; attaches service JWT Bearer header
 
-### 6i. Host Middleware (`src/atompds/Middleware/`)
+### 6i. Other Host Code
+
+- `ExceptionHandler/XRPCExceptionHandler.cs` — implements `IExceptionHandler`; intercepts `XRPCError` and writes JSON `{ error, message }` with appropriate HTTP status
+- `StaticConfig.cs` — constants: `DbVersion` ("1.0.0"), `Version` (assembly-derived version string)
+- `Utils/Extensions.cs` — C# 13 extension adding `ToJsonElement()` to `DidDocument`
+- `Utils/CursorUtils.cs` — pagination cursor packing/unpacking (two-part `::`-separated strings)
+
+### 6j. Host Middleware (`src/atompds/Middleware/`)
 
 - `AuthMiddleware` — inspects endpoint metadata attributes (`[AdminToken]`, `[AccessStandard]`, `[AccessFull]`, `[AccessPrivileged]`, `[Refresh]`) and invokes `AuthVerifier`
 - `AuthVerifier` — Bearer/DPoP JWT validation, basic auth for admin, refresh token verification, scope checking, takedown/deactivation checks
@@ -287,8 +307,8 @@ All config is immutable records mapped from `ServerEnvironment`:
 | Record | Key Fields |
 |--------|------------|
 | `ServiceConfig` | Port, Hostname, PublicUrl, Did, Version, BlobUploadLimitInBytes, DevMode |
-| `DatabaseConfig` | AccountDbLoc, SequencerDbLoc, DidCacheDbLoc, DisableWalAutoCheckpoint |
-| `ActorStoreConfig` | Directory, CacheSize, DisableWalAutoCheckpoint |
+| `DatabaseConfig` | AccountDbLoc, SequencerDbLoc, DidCacheDbLoc |
+| `ActorStoreConfig` | Directory, CacheSize |
 | `BlobStoreConfig` | (base) → `DiskBlobstoreConfig` / `S3BlobstoreConfig` |
 | `IdentityConfig` | PlcUrl, CacheStaleTTL, CacheMaxTTL, ResolverTimeout, ServiceHandleDomains, RecoveryDidKey, EnableDidDocWithSession |
 | `InvitesConfig` | (abstract) → `RequiredInvitesConfig` / `NonRequiredInvitesConfig` |
@@ -349,9 +369,14 @@ dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
 | **Rate limiting** | Three sliding-window policies: `per-ip-global` (500/min), `auth-sensitive` (30/min), `repo-write` (100/min) — disabled by default |
 | **OAuth PKCE flow** | `OAuthSessionStore` manages in-memory authorizations + code exchange with S256 challenge |
 | **Write snapshot cache** | `WriteSnapshotCache` tracks recent writes by DID+collection with 2-min TTL for read-after-write consistency |
-| **Scratch cache** | `IScratchCache` → `MemoryScratchCache` — `ConcurrentDictionary` with optional TTL |
+| **Scratch cache** | `IScratchCache` → `MemoryScratchCache` (default) or `RedisScratchCache` (when `PDS_REDIS_URL` set) — ephemeral key-value cache with optional TTL |
 | **Service JWT** | `ServiceJwtBuilder` creates signed JWTs for inter-service auth with iss/aud/lxm claims |
 | **hCaptcha verification** | `CaptchaVerifier` validates tokens via hCaptcha API when secret is configured |
+| **Email validation** | `EmailAddressValidator` checks structure + disposable domain via Kickbox API |
+| **Reserved signing keys** | `ReservedSigningKeyStore` creates temporary keypairs, stores in scratch cache (1hr TTL), consumed on account creation |
+| **Entryway relay** | `EntrywayRelayService` forwards OAuth requests to configured entryway with service JWT auth |
+| **Background email dispatch** | `BackgroundEmailDispatcher` enqueues email-sending onto background job queue |
+| **Pagination cursors** | `CursorUtils` packs/unpacks two-part `::`-separated cursor strings |
 
 ---
 
@@ -361,18 +386,25 @@ dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
 |------|-----|
 | `src/atompds/Program.cs` | Startup pipeline, middleware order, static endpoints |
 | `src/atompds/Config/ServerConfig.cs` | All DI registration, config mapping |
-| `src/atompds/Config/ServerEnvironment.cs` | All env variable bindings (64 properties) |
+| `src/atompds/Config/ServerEnvironment.cs` | All env variable bindings (71 properties) |
 | `src/atompds/Middleware/AuthMiddleware.cs` | Auth attribute definitions |
 | `src/atompds/Middleware/AuthVerifier.cs` | JWT validation, DPoP, token verification |
 | `src/atompds/Middleware/RateLimitMiddleware.cs` | Rate limiting policies (per-ip, auth-sensitive, repo-write) |
-| `src/atompds/Services/BackgroundJobQueue.cs` | Background job queue + worker |
+| `src/atompds/Services/BackgroundJobQueue.cs` | Background job queue + worker + `IBackgroundJobQueue` interface |
 | `src/atompds/Services/WriteSnapshotCache.cs` | Read-after-write consistency |
 | `src/atompds/Services/OAuth/OAuthSessionStore.cs` | OAuth PKCE flow state |
 | `src/atompds/Services/CaptchaVerifier.cs` | hCaptcha token verification |
 | `src/atompds/Services/ServiceJwtBuilder.cs` | Inter-service JWT creation |
+| `src/atompds/Services/BackgroundEmailDispatcher.cs` | Async email dispatch via background queue |
+| `src/atompds/Services/EmailAddressValidator.cs` | Email structure + disposable domain validation |
+| `src/atompds/Services/RedisScratchCache.cs` | Redis-backed scratch cache implementation |
+| `src/atompds/Services/ReservedSigningKeyStore.cs` | Temporary signing key reservation |
+| `src/atompds/Services/EntrywayRelayService.cs` | OAuth entryway request forwarding |
+| `src/atompds/ExceptionHandler/XRPCExceptionHandler.cs` | `IExceptionHandler` for `XRPCError` → JSON responses |
+| `src/atompds/Utils/CursorUtils.cs` | Pagination cursor packing/unpacking |
 | `src/atompds/Controllers/OAuth/` | OAuth authorize/token flow |
 | `src/atompds/Controllers/WellKnownController.cs` | .well-known endpoints |
-| `src/atompds/Controllers/Xrpc/AppViewProxyController.cs` | AppView proxy (30+ endpoints) |
+| `src/atompds/Controllers/Xrpc/AppViewProxyController.cs` | AppView proxy (36 route registrations) |
 | `src/pds_projects/AccountManager/AccountRepository.cs` | Account creation, login, session management |
 | `src/pds_projects/AccountManager/Auth.cs` | JWT creation, refresh token rotation |
 | `src/pds_projects/ActorStore/ActorRepositoryProvider.cs` | Per-actor store lifecycle |
@@ -430,3 +462,7 @@ Uses DurableTask to batch-migrate all per-actor SQLite databases. Discovers acto
 | `AWSSDK.S3` | S3 blob storage backend |
 | `Microsoft.EntityFrameworkCore.Sqlite` | SQLite ORM for all databases |
 | `Microsoft.Azure.DurableTask.Core` | Durable task framework for migration tool |
+| `Microsoft.DurableTask.SqlServer` | SQL Server backend for DurableTask (migration tool) |
+| `StackExchange.Redis` | Redis client for `RedisScratchCache` |
+| `Microsoft.AspNetCore.OpenApi` | OpenAPI support |
+| `Microsoft.Extensions.Logging.*` | Logging abstractions, console, debug providers |
