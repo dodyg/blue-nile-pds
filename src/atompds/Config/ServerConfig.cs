@@ -307,12 +307,25 @@ public record ServerConfig
         services.AddSingleton<IdResolver>();
         services.AddSingleton<HandleManager>();
 
+        var adminPassword = config._env.PDS_ADMIN_PASSWORD;
+        if (string.IsNullOrWhiteSpace(adminPassword))
+        {
+            if (config.Service.DevMode)
+            {
+                adminPassword = "secret";
+            }
+            else
+            {
+                throw new Exception("PDS_ADMIN_PASSWORD must be set in production. Set PDS_DEV_MODE=true for development with default password.");
+            }
+        }
+
         // AuthVerifier
         services.AddScoped<AuthVerifier>();
         services.AddSingleton<AuthVerifierConfig>(x =>
             new AuthVerifierConfig(
                 config.SecretsConfig.JwtSecret,
-                "secret",
+                adminPassword!,
                 config.Service.PublicUrl,
                 config.Service.Did,
                 config._env.PDS_OAUTH_ENTRYWAY_URL,

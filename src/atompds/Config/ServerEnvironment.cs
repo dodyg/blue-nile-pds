@@ -131,6 +131,9 @@ public class ServerEnvironment
     public string? PDS_REPORT_SERVICE_URL { get; set; }
     public string? PDS_REPORT_SERVICE_DID { get; set; }
 
+    // Admin
+    public string? PDS_ADMIN_PASSWORD { get; set; }
+
     // Redis
     public string? PDS_REDIS_URL { get; set; }
 
