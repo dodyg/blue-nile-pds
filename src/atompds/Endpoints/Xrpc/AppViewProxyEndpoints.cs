@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -188,10 +189,16 @@ public static class AppViewProxyEndpoints
         WriteSnapshotCache writeSnapshotCache,
         ILogger logger)
     {
+        var proxyConfig = context.RequestServices.GetRequiredService<ProxyConfig>();
         var auth = context.GetAuthOutput();
         var reqNsid = ParseUrlNsid(context.Request.Path);
         var proxyTarget = await ResolveProxyTargetAsync(context, config, idResolver);
         var url = $"{proxyTarget.Url}/xrpc/{reqNsid}";
+
+        if (!proxyConfig.DisableSsrfProtection)
+        {
+            ValidateUrlAgainstSsrf(url);
+        }
 
         var signingKeyPair = actorRepositoryProvider.KeyPair(auth.AccessCredentials.Did, true);
         if (signingKeyPair is not IExportableKeyPair)
@@ -273,6 +280,7 @@ public static class AppViewProxyEndpoints
         ServiceJwtBuilder serviceJwtBuilder,
         ILogger logger)
     {
+        var proxyConfig = context.RequestServices.GetRequiredService<ProxyConfig>();
         if (string.IsNullOrWhiteSpace(request.ServiceDid))
         {
             throw new XRPCError(new InvalidRequestErrorDetail("serviceDid is required"));
@@ -281,6 +289,11 @@ public static class AppViewProxyEndpoints
         const string reqNsid = "app.bsky.notification.registerPush";
         var proxyTarget = await ResolveNotificationTargetAsync(request.ServiceDid, config, idResolver);
         var url = $"{proxyTarget.Url}/xrpc/{reqNsid}";
+
+        if (!proxyConfig.DisableSsrfProtection)
+        {
+            ValidateUrlAgainstSsrf(url);
+        }
         var jwt = serviceJwtBuilder.CreateServiceJwt(auth.AccessCredentials.Did, proxyTarget.Did, reqNsid);
 
         using var proxyRequest = new HttpRequestMessage(HttpMethod.Post, url);
@@ -593,6 +606,67 @@ public static class AppViewProxyEndpoints
         if (curr < 2) throw new XRPCError(new InvalidRequestErrorDetail("invalid xrpc path"));
 
         return nsid[..curr];
+    }
+
+    private static void ValidateUrlAgainstSsrf(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Invalid proxy target URL"));
+        }
+
+        var host = uri.Host;
+        if (IPAddress.TryParse(host, out var address))
+        {
+            if (IsPrivateIpAddress(address))
+            {
+                throw new XRPCError(new InvalidRequestErrorDetail("Proxy target resolves to a private IP address"));
+            }
+        }
+        else
+        {
+            try
+            {
+                var addresses = Dns.GetHostAddresses(host);
+                if (addresses.Any(IsPrivateIpAddress))
+                {
+                    throw new XRPCError(new InvalidRequestErrorDetail("Proxy target resolves to a private IP address"));
+                }
+            }
+            catch (Exception)
+            {
+                throw new XRPCError(new InvalidRequestErrorDetail("Could not resolve proxy target host"));
+            }
+        }
+    }
+
+    private static bool IsPrivateIpAddress(IPAddress address)
+    {
+        if (address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || address.IsIPv6UniqueLocal)
+            return true;
+
+        var bytes = address.GetAddressBytes();
+        if (bytes.Length == 4)
+        {
+            // 10.0.0.0/8
+            if (bytes[0] == 10) return true;
+            // 172.16.0.0/12
+            if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
+            // 192.168.0.0/16
+            if (bytes[0] == 192 && bytes[1] == 168) return true;
+            // 169.254.0.0/16 (link-local)
+            if (bytes[0] == 169 && bytes[1] == 254) return true;
+            // 127.0.0.0/8 (loopback)
+            if (bytes[0] == 127) return true;
+            // 0.0.0.0/8
+            if (bytes[0] == 0) return true;
+        }
+
+        if (address.Equals(IPAddress.Loopback) || address.Equals(IPAddress.IPv6Loopback))
+            return true;
+
+        return false;
     }
 
     private readonly record struct ProxyServiceDestination(string Did, string Url);
