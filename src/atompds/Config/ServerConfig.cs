@@ -352,8 +352,8 @@ public record ServerConfig
                 config._env.PDS_SMTP_PASSWORD,
                 config._env.PDS_SMTP_FROM_ADDRESS ?? $"noreply@{config._env.PDS_HOSTNAME}",
                 config._env.PDS_SMTP_USE_TLS);
-            services.AddSingleton<IMailer>(new SmtpMailer(smtpConfig,
-                services.BuildServiceProvider().GetRequiredService<ILogger<SmtpMailer>>()));
+            services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
+                sp.GetRequiredService<ILogger<SmtpMailer>>()));
         }
         else
         {
