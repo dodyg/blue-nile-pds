@@ -625,6 +625,16 @@ public class AuthVerifier
                 throw new XRPCError(new InvalidTokenErrorDetail("Invalid token type"));
             }
 
+            var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+            if (payload != null && payload.TryGetValue("exp", out var expClaim))
+            {
+                var expTime = DateTimeOffset.FromUnixTimeSeconds(expClaim.GetInt64());
+                if (expTime < DateTimeOffset.UtcNow)
+                {
+                    throw new XRPCError(new ExpiredTokenErrorDetail("Token has expired"));
+                }
+            }
+
             if (options.Audience != null)
             {
                 var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ??
