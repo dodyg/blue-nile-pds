@@ -97,4 +97,41 @@ public class ServerEnvironment
     public int? PDS_PROXY_MAX_RETRIES { get; set; }
     public bool? PDS_PROXY_PREFER_COMPRESSED { get; set; }
 
+    // Server metadata
+    public string? PDS_PRIVACY_POLICY_URL { get; set; }
+    public string? PDS_TERMS_OF_SERVICE_URL { get; set; }
+    public string? PDS_HOME_URL { get; set; }
+    public string? PDS_SUPPORT_URL { get; set; }
+    public string? PDS_LOGO_URL { get; set; }
+    public string? PDS_CONTACT_EMAIL { get; set; }
+    public bool PDS_PHONE_VERIFICATION_REQUIRED { get; set; } = false;
+
+    // SMTP Mailer
+    public string? PDS_SMTP_HOST { get; set; }
+    public int PDS_SMTP_PORT { get; set; } = 587;
+    public string? PDS_SMTP_USERNAME { get; set; }
+    public string? PDS_SMTP_PASSWORD { get; set; }
+    public string? PDS_SMTP_FROM_ADDRESS { get; set; }
+    public bool PDS_SMTP_USE_TLS { get; set; } = true;
+
+    // Rate Limiting
+    public bool PDS_RATE_LIMITS_ENABLED { get; set; } = false;
+
+    // Anti-Abuse
+    public string? PDS_HCAPTCHA_SECRET { get; set; }
+    public string? PDS_HCAPTCHA_SITE_KEY { get; set; }
+
+    // OAuth
+    public string? PDS_OAUTH_ENTRYWAY_URL { get; set; }
+    public string? PDS_OAUTH_ENTRYWAY_DID { get; set; }
+    public string? PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX { get; set; }
+    public List<string> PDS_OAUTH_TRUSTED_CLIENTS { get; set; } = [];
+
+    // Moderation
+    public string? PDS_REPORT_SERVICE_URL { get; set; }
+    public string? PDS_REPORT_SERVICE_DID { get; set; }
+
+    // Redis
+    public string? PDS_REDIS_URL { get; set; }
+
 }

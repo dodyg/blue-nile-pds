@@ -1,117 +1,118 @@
-﻿using Ipfs;
+﻿using System.IO;
+using Ipfs;
 using Multiformats.Base;
 using Multiformats.Codec;
+using System.Threading.Tasks;
 
 namespace CID.Tests;
 
 public class CidTests
 {
-    [Theory]
-    [InlineData("hello world", MultibaseEncoding.Base58Btc, "zb2rhj7crUKTQYRGCRATFaQ6YFLTde2YzdqbbhAASkL9uRDXn")]
-    [InlineData("hello world", MultibaseEncoding.Base32Upper, "BAFKREIFZJUT3TE2NHYEKKLSS27NH3K72YSCO7Y32KOAO5EEI66WOF36N5E")]
-    [InlineData("foo", MultibaseEncoding.Base32Lower, "bafkreibme22gw2h7y2h7tg2fhqotaqjucnbc24deqo72b6mkl2egezxhvy")]
-    [InlineData("", MultibaseEncoding.Base32Upper, "BAFKREIHDWDCEFGH4DQKJV67UZCMW7OJEE6XEDZDETOJUZJEVTENXQUVYKU")]
-    [InlineData("", MultibaseEncoding.Base58Btc, "zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW")]
-    [InlineData("foo", MultibaseEncoding.Base64, "mAVUSICwmtGto/8aP+ZtFPB0wQTQTQi1wZIO/oPmKXohiZueu")]
-    public void CreateCid(string input, MultibaseEncoding encoding, string expectedOutput)
+    [Test]
+    [Arguments("hello world", MultibaseEncoding.Base58Btc, "zb2rhj7crUKTQYRGCRATFaQ6YFLTde2YzdqbbhAASkL9uRDXn")]
+    [Arguments("hello world", MultibaseEncoding.Base32Upper, "BAFKREIFZJUT3TE2NHYEKKLSS27NH3K72YSCO7Y32KOAO5EEI66WOF36N5E")]
+    [Arguments("foo", MultibaseEncoding.Base32Lower, "bafkreibme22gw2h7y2h7tg2fhqotaqjucnbc24deqo72b6mkl2egezxhvy")]
+    [Arguments("", MultibaseEncoding.Base32Upper, "BAFKREIHDWDCEFGH4DQKJV67UZCMW7OJEE6XEDZDETOJUZJEVTENXQUVYKU")]
+    [Arguments("", MultibaseEncoding.Base58Btc, "zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW")]
+    [Arguments("foo", MultibaseEncoding.Base64, "mAVUSICwmtGto/8aP+ZtFPB0wQTQTQi1wZIO/oPmKXohiZueu")]
+    public async Task CreateCidAsync(string input, MultibaseEncoding encoding, string expectedOutput)
     {
         var cid = Cid.Create(input);
         var outputStr = cid.ToStringOfBase(encoding);
 
-        Assert.Equal(expectedOutput, outputStr);
+        await Assert.That(outputStr).IsEqualTo(expectedOutput);
     }
 
-    [Theory]
-    [InlineData("foo", MultibaseEncoding.Base58Btc, "QmRJzsvyCQyizr73Gmms8ZRtvNxmgqumxc2KUp71dfEmoj")]
-    public void CreateCidV0(string input, MultibaseEncoding encoding, string expectedOutput)
+    [Test]
+    [Arguments("foo", MultibaseEncoding.Base58Btc, "QmRJzsvyCQyizr73Gmms8ZRtvNxmgqumxc2KUp71dfEmoj")]
+    public async Task CreateCidV0Async(string input, MultibaseEncoding encoding, string expectedOutput)
     {
         var digest = Util.Sha2_256Digest(input);
         var cid = Cid.NewV0(digest);
         var outputStr = cid.ToStringOfBase(encoding);
 
-        Assert.Equal(expectedOutput, outputStr);
+        await Assert.That(outputStr).IsEqualTo(expectedOutput);
     }
 
-    [Fact]
-    public void BasicMarshalling()
+    [Test]
+    public async Task BasicMarshallingAsync()
     {
         var cid = Cid.NewV1(Cid.DAG_PB, Util.Sha2_256Digest("beep boop"), MultibaseEncoding.Base32Lower);
         var data = cid.ToBytes();
         var cmp = Cid.ReadBytes(data, MultibaseEncoding.Base32Lower);
-        Assert.Equal(cid, cmp);
+        await Assert.That(cmp).IsEqualTo(cid);
 
         var cmp2 = cmp.ToV1();
-        Assert.Equal(cid, cmp2);
+        await Assert.That(cmp2).IsEqualTo(cid);
 
         var s = cid.ToString();
         var cmp3 = Cid.FromString(s);
-        Assert.Equal(cid, cmp3);
+        await Assert.That(cmp3).IsEqualTo(cid);
     }
 
-    [Fact]
-    public void FromStringTest()
+    [Test]
+    public async Task FromStringTestAsync()
     {
         var input = "bafkreibme22gw2h7y2h7tg2fhqotaqjucnbc24deqo72b6mkl2egezxhvy";
         var expectedOutput = Util.Sha2_256Digest("foo");
         var cid = Cid.FromString(input);
 
-        Assert.Equal(Version.V1, cid.Version);
-        Assert.Equal((ulong)MulticodecCode.Raw, cid.Codec);
-        Assert.Equal(expectedOutput, cid.MultiHash);
+        await Assert.That(cid.Version).IsEqualTo(Version.V1);
+        await Assert.That(cid.Codec).IsEqualTo((ulong)MulticodecCode.Raw);
+        await Assert.That(cid.MultiHash).IsEqualTo(expectedOutput);
     }
 
-    [Fact]
-    public void FromStringTest2()
+    [Test]
+    public async Task FromStringTest2Async()
     {
         var input = "zUFKqwZsvwnjhQeVttU28NEx8z4mfJJN7U4KfG8rFVAoXHKF2";
         var cid = Cid.FromString(input);
         var cid2 = Ipfs.Cid.Decode(input);
 
-        Assert.Equal(Version.V1, cid.Version);
+        await Assert.That(cid.Version).IsEqualTo(Version.V1);
     }
 
-    [Fact]
-    public void V0Handling()
+    [Test]
+    public async Task V0HandlingAsync()
     {
         var old = "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n";
         var cid = Cid.FromString(old);
 
-        Assert.Equal(Version.V0, cid.Version);
-        Assert.Equal(old, cid.ToStringOfBase(MultibaseEncoding.Base58Btc));
+        await Assert.That(cid.Version).IsEqualTo(Version.V0);
+        await Assert.That(cid.ToStringOfBase(MultibaseEncoding.Base58Btc)).IsEqualTo(old);
     }
 
-    [Fact]
+    [Test]
     public void V0Error()
     {
         // TODO: this should throw an error?
         //var bad = "QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zIII";
-        //Assert.Throws<CIDException>(() => Cid.FromString(bad));
     }
 
-    [Fact]
-    public void ValidateError()
+    [Test]
+    public async Task ValidateErrorAsync()
     {
         byte[] badCid = [255, 255, 255, 255, 0, 6, 85, 0];
-        Assert.Throws<CIDException>(() => Cid.ReadBytes(badCid));
+        await Assert.ThrowsAsync<CIDException>(() => Task.Run(() => Cid.ReadBytes(badCid)));
     }
 
-    [Fact]
-    public void ExplicitV0IsDisallowed()
+    [Test]
+    public async Task ExplicitV0IsDisallowedAsync()
     {
         byte[] data = [0x00, 0x70, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12, 0x12];
-        Assert.Throws<CIDException>(() => Cid.ReadBytes(data));
+        await Assert.ThrowsAsync<CIDException>(() => Task.Run(() => Cid.ReadBytes(data)));
     }
 
-    [Fact]
-    public void ToStringOfBaseV0Error()
+    [Test]
+    public async Task ToStringOfBaseV0ErrorAsync()
     {
         var digest = Util.Sha2_256Digest("foo");
         var cid = Cid.NewV0(digest);
-        Assert.Throws<CIDException>(() => cid.ToStringOfBase(MultibaseEncoding.Base16Upper));
+        await Assert.ThrowsAsync<CIDException>(() => Task.Run(() => cid.ToStringOfBase(MultibaseEncoding.Base16Upper)));
     }
 
-    [Fact]
-    public void TestHash()
+    [Test]
+    public async Task TestHashAsync()
     {
         byte[] data = [1, 2, 3];
         var hash = Util.Sha2_256Digest(data);
@@ -123,12 +124,12 @@ public class CidTests
             [cid] = data
         };
 
-        Assert.True(dict.ContainsKey(cid));
-        Assert.Equal(data, dict[cid]);
+        await Assert.That(dict.ContainsKey(cid)).IsTrue();
+        await Assert.That(dict[cid]).IsEqualTo(data);
     }
 
-    [Theory]
-    [InlineData("hello-world.png", "b487017b538407049156bb2609702277a3574ad7a8cee6d7017903085aad3d11")]
+    [Test]
+    [Arguments("hello-world.png", "b487017b538407049156bb2609702277a3574ad7a8cee6d7017903085aad3d11")]
     public async Task TestCidForBlobAsync(string blobFileName, string actualDigest)
     {
         var filePath = @"./data/blobs" + "/" + blobFileName;
@@ -136,8 +137,8 @@ public class CidTests
 
         var result = await Util.CidForBlobsAsync(stream);
 
-        Assert.Equal((ulong)MulticodecCode.Raw, result.Codec);
-        Assert.Equal(Version.V1, result.Version);
-        Assert.Equal(result.MultiHash.Digest.ToHexString(), actualDigest);
+        await Assert.That(result.Codec).IsEqualTo((ulong)MulticodecCode.Raw);
+        await Assert.That(result.Version).IsEqualTo(Version.V1);
+        await Assert.That(actualDigest).IsEqualTo(result.MultiHash.Digest.ToHexString());
     }
 }

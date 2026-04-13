@@ -70,13 +70,13 @@ public record InvalidRequestErrorDetail : ErrorDetail
     }
 }
 
-public record ExpiredTokenErrorDetail(string Message) : ErrorDetail("ExpiredToken", Message);
-public record InvalidTokenErrorDetail(string Message) : ErrorDetail("InvalidToken", Message);
-public record InvalidInviteCodeErrorDetail(string Message) : ErrorDetail("InvalidInviteCode", Message);
-public record IncompatibleDidDocErrorDetail(string Message) : ErrorDetail("IncompatibleDidDoc", Message);
-public record InvalidHandleErrorDetail(string Message) : ErrorDetail("InvalidHandle", Message);
-public record UnsupportedDomainErrorDetail(string Message) : ErrorDetail("UnsupportedDomain", Message);
-public record InvalidPasswordErrorDetail(string Message) : ErrorDetail("InvalidPassword", Message);
-public record HandleNotAvailableErrorDetail(string Message) : ErrorDetail("HandleNotAvailable", Message);
+public record ExpiredTokenErrorDetail(string Message) : ErrorDetail(ResponseType.AuthRequired, "ExpiredToken", Message);
+public record InvalidTokenErrorDetail(string Message) : ErrorDetail(ResponseType.AuthRequired, "InvalidToken", Message);
+public record InvalidInviteCodeErrorDetail(string Message) : ErrorDetail(ResponseType.InvalidRequest, "InvalidInviteCode", Message);
+public record IncompatibleDidDocErrorDetail(string Message) : ErrorDetail(ResponseType.InvalidRequest, "IncompatibleDidDoc", Message);
+public record InvalidHandleErrorDetail(string Message) : ErrorDetail(ResponseType.InvalidRequest, "InvalidHandle", Message);
+public record UnsupportedDomainErrorDetail(string Message) : ErrorDetail(ResponseType.InvalidRequest, "UnsupportedDomain", Message);
+public record InvalidPasswordErrorDetail(string Message) : ErrorDetail(ResponseType.InvalidRequest, "InvalidPassword", Message);
+public record HandleNotAvailableErrorDetail(string Message) : ErrorDetail(ResponseType.InvalidRequest, "HandleNotAvailable", Message);
 public record AuthRequiredErrorDetail(string Message) : ErrorDetail(ResponseType.AuthRequired, Message);
-public record AccountTakenDownErrorDetail(string Message) : ErrorDetail("AccountTakedown", Message);
+public record AccountTakenDownErrorDetail(string Message) : ErrorDetail(ResponseType.Forbidden, "AccountTakedown", Message);

@@ -8,7 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Secp256k1.Native" />
         <PackageReference Include="Secp256k1.Net" />
         <PackageReference Include="SimpleBase" />
     </ItemGroup>
