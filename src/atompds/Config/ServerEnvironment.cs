@@ -115,7 +115,7 @@ public class ServerEnvironment
     public bool PDS_SMTP_USE_TLS { get; set; } = true;
 
     // Rate Limiting
-    public bool PDS_RATE_LIMITS_ENABLED { get; set; } = false;
+    public bool PDS_RATE_LIMITS_ENABLED { get; set; } = true;
 
     // Anti-Abuse
     public string? PDS_HCAPTCHA_SECRET { get; set; }
