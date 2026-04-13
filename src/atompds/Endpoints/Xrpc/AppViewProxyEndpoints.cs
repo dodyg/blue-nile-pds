@@ -221,7 +221,7 @@ public static class AppViewProxyEndpoints
             var content = await response.Content.ReadAsStringAsync();
             content = PatchReadAfterWriteResponse(reqNsid, auth.AccessCredentials.Did, response, content, writeSnapshotCache);
 
-            logger.LogInformation("[PROXY][{status}] {path} via {serviceDid} response {content}", response.StatusCode, url, proxyTarget.Did, content);
+            logger.LogDebug("[PROXY][{status}] {path} via {serviceDid}", response.StatusCode, url, proxyTarget.Did);
 
             context.Response.StatusCode = (int)response.StatusCode;
             context.Response.ContentType = response.Content.Headers.ContentType?.ToString();
@@ -253,7 +253,7 @@ public static class AppViewProxyEndpoints
             var response = await client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
 
-            logger.LogInformation("[PROXY][{status}] {path} via {serviceDid} response {content}", response.StatusCode, url, proxyTarget.Did, content);
+            logger.LogDebug("[PROXY][{status}] {path} via {serviceDid}", response.StatusCode, url, proxyTarget.Did);
 
             context.Response.StatusCode = (int)response.StatusCode;
             context.Response.ContentType = response.Content.Headers.ContentType?.ToString();
@@ -298,7 +298,7 @@ public static class AppViewProxyEndpoints
         var response = await client.SendAsync(proxyRequest);
         var content = await response.Content.ReadAsStringAsync();
 
-        logger.LogInformation("[PROXY][{status}] {path} via {serviceDid} response {content}", response.StatusCode, url, proxyTarget.Did, content);
+        logger.LogDebug("[PROXY][{status}] {path} via {serviceDid}", response.StatusCode, url, proxyTarget.Did);
 
         context.Response.StatusCode = (int)response.StatusCode;
         context.Response.ContentType = response.Content.Headers.ContentType?.ToString();
