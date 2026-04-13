@@ -13,7 +13,7 @@
 - `src/projects/`: lower-level libraries such as `CID`, `Common`, `Crypto`, `DidLib`, `Handle`, `Identity`, and `Repo`.
 - `src/pdsadmin/`: admin CLI.
 - `src/migration/`: batch migration utility for actor stores.
-- `test/`: xUnit test projects plus `SubscribeTester`.
+- `test/`: TUnit test projects plus `SubscribeTester`.
 - `atompds.slnx`: root solution file. Use this for solution-wide build and test commands.
 
 ## Environment and prerequisites
@@ -85,9 +85,10 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 
 ## Testing expectations
 
-- Add or update xUnit tests when changing protocol logic, storage logic, parsing, or concurrency-sensitive behavior.
+- Add or update TUnit tests when changing protocol logic, storage logic, parsing, or concurrency-sensitive behavior.
 - Existing coverage is strongest in utility libraries and lighter in endpoint and sequencer code, so be proactive about adding tests in risky areas.
 - If you change sequencing, backfill, or channel behavior, add tests around ordering, buffering, and slow-consumer paths.
+- Use `[Test]` attribute (not `[Fact]`). Use `await Assert.That(...).IsEqualTo(...)` (not `Assert.Equal`).
 
 ## Known hotspots and gotchas
 
