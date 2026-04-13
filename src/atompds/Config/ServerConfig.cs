@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Threading.Channels;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
@@ -379,5 +380,11 @@ public record ServerConfig
 
         services.AddSingleton<ReservedSigningKeyStore>();
         services.AddScoped<EntrywayRelayService>();
+
+        services.AddSingleton<BackgroundJobQueue>();
+        services.AddSingleton<IBackgroundJobQueue>(sp => sp.GetRequiredService<BackgroundJobQueue>());
+        services.AddSingleton<ChannelWriter<Func<IServiceProvider, Task>>>(sp => sp.GetRequiredService<BackgroundJobQueue>().Writer);
+        services.AddSingleton<BackgroundEmailDispatcher>();
+        services.AddHostedService<BackgroundJobWorker>();
     }
 }

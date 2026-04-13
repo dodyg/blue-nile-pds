@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using System.Threading.Channels;
 using AccountManager.Db;
 using atompds.Config;
 using atompds.Endpoints;
@@ -37,14 +36,6 @@ public class Program
         builder.Services.AddExceptionHandler<XRPCExceptionHandler>();
 
         builder.Services.AddPdsRateLimiting(environment.PDS_RATE_LIMITS_ENABLED);
-
-        // Background job queue
-        builder.Services.AddSingleton<BackgroundJobQueue>();
-        builder.Services.AddSingleton<IBackgroundJobQueue>(sp => sp.GetRequiredService<BackgroundJobQueue>());
-        builder.Services.AddSingleton<ChannelWriter<Func<IServiceProvider, Task>>>(sp => sp.GetRequiredService<BackgroundJobQueue>().Writer);
-        builder.Services.AddSingleton<BackgroundEmailDispatcher>();
-        builder.Services.AddHostedService<BackgroundJobWorker>();
-
 
         var app = builder.Build();
 
