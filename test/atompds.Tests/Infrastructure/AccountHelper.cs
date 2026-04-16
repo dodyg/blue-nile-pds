@@ -15,8 +15,8 @@ public static class AccountHelper
         string? inviteCode = null)
     {
         var id = Interlocked.Increment(ref _counter);
-        email ??= $"test{id}@test.test";
-        handle ??= $"testuser{id}.test";
+        email ??= $"t{id}@test.test";
+        handle ??= $"user{id}.test";
         password ??= "test-password-123";
 
         var body = new Dictionary<string, object?>
@@ -49,11 +49,11 @@ public static class AccountHelper
         );
     }
 
-    public static async Task<string> CreateInviteCodeAsync(HttpClient client)
+    public static async Task<string> CreateInviteCodeAsync(HttpClient client, AccountInfo account)
     {
         var request = new HttpRequestMessage(HttpMethod.Post,
             "/xrpc/com.atproto.server.createInviteCode");
-        request.Headers.Add("Authorization", AuthTestHelper.GetAdminBasicAuth());
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", account.AccessJwt);
         request.Content = new StringContent(
             """{"useCount": 1}""", Encoding.UTF8, "application/json");
         var response = await client.SendAsync(request);
@@ -62,11 +62,11 @@ public static class AccountHelper
         return json.GetProperty("code").GetString()!;
     }
 
-    public static async Task<string> CreateInviteCodesAsync(HttpClient client, int codeCount = 2, int useCount = 1)
+    public static async Task<string> CreateInviteCodesAsync(HttpClient client, AccountInfo account, int codeCount = 2, int useCount = 1)
     {
         var request = new HttpRequestMessage(HttpMethod.Post,
             "/xrpc/com.atproto.server.createInviteCodes");
-        request.Headers.Add("Authorization", AuthTestHelper.GetAdminBasicAuth());
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", account.AccessJwt);
         request.Content = new StringContent(
             $"{{\"codeCount\": {codeCount}, \"useCount\": {useCount}}}", Encoding.UTF8, "application/json");
         var response = await client.SendAsync(request);
