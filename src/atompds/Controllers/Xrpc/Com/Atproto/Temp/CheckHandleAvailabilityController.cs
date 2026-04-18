@@ -1,6 +1,7 @@
 using System.Net.Mail;
 using AccountManager;
 using AccountManager.Db;
+using ComAtproto.Temp;
 using Handle;
 using Microsoft.AspNetCore.Mvc;
 using Xrpc;
@@ -35,25 +36,25 @@ public class CheckHandleAvailabilityController : ControllerBase
         var existing = await _accountRepository.GetAccountAsync(normalizedHandle, new AvailabilityFlags(true, true));
         if (existing == null)
         {
-            return Ok(new
+            return Ok(new CheckHandleAvailabilityOutput
             {
-                handle = normalizedHandle,
-                result = new { }
+                Handle = normalizedHandle,
+                Result = new CheckHandleAvailabilityResultAvailable()
             });
         }
 
         var suggestions = await BuildSuggestionsAsync(normalizedHandle, email);
-        return Ok(new
+        return Ok(new CheckHandleAvailabilityOutput
         {
-            handle = normalizedHandle,
-            result = new
+            Handle = normalizedHandle,
+            Result = new CheckHandleAvailabilityResultUnavailable
             {
-                suggestions
+                Suggestions = suggestions
             }
         });
     }
 
-    private async Task<List<object>> BuildSuggestionsAsync(string handle, string? email)
+    private async Task<List<CheckHandleAvailabilitySuggestion>> BuildSuggestionsAsync(string handle, string? email)
     {
         var dotIndex = handle.IndexOf('.');
         if (dotIndex <= 0 || dotIndex == handle.Length - 1)
@@ -77,7 +78,7 @@ public class CheckHandleAvailabilityController : ControllerBase
             candidates.Add(($"{sanitizedEmailPrefix}{stem[..Math.Min(stem.Length, 3)]}.{domain}", "email-prefix-stem"));
         }
 
-        var suggestions = new List<object>();
+        var suggestions = new List<CheckHandleAvailabilitySuggestion>();
         foreach (var candidate in candidates)
         {
             string normalized;
@@ -96,10 +97,10 @@ public class CheckHandleAvailabilityController : ControllerBase
                 continue;
             }
 
-            suggestions.Add(new
+            suggestions.Add(new CheckHandleAvailabilitySuggestion
             {
-                handle = normalized,
-                method = candidate.Method
+                Handle = normalized,
+                Method = candidate.Method
             });
 
             if (suggestions.Count >= 5)
