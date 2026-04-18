@@ -2,9 +2,12 @@ using System.Buffers;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using AccountManager;
+using AccountManager.Db;
 using AppBsky.Actor;
 using ActorStore;
 using atompds.Middleware;
+using CarpaNet;
 using Config;
 using Crypto;
 using Identity;
@@ -18,6 +21,7 @@ namespace atompds.Controllers.Xrpc;
 [Route("xrpc")]
 public class AppViewProxyController : ControllerBase
 {
+    private readonly AccountRepository _accountRepository;
     private readonly ActorRepositoryProvider _actorRepositoryProvider;
     private readonly HttpClient _client;
     private readonly IBskyAppViewConfig _config;
@@ -26,34 +30,124 @@ public class AppViewProxyController : ControllerBase
     public AppViewProxyController(IBskyAppViewConfig config,
         ILogger<AppViewProxyController> logger,
         HttpClient client,
+        AccountRepository accountRepository,
         ActorRepositoryProvider actorRepositoryProvider,
         IdResolver idResolver)
     {
         _config = config;
         _logger = logger;
         _client = client;
+        _accountRepository = accountRepository;
         _actorRepositoryProvider = actorRepositoryProvider;
         _idResolver = idResolver;
     }
 
     [HttpGet("app.bsky.actor.getPreferences")]
     [AccessStandard]
-    public IActionResult AppViewProxy()
+    public async Task<IActionResult> GetPreferencesAsync()
     {
         var auth = HttpContext.GetAuthOutput();
+        await using var actorStore = _actorRepositoryProvider.Open(auth.AccessCredentials.Did);
+        var preferences = await actorStore.GetPreferencesAsync("app.bsky");
 
-        return Ok(new GetPreferencesOutput
+        return Ok(new
         {
-            Preferences = []
+            preferences
         });
     }
 
     [HttpPost("app.bsky.actor.putPreferences")]
     [AccessStandard]
-    public IActionResult PutPreferences([FromBody] PutPreferencesInput request)
+    public async Task<IActionResult> PutPreferencesAsync([FromBody] JsonDocument request)
     {
         var auth = HttpContext.GetAuthOutput();
+        if (!request.RootElement.TryGetProperty("preferences", out var preferencesElement) ||
+            preferencesElement.ValueKind != JsonValueKind.Array)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Invalid preferences payload."));
+        }
+
+        var preferences = new List<JsonElement>();
+        foreach (var preference in preferencesElement.EnumerateArray())
+        {
+            if (preference.ValueKind != JsonValueKind.Object ||
+                !preference.TryGetProperty("$type", out var type) ||
+                type.ValueKind != JsonValueKind.String)
+            {
+                throw new XRPCError(new InvalidRequestErrorDetail("Preference is missing a $type."));
+            }
+
+            preferences.Add(preference.Clone());
+        }
+
+        await using var actorStore = _actorRepositoryProvider.Open(auth.AccessCredentials.Did);
+        await actorStore.PutPreferencesAsync("app.bsky", preferences);
         return Ok();
+    }
+
+    [HttpGet("app.bsky.actor.getProfile")]
+    [AccessStandard]
+    public async Task<IActionResult> GetProfileAsync([FromQuery] string actor)
+    {
+        if (string.IsNullOrWhiteSpace(actor))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Actor is required."));
+        }
+
+        var account = await _accountRepository.GetAccountAsync(actor, new AvailabilityFlags(true, true));
+        if (account == null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Profile not found."));
+        }
+
+        JsonElement? profileRecord = null;
+        DateTime? profileIndexedAt = null;
+        if (_actorRepositoryProvider.Exists(account.Did))
+        {
+            await using var actorStore = _actorRepositoryProvider.Open(account.Did);
+            var uri = ATUri.Create(account.Did, Profile.RecordType, "self");
+            var record = await actorStore.Record.GetRecordAsync(uri, null, true);
+            if (record != null)
+            {
+                profileRecord = record.Value;
+                profileIndexedAt = record.IndexedAt;
+            }
+        }
+
+        string? displayName = null;
+        string? description = null;
+        string? pronouns = null;
+        if (profileRecord.HasValue)
+        {
+            if (profileRecord.Value.TryGetProperty("displayName", out var displayNameProp) &&
+                displayNameProp.ValueKind == JsonValueKind.String)
+            {
+                displayName = displayNameProp.GetString();
+            }
+
+            if (profileRecord.Value.TryGetProperty("description", out var descriptionProp) &&
+                descriptionProp.ValueKind == JsonValueKind.String)
+            {
+                description = descriptionProp.GetString();
+            }
+
+            if (profileRecord.Value.TryGetProperty("pronouns", out var pronounsProp) &&
+                pronounsProp.ValueKind == JsonValueKind.String)
+            {
+                pronouns = pronounsProp.GetString();
+            }
+        }
+
+        return Ok(new
+        {
+            did = account.Did,
+            handle = account.Handle,
+            displayName,
+            description,
+            pronouns,
+            createdAt = account.CreatedAt.ToString("O"),
+            indexedAt = (profileIndexedAt ?? account.CreatedAt).ToString("O")
+        });
     }
 
     [HttpPost("chat.bsky.actor.deleteAccount")]
@@ -65,7 +159,6 @@ public class AppViewProxyController : ControllerBase
     }
 
     // static appview proxy
-    [HttpGet("app.bsky.actor.getProfile")]
     [HttpGet("app.bsky.actor.getProfiles")]
     [HttpGet("app.bsky.actor.getSuggestions")]
     [HttpGet("app.bsky.actor.searchActorsTypeahead")]

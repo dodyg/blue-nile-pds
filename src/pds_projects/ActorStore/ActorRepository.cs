@@ -1,10 +1,11 @@
-﻿using ActorStore.Db;
+using ActorStore.Db;
 using ActorStore.Repo;
 using BlobStore;
 using Crypto;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Repo;
+using System.Text.Json;
 
 namespace ActorStore;
 
@@ -73,5 +74,43 @@ public class ActorRepository : IDisposable, IAsyncDisposable
             await tx.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task<List<JsonElement>> GetPreferencesAsync(string scope)
+    {
+        var scopePrefix = $"{scope}:";
+        var rows = await _db.AccountPrefs
+            .Where(x => x.Name.StartsWith(scopePrefix))
+            .OrderBy(x => x.Name)
+            .Select(x => x.ValueJson)
+            .ToListAsync();
+
+        var preferences = new List<JsonElement>(rows.Count);
+        foreach (var row in rows)
+        {
+            using var document = JsonDocument.Parse(row);
+            preferences.Add(document.RootElement.Clone());
+        }
+
+        return preferences;
+    }
+
+    public async Task PutPreferencesAsync(string scope, IReadOnlyList<JsonElement> preferences)
+    {
+        var scopePrefix = $"{scope}:";
+        await _db.AccountPrefs
+            .Where(x => x.Name.StartsWith(scopePrefix))
+            .ExecuteDeleteAsync();
+
+        for (var i = 0; i < preferences.Count; i++)
+        {
+            _db.AccountPrefs.Add(new AccountPref
+            {
+                Name = $"{scopePrefix}{i:D4}",
+                ValueJson = preferences[i].GetRawText()
+            });
+        }
+
+        await _db.SaveChangesAsync();
     }
 }
