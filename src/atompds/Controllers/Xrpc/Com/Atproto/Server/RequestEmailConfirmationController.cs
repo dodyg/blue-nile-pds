@@ -22,7 +22,7 @@ public class RequestEmailConfirmationController : ControllerBase
 
     [HttpPost("com.atproto.server.requestEmailConfirmation")]
     [AccessFull(true)]
-    public async Task RequestEmailConfirmationAsync()
+    public async Task<IActionResult> RequestEmailConfirmationAsync()
     {
         var auth = HttpContext.GetAuthOutput();
         var did = auth.AccessCredentials.Did;
@@ -39,5 +39,6 @@ public class RequestEmailConfirmationController : ControllerBase
 
         var token = await _accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.confirm_email);
         await _mailer.SendConfirmEmailAsync(token, account.Email);
+        return NoContent();
     }
 }
