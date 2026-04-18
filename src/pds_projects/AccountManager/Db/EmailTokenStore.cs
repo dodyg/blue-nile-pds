@@ -64,4 +64,11 @@ public class EmailTokenStore
             throw new XRPCError(new InvalidRequestErrorDetail("ExpiredToken", "Token has expired."));
         }
     }
+
+    public Task DeleteTokenAsync(string did, EmailToken.EmailTokenPurpose purpose)
+    {
+        return _db.EmailTokens
+            .Where(x => x.Did == did && x.Purpose == purpose)
+            .ExecuteDeleteAsync();
+    }
 }

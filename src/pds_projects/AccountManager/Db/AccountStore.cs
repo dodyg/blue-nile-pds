@@ -174,6 +174,18 @@ public class AccountStore
         }
     }
 
+    public async Task SetEmailConfirmedAtAsync(string did, DateTime confirmedAt)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account == null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("AccountNotFound", "Account not found."));
+        }
+
+        account.EmailConfirmedAt = confirmedAt;
+        await _db.SaveChangesAsync();
+    }
+
     public async Task DeleteAccountAsync(string did)
     {
         await _db.RepoRoots.Where(x => x.Did == did).ExecuteDeleteAsync();

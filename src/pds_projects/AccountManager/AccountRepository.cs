@@ -126,6 +126,22 @@ public class AccountRepository
         return _emailTokenStore.AssertValidTokenAsync(did, token, purpose);
     }
 
+    public Task DeleteEmailTokenAsync(string did, EmailToken.EmailTokenPurpose purpose)
+    {
+        return _emailTokenStore.DeleteTokenAsync(did, purpose);
+    }
+
+    public async Task ConfirmEmailAsync(string did, string token)
+    {
+        await AssertValidEmailTokenAsync(did, token, EmailToken.EmailTokenPurpose.confirm_email);
+
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        await Task.WhenAll(
+            _emailTokenStore.DeleteTokenAsync(did, EmailToken.EmailTokenPurpose.confirm_email),
+            _accountStore.SetEmailConfirmedAtAsync(did, DateTime.UtcNow));
+        await transaction.CommitAsync();
+    }
+
     public async Task UpdateRepoRootAsync(string did, Cid cid, string rev)
     {
         await _repoStore.UpdateRootAsync(did, cid.ToString(), rev);

@@ -15,4 +15,10 @@ public class StubMailer : IMailer
         _logger.LogInformation("Sending account delete email to {to} with token {token}", to, token);
         return Task.CompletedTask;
     }
+
+    public Task SendConfirmEmailAsync(string token, string to)
+    {
+        _logger.LogInformation("Sending email confirmation to {to} with token {token}", to, token);
+        return Task.CompletedTask;
+    }
 }
