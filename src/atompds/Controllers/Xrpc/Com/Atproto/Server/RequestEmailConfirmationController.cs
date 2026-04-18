@@ -39,6 +39,6 @@ public class RequestEmailConfirmationController : ControllerBase
 
         var token = await _accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.confirm_email);
         await _mailer.SendConfirmEmailAsync(token, account.Email);
-        return NoContent();
+        return Ok();
     }
 }
