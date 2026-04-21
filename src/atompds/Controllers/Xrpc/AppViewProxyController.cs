@@ -138,15 +138,15 @@ public class AppViewProxyController : ControllerBase
             }
         }
 
-        return Ok(new
+        return Ok(new DefsProfileViewDetailed
         {
-            did = account.Did,
-            handle = account.Handle,
-            displayName,
-            description,
-            pronouns,
-            createdAt = account.CreatedAt.ToString("O"),
-            indexedAt = (profileIndexedAt ?? account.CreatedAt).ToString("O")
+            Did = account.Did,
+            Handle = account.Handle,
+            DisplayName = displayName,
+            Description = description,
+            Pronouns = pronouns,
+            CreatedAt = account.CreatedAt,
+            IndexedAt = profileIndexedAt ?? account.CreatedAt
         });
     }
 
