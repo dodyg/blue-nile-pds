@@ -8,11 +8,12 @@ This document is a structured map of the `blue-nile-pds` codebase. Read this fir
 
 `blue-nile-pds` is a .NET 10 preview C# implementation of an ATProto Personal Data Server (PDS). It is a fork of `atompds`, experimental and learning-focused. It hosts user accounts, stores repos (Merkle Search Trees), serves blobs, sequences events to a firehose, and exposes 65 `com.atproto.*` XRPC endpoints plus 36 AppView proxy route registrations, OAuth (4 endpoints), health, 3 well-known endpoints, and an error handler. Total: ~111 HTTP route registrations implemented as ASP.NET Core Minimal API endpoints across ~65 endpoint files under `src/atompds/Endpoints/`.
 
-- **SDK:** .NET 10 (`10.0.100`, pinned in `global.json`, `rollForward: latestMinor`, test runner: `Microsoft.Testing.Platform`)
+- **SDK:** .NET 10 (`10.0.100-rc.1`, pinned in `global.json`, `rollForward: latestMinor`, test runner: `Microsoft.Testing.Platform`)
 - **Test framework:** TUnit (NOT xUnit despite what AGENTS.md says)
 - **Solution file:** `atompds.slnx` (XML-based slnx format)
 - **Central package management:** `Directory.Packages.props` (CPM)
 - **Build props:** `Directory.Build.props` (applies `Microsoft.VisualStudio.Threading.Analyzers` to all projects)
+- **Build note:** Default `dotnet build` may hit MSB4166 node crashes on resource-constrained machines. Use `-m:1` or `-m:2` if this occurs.
 
 ---
 
@@ -42,10 +43,12 @@ atompds.slnx
 │   ├── Identity/              DID/handle resolution (PLC, web, DNS), caching
 │   └── Repo/                  Merkle Search Tree, CAR files, commit lifecycle
 └── test/
-    ├── CID.Tests/             CID parsing, creation, round-trip (12 tests)
-    ├── Common.Tests/          TID, S32 encoding, CBOR round-trip (10 tests)
+    ├── CID.Tests/             CID parsing, creation, round-trip, multibase, blob hashing (17 tests)
+    ├── Common.Tests/          TID, S32 encoding, CBOR round-trip (12 tests)
+    ├── Crypto.Tests/          Secp256k1 keypair lifecycle, signing, verification, DID key parsing (26 tests)
+    ├── Repo.Tests/            MST insert/delete/walk, CAR encoding, round-trip (11 tests)
     ├── ActorStore.Tests/      `Prepare.ExtractBlobReferences` — blob reference extraction from JSON (156 tests)
-    ├── atompds.Tests/         Integration tests — all XRPC namespaces via WebApplicationFactory (150 tests)
+    ├── atompds.Tests/         Integration tests — all XRPC namespaces via WebApplicationFactory (282 tests; 176 pass, 101 fail, 5 skip — pre-existing failures in account/session/crud flows)
     ├── SubscribeTester/       Manual WebSocket subscription test tool
     └── data/                  Shared test data (blob files)
 ```
@@ -294,8 +297,9 @@ Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 ### 6g. Crypto (`src/projects/Crypto/`)
 
 - `Secp256k1Keypair` — `Create()`, `Import()`, `Sign()`, `Did()`, `Export()`
-- `Verify` — `VerifySignature(didKey, data, sig)`
+- `Verify` — `VerifySignature(didKey, data, sig, opts, jwtAlg)` — dispatches to `IDidKeyPlugin.VerifySignature`
 - `Did` — DID key parsing/formatting with plugin architecture (`IDidKeyPlugin`)
+- `Operations` — `VerifySig`, `VerifyDidSig`, `IsCompactFormat` — note: `VerifySig` passes compact-format signatures directly to `Secp256k1Net.Secp256k1.Verify` (static method expects compact, not internal format)
 - `Secp256k1Wrapper` — thread-safe (locked) wrapper around native `Secp256k1Net`
 
 ### 6h. Host Services (`src/atompds/Services/`)
@@ -364,19 +368,25 @@ All config is immutable records mapped from `ServerEnvironment`:
 
 | Project | What it tests |
 |---------|---------------|
-| `test/CID.Tests/` | CID parsing, creation, round-trip, multibase encoding, blob hashing (12 tests) |
-| `test/Common.Tests/` | TID generation/parsing/ordering, S32 encoding, CBOR round-trip (10 tests) |
+| `test/CID.Tests/` | CID parsing, creation, round-trip, multibase encoding, blob hashing (17 tests) |
+| `test/Common.Tests/` | TID generation/parsing/ordering, S32 encoding, CBOR round-trip (12 tests) |
+| `test/Crypto.Tests/` | Secp256k1 keypair creation/import/export, signing, signature verification, DID key parsing/formatting, round-trip (26 tests) |
+| `test/Repo.Tests/` | MST insert/delete/walk, node splitting, CAR block encoding, data diff, round-trip (11 tests) |
 | `test/ActorStore.Tests/` | `Prepare.ExtractBlobReferences` — comprehensive validation of blob reference extraction from JSON (156 tests) |
-| `test/atompds.Tests/` | Integration tests via `WebApplicationFactory<Program>` (150 tests): auth gatekeeping, route existence, response shape for all XRPC namespaces (Admin 26, Server 32, Sync 18, Repo 16, Root 15, Health/Error/WellKnown 14, Identity 12, OAuth 6, Moderation/Temp 4 + additional endpoint coverage). Uses `TestWebAppFactory` + `AuthTestHelper` in `Infrastructure/` |
+| `test/atompds.Tests/` | Integration tests via `WebApplicationFactory<Program>` (282 tests): auth gatekeeping, route existence, CRUD flows, account lifecycle, sequencer events. **101 tests fail** (pre-existing) — primarily account creation/session flows returning 400 errors. Uses `TestWebAppFactory` + `AuthTestHelper` + `AccountHelper` in `Infrastructure/` |
 | `test/SubscribeTester/` | NOT a test — manual WebSocket diagnostic tool |
 
 **Test commands:**
 ```bash
 dotnet test test/CID.Tests/CID.Tests.csproj
 dotnet test test/Common.Tests/Common.Tests.csproj
+dotnet test test/Crypto.Tests/Crypto.Tests.csproj
+dotnet test test/Repo.Tests/Repo.Tests.csproj
 dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
 dotnet test test/atompds.Tests/atompds.Tests.csproj
 ```
+
+**Total: 504 tests across 6 test projects** (398 pass, 101 fail pre-existing in atompds.Tests, 5 skipped).
 
 ---
 
@@ -448,6 +458,7 @@ dotnet test test/atompds.Tests/atompds.Tests.csproj
 | `src/projects/Repo/MST/MST.cs` | Merkle Search Tree core |
 | `src/projects/Identity/BaseResolver.cs` | DID resolution with caching |
 | `src/projects/Crypto/Secp256k1/Secp256k1Keypair.cs` | Key management |
+| `src/projects/Crypto/Secp256k1/Operations.cs` | Signature verification — passes compact format directly to `Secp256k1Net` |
 | `src/projects/CommonWeb/Util.cs` | DID/handle/AT-URI validation |
 
 ---

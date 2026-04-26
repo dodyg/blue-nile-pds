@@ -26,8 +26,11 @@
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/pds_projects/" />
+  <Folder Name="/src/projects/" />
   <Folder Name="/test/">
     <Project Path="test/atompds.Tests/atompds.Tests.csproj" />
+    <Project Path="test/Crypto.Tests/Crypto.Tests.csproj" />
+    <Project Path="test/Repo.Tests/Repo.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="test/ActorStore.Tests/ActorStore.Tests.csproj" />

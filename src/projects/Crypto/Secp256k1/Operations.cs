@@ -25,17 +25,6 @@ public class Operations
             return false;
         }
 
-        if (IsCompactFormat(sig))
-        {
-            var outBuf = new byte[Secp256k1Net.Secp256k1.UNSERIALIZED_SIGNATURE_LENGTH];
-            if (!Secp256k1Wrapper.SignatureParseCompact(outBuf, sig))
-            {
-                return false;
-            }
-
-            sig = outBuf;
-        }
-
         return Secp256k1Wrapper.Verify(sig, msgHash, publicKey);
     }
 
