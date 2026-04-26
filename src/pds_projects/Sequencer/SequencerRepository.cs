@@ -14,86 +14,20 @@ namespace Sequencer;
 
 public record CloseEvt;
 
-public class SequencerRepository : IDisposable
+public class SequencerRepository
 {
     private readonly Crawlers _crawlers;
-    private readonly CancellationTokenSource _cts = new();
 
     private readonly ChannelWriter<Func<IServiceProvider, Task>> _backgroundJobWriter;
     private readonly SequencerDb _db;
     private readonly ILogger<SequencerRepository> _logger;
-    private readonly SequencerDb _pollDb;
-    private readonly Task _pollTask;
 
     public SequencerRepository(IDbContextFactory<SequencerDb> seqDbFactory, Crawlers crawlers, ChannelWriter<Func<IServiceProvider, Task>> backgroundJobWriter, ILogger<SequencerRepository> logger)
     {
         _db = seqDbFactory.CreateDbContext();
-        _pollDb = seqDbFactory.CreateDbContext();
         _crawlers = crawlers;
         _backgroundJobWriter = backgroundJobWriter;
         _logger = logger;
-        _pollTask = Task.Run(PollTaskAsync, _cts.Token);
-    }
-    public int? LastSeen { get; private set; }
-    private int TriesWithNoResults { get; set; }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _pollTask?.Wait();
-        OnClose?.Invoke(this, new CloseEvt());
-        _db.Dispose();
-        _pollDb.Dispose();
-    }
-    public event EventHandler<ISeqEvt[]>? OnEvents;
-    public event EventHandler<CloseEvt>? OnClose;
-
-    private async Task PollTaskAsync()
-    {
-        _logger.LogDebug("Starting poll task");
-        while (_cts.Token.IsCancellationRequested == false)
-            try
-            {
-                await PollDbAsync();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Error polling db");
-            }
-    }
-
-    private async Task PollDbAsync()
-    {
-        try
-        {
-            _logger.LogDebug("Polling db for new events since {LastSeen}", LastSeen);
-            var evts = await GetRangeAsync(LastSeen, null, null, 1000, _pollDb);
-            if (evts.Length > 0)
-            {
-                _logger.LogInformation("Found {Count} new events", evts.Length);
-                TriesWithNoResults = 0;
-                OnEvents?.Invoke(this, evts);
-                LastSeen = evts.Max(x => x.Seq);
-            }
-            else
-            {
-                _logger.LogDebug("No new events found");
-                await ExponentialBackoffAsync();
-            }
-        }
-        catch (Exception)
-        {
-            await ExponentialBackoffAsync();
-        }
-    }
-
-    private async Task ExponentialBackoffAsync()
-    {
-        TriesWithNoResults++;
-        var delay = Math.Pow(2, TriesWithNoResults);
-        var delayLength = Math.Min(1000, (int)delay);
-        _logger.LogDebug("Waiting {DelayLength}ms before next poll", delayLength);
-        await Task.Delay(delayLength);
     }
 
     public async Task<int?> CurrentAsync()
@@ -125,10 +59,9 @@ public class SequencerRepository : IDisposable
         return seq;
     }
 
-    // TODO: This should be private, dboverride is here just so we're using a separate dbcontext for the poll task as it runs on a separate thread
-    public async Task<ISeqEvt[]> GetRangeAsync(int? earliestSeq, int? latestSeq, DateTime? earliestTime, int? limit, SequencerDb? dbOverride = null)
+    public async Task<ISeqEvt[]> GetRangeAsync(int? earliestSeq, int? latestSeq, DateTime? earliestTime, int? limit)
     {
-        var seqs = (dbOverride ?? _db).RepoSeqs.AsQueryable()
+        var seqs = _db.RepoSeqs.AsQueryable()
             .OrderBy(x => x.Seq)
             .Where(x => x.Invalidated == false);
 
@@ -163,56 +96,8 @@ public class SequencerRepository : IDisposable
         {
             try
             {
-                switch (row.EventType)
-                {
-
-                    case RepoSeqEventType.Append:
-                    case RepoSeqEventType.Rebase:
-                        var commitEvt = CommitEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                        seqEvents.Add(new TypedCommitEvt
-                        {
-                            Seq = row.Seq,
-                            Time = row.SequencedAt,
-                            Evt = commitEvt
-                        });
-                        break;
-                    case RepoSeqEventType.Handle:
-                        var handleEvt = HandleEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                        seqEvents.Add(new TypedHandleEvt
-                        {
-                            Seq = row.Seq,
-                            Time = row.SequencedAt,
-                            Evt = handleEvt
-                        });
-                        break;
-                    case RepoSeqEventType.Identity:
-                        var identityEvt = IdentityEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                        seqEvents.Add(new TypedIdentityEvt
-                        {
-                            Seq = row.Seq,
-                            Time = row.SequencedAt,
-                            Evt = identityEvt
-                        });
-                        break;
-                    case RepoSeqEventType.Account:
-                        var accountEvt = AccountEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                        seqEvents.Add(new TypedAccountEvt
-                        {
-                            Seq = row.Seq,
-                            Time = row.SequencedAt,
-                            Evt = accountEvt
-                        });
-                        break;
-                    case RepoSeqEventType.Tombstone:
-                        var tombstoneEvt = TombstoneEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event));
-                        seqEvents.Add(new TypedTombstoneEvt
-                        {
-                            Seq = row.Seq,
-                            Time = row.SequencedAt,
-                            Evt = tombstoneEvt
-                        });
-                        break;
-                }
+                var evt = DecodeSeqEvent(row);
+                if (evt != null) seqEvents.Add(evt);
             }
             catch (Exception e)
             {
@@ -221,6 +106,44 @@ public class SequencerRepository : IDisposable
         }
 
         return seqEvents.ToArray();
+    }
+
+    public static ISeqEvt? DecodeSeqEvent(RepoSeq row)
+    {
+        return row.EventType switch
+        {
+            RepoSeqEventType.Append or RepoSeqEventType.Rebase => new TypedCommitEvt
+            {
+                Seq = row.Seq,
+                Time = row.SequencedAt,
+                Evt = CommitEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event))
+            },
+            RepoSeqEventType.Handle => new TypedHandleEvt
+            {
+                Seq = row.Seq,
+                Time = row.SequencedAt,
+                Evt = HandleEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event))
+            },
+            RepoSeqEventType.Identity => new TypedIdentityEvt
+            {
+                Seq = row.Seq,
+                Time = row.SequencedAt,
+                Evt = IdentityEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event))
+            },
+            RepoSeqEventType.Account => new TypedAccountEvt
+            {
+                Seq = row.Seq,
+                Time = row.SequencedAt,
+                Evt = AccountEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event))
+            },
+            RepoSeqEventType.Tombstone => new TypedTombstoneEvt
+            {
+                Seq = row.Seq,
+                Time = row.SequencedAt,
+                Evt = TombstoneEvt.FromCborObject(CBORObject.DecodeFromBytes(row.Event))
+            },
+            _ => null
+        };
     }
 
     public async Task DeleteAllForUserAsync(string did, int[] excludingSeq)

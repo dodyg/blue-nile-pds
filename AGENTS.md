@@ -8,12 +8,12 @@
 
 ## Solution layout
 
-- `src/atompds/`: ASP.NET Core host, controllers, middleware, startup, config binding.
+- `src/atompds/`: ASP.NET Core host, Minimal API endpoints, middleware, startup, config binding.
 - `src/pds_projects/`: PDS-specific services such as `AccountManager`, `ActorStore`, `BlobStore`, `Sequencer`, `Mailer`, and `Xrpc`.
 - `src/projects/`: lower-level libraries such as `CID`, `Common`, `Crypto`, `DidLib`, `Handle`, `Identity`, and `Repo`.
 - `src/pdsadmin/`: admin CLI.
 - `src/migration/`: batch migration utility for actor stores.
-- `test/`: xUnit test projects plus `SubscribeTester`.
+- `test/`: TUnit test projects plus `SubscribeTester`.
 - `atompds.slnx`: root solution file. Use this for solution-wide build and test commands.
 
 ## Environment and prerequisites
@@ -61,8 +61,15 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 
 - Dependency registration lives in `src/atompds/Config/ServerConfig.cs`.
 - Startup pipeline lives in `src/atompds/Program.cs`.
-- Controllers are organized by XRPC namespace under `src/atompds/Controllers/Xrpc/...`.
-- JSON uses `System.Text.Json` with CarpaNet-generated serializer contexts where ATProto models are involved.
+- All HTTP endpoints use ASP.NET Core Minimal APIs (no MVC controllers). Endpoints are in `src/atompds/Endpoints/`, organized by ATProto namespace:
+  - `Endpoints/RootEndpoints.cs`, `ErrorEndpoints.cs`, `WellKnownEndpoints.cs`
+  - `Endpoints/OAuth/` — OAuth token, authorize, and client-metadata endpoints
+  - `Endpoints/Xrpc/` — all `xrpc/` routes grouped by ATProto namespace (`Admin`, `Identity`, `Moderation`, `Repo`, `Server`, `Sync`, `Temp`)
+  - `Endpoints/Xrpc/AppViewProxyEndpoints.cs` — catchall `{nsid}` proxy routes (registered last)
+  - `Endpoints/EndpointRegistration.cs` — `MapEndpoints()` extension method that wires everything together
+- Auth is enforced via `AuthMiddleware` reading endpoint metadata set with `.WithMetadata(new AccessStandardAttribute())` etc.
+- Rate limiting is applied with `.RequireRateLimiting("policy-name")` on individual endpoints.
+- JSON uses `System.Text.Json` with `ConfigureHttpJsonOptions` (same options as former `AddControllers().AddJsonOptions()`). CarpaNet-generated serializer contexts are used for ATProto models.
 - `AccountManagerDb` and `SequencerDb` migrations run automatically on app startup.
 - Actor repos are stored per DID via `ActorRepositoryProvider` in `src/pds_projects/ActorStore/`.
 
@@ -72,15 +79,16 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - Prefer small constructor-injected classes over static helpers when working in the web host and service layers.
 - Use existing config records and DI wiring instead of ad hoc environment reads.
 - Reuse existing XRPC error types from `src/pds_projects/Xrpc/` for API-facing validation and protocol errors.
-- Follow existing controller patterns: `[ApiController]`, `[Route("xrpc")]`, explicit action names matching ATProto endpoints.
+- Follow the Minimal API endpoint pattern: `static class {Feature}Endpoints` with a `Map{Feature}Endpoints(this RouteGroupBuilder group)` extension method and `static async Task<IResult> Handle(...)` action methods. Use `.WithMetadata(new SomeAuthAttribute())` for auth and `.RequireRateLimiting(...)` for rate limiting.
 - Keep serialization compatible with the CarpaNet-generated lexicon models used by the server and tooling.
 - When touching persistence, inspect related EF models, migrations, and repository code together.
 
 ## Testing expectations
 
-- Add or update xUnit tests when changing protocol logic, storage logic, parsing, or concurrency-sensitive behavior.
-- Existing coverage is strongest in utility libraries and lighter in controllers and sequencer code, so be proactive about adding tests in risky areas.
+- Add or update TUnit tests when changing protocol logic, storage logic, parsing, or concurrency-sensitive behavior.
+- Existing coverage is strongest in utility libraries and lighter in endpoint and sequencer code, so be proactive about adding tests in risky areas.
 - If you change sequencing, backfill, or channel behavior, add tests around ordering, buffering, and slow-consumer paths.
+- Use `[Test]` attribute (not `[Fact]`). Use `await Assert.That(...).IsEqualTo(...)` (not `Assert.Equal`).
 
 ## Known hotspots and gotchas
 
@@ -105,5 +113,5 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 
 - For most tasks, validate with `dotnet build atompds.slnx` and relevant `dotnet test` commands before finishing.
 - Prefer surgical fixes over repo-wide rewrites.
-- If you touch public XRPC behavior, review adjacent controllers for consistency.
+- If you touch public XRPC behavior, review adjacent endpoints for consistency.
 - If you add configuration, wire it through `ServerEnvironment` and `ServerConfig`.

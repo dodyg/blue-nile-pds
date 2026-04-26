@@ -4,7 +4,7 @@ public record BlobStoreConfig {}
 public record DiskBlobstoreConfig : BlobStoreConfig
 {
     public string Provider => "disk";
-    public string Location { get; init; }
+    public required string Location { get; init; }
     public string? TempLocation { get; init; }
 }
 

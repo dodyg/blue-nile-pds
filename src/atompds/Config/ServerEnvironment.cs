@@ -115,7 +115,7 @@ public class ServerEnvironment
     public bool PDS_SMTP_USE_TLS { get; set; } = true;
 
     // Rate Limiting
-    public bool PDS_RATE_LIMITS_ENABLED { get; set; } = false;
+    public bool PDS_RATE_LIMITS_ENABLED { get; set; } = true;
 
     // Anti-Abuse
     public string? PDS_HCAPTCHA_SECRET { get; set; }
@@ -130,6 +130,12 @@ public class ServerEnvironment
     // Moderation
     public string? PDS_REPORT_SERVICE_URL { get; set; }
     public string? PDS_REPORT_SERVICE_DID { get; set; }
+
+    // Admin
+    public string? PDS_ADMIN_PASSWORD { get; set; }
+
+    // OAuth
+    public List<string> PDS_OAUTH_ALLOWED_REDIRECT_URIS { get; set; } = [];
 
     // Redis
     public string? PDS_REDIS_URL { get; set; }

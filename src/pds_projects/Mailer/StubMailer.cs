@@ -18,31 +18,31 @@ public class StubMailer : IMailer
 
     public Task SendAccountDeleteAsync(string token, string to)
     {
-        _logger.LogInformation("[STUB] Sending account delete email to {to} with token {token}", to, token);
+        _logger.LogInformation("[STUB] Sending account delete email to {to} with token [REDACTED]", to);
         return Task.CompletedTask;
     }
 
     public Task SendEmailConfirmationAsync(string token, string to)
     {
-        _logger.LogInformation("[STUB] Sending email confirmation to {to} with token {token}", to, token);
+        _logger.LogInformation("[STUB] Sending email confirmation to {to} with token [REDACTED]", to);
         return Task.CompletedTask;
     }
 
     public Task SendEmailUpdateAsync(string token, string to)
     {
-        _logger.LogInformation("[STUB] Sending email update to {to} with token {token}", to, token);
+        _logger.LogInformation("[STUB] Sending email update to {to} with token [REDACTED]", to);
         return Task.CompletedTask;
     }
 
     public Task SendPasswordResetAsync(string token, string to)
     {
-        _logger.LogInformation("[STUB] Sending password reset to {to} with token {token}", to, token);
+        _logger.LogInformation("[STUB] Sending password reset to {to} with token [REDACTED]", to);
         return Task.CompletedTask;
     }
 
     public Task SendPlcOperationSignatureAsync(string token, string to)
     {
-        _logger.LogInformation("[STUB] Sending PLC operation signature to {to} with token {token}", to, token);
+        _logger.LogInformation("[STUB] Sending PLC operation signature to {to} with token [REDACTED]", to);
         return Task.CompletedTask;
     }
 }

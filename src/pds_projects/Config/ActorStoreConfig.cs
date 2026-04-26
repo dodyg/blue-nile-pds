@@ -2,7 +2,7 @@
 
 public record ActorStoreConfig
 {
-    public string Directory { get; init; }
+    public required string Directory { get; init; }
     public long CacheSize { get; init; }
     public bool DisableWalAutoCheckpoint { get; init; }
 }

@@ -1,9 +1,8 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using atompds.Config;
 using System.Text;
 using Config;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Xrpc;
 
@@ -53,7 +52,7 @@ public class EntrywayRelayService
         return $"{EntrywayUrl}{relativePathAndQuery}";
     }
 
-    public async Task<IActionResult> ForwardJsonAsync(
+    public async Task<IResult> ForwardJsonAsync(
         HttpRequest incoming,
         string relativePath,
         string rawJsonBody,
@@ -66,7 +65,7 @@ public class EntrywayRelayService
         return await SendAsync(request, cancellationToken);
     }
 
-    public async Task<IActionResult> ForwardFormAsync(
+    public async Task<IResult> ForwardFormAsync(
         HttpRequest incoming,
         string relativePath,
         IFormCollection form,
@@ -78,7 +77,7 @@ public class EntrywayRelayService
         return await SendAsync(request, cancellationToken);
     }
 
-    public async Task<IActionResult> ForwardWithoutBodyAsync(
+    public async Task<IResult> ForwardWithoutBodyAsync(
         HttpRequest incoming,
         HttpMethod method,
         string relativePath,
@@ -138,7 +137,7 @@ public class EntrywayRelayService
         headers.TryAddWithoutValidation(key, values.AsEnumerable());
     }
 
-    private async Task<IActionResult> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    private async Task<IResult> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         try
         {
@@ -149,15 +148,11 @@ public class EntrywayRelayService
 
             if (string.IsNullOrEmpty(content))
             {
-                return new StatusCodeResult((int)response.StatusCode);
+                return Results.StatusCode((int)response.StatusCode);
             }
 
-            return new ContentResult
-            {
-                Content = content,
-                ContentType = response.Content.Headers.ContentType?.ToString(),
-                StatusCode = (int)response.StatusCode
-            };
+            var contentType = response.Content.Headers.ContentType?.ToString();
+            return Results.Content(content, contentType, statusCode: (int)response.StatusCode);
         }
         catch (Exception ex)
         {

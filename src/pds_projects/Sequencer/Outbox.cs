@@ -8,6 +8,11 @@ using Xrpc;
 
 namespace Sequencer;
 
+public interface ISequencerEventSource
+{
+    event EventHandler<ISeqEvt[]> OnEvents;
+}
+
 public record OutboxOpts(int MaxBufferSize);
 
 public class Outbox
@@ -15,11 +20,14 @@ public class Outbox
     private readonly ILogger<Outbox> _logger;
     private readonly OutboxOpts _opts;
     private readonly SequencerRepository _sequencer;
-    private bool _caughtUp;
+    private readonly ISequencerEventSource _eventSource;
+    private volatile bool _caughtUp;
+    private readonly object _cutoverLock = new();
 
-    public Outbox(SequencerRepository sequencer, OutboxOpts opts, ILogger<Outbox> logger)
+    public Outbox(SequencerRepository sequencer, ISequencerEventSource eventSource, OutboxOpts opts, ILogger<Outbox> logger)
     {
         _sequencer = sequencer;
+        _eventSource = eventSource;
         _opts = opts;
         _logger = logger;
         OutBuffer = Channel.CreateBounded<ISeqEvt>(opts.MaxBufferSize);
@@ -47,15 +55,12 @@ public class Outbox
             _caughtUp = true;
         }
 
-        _sequencer.OnEvents += OnEvents;
-        _sequencer.OnClose += (sender, args) => _sequencer.OnEvents -= OnEvents;
+        _eventSource.OnEvents += OnEvents;
 
         try
         {
             await CutoverAsync(backfillCursor);
 
-            // there is a potential problem here as the channel will only throw the too slow exception only when the consumer consumes to the end 
-            // it will now throw when it gets full immediately
             await foreach (var evt in OutBuffer.Reader.ReadAllAsync(token))
             {
                 if (webSocket.State != WebSocketState.Open)
@@ -72,13 +77,12 @@ public class Outbox
         }
         finally
         {
-            _sequencer.OnEvents -= OnEvents;
+            _eventSource.OnEvents -= OnEvents;
         }
     }
 
     private async Task CutoverAsync(int? backfillCursor)
     {
-        // only need to perform cutover if we've been backfilling
         if (backfillCursor != null)
         {
             var cutoverEvts = await _sequencer.GetRangeAsync(LastSeen > -1 ? LastSeen : backfillCursor.Value, null, null, null);
@@ -86,13 +90,15 @@ public class Outbox
             {
                 TryWriteOutput(evt);
             }
-            // dont worry about dupes, we ensure order on yield
-            foreach (var evt in CutoverBuffer)
+            lock (_cutoverLock)
             {
-                TryWriteOutput(evt);
+                foreach (var evt in CutoverBuffer)
+                {
+                    TryWriteOutput(evt);
+                }
+                _caughtUp = true;
+                CutoverBuffer.Clear();
             }
-            _caughtUp = true;
-            CutoverBuffer.Clear();
         }
         else
         {
@@ -116,7 +122,8 @@ public class Outbox
                 yield return t;
             }
 
-            var seqCursor = _sequencer.LastSeen ?? -1;
+            var current = await _sequencer.CurrentAsync();
+            var seqCursor = current ?? -1;
             if (seqCursor - LastSeen < PAGE_SIZE / 2)
             {
                 break;
@@ -130,7 +137,6 @@ public class Outbox
 
     private void OnEvents(object? sender, ISeqEvt[] e)
     {
-        // there is probalby still a race condition here as _caughtUp could be set to true after the if check but before the events are written to the cutover buffer
         if (_caughtUp)
         {
             foreach (var evt in e)
@@ -141,10 +147,22 @@ public class Outbox
         }
         else
         {
-            foreach (var evt in e)
+            lock (_cutoverLock)
             {
-                _logger.LogDebug("Buffering event with seq {Seq} to CutoverBuffer", evt.Seq);
-                CutoverBuffer.Enqueue(evt);
+                if (_caughtUp)
+                {
+                    foreach (var evt in e)
+                    {
+                        _logger.LogDebug("Trying to write event with seq {Seq} to OutBuffer", evt.Seq);
+                        TryWriteOutput(evt);
+                    }
+                    return;
+                }
+                foreach (var evt in e)
+                {
+                    _logger.LogDebug("Buffering event with seq {Seq} to CutoverBuffer", evt.Seq);
+                    CutoverBuffer.Enqueue(evt);
+                }
             }
         }
     }

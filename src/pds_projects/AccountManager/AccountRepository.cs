@@ -1,6 +1,7 @@
 ﻿using AccountManager.Db;
 using CID;
 using Config;
+using Microsoft.Extensions.Logging;
 using Scrypt;
 using Xrpc;
 
@@ -20,6 +21,7 @@ public class AccountRepository
     private readonly AccountManagerDb _db;
     private readonly EmailTokenStore _emailTokenStore;
     private readonly InviteStore _inviteStore;
+    private readonly ILogger<AccountRepository> _logger;
     private readonly PasswordStore _passwordStore;
     private readonly RepoStore _repoStore;
     private readonly SecretsConfig _secretsConfig;
@@ -34,7 +36,8 @@ public class AccountRepository
         InviteStore inviteStore,
         EmailTokenStore emailTokenStore,
         AccountManagerDb db,
-        AppPasswordStore appPasswordStore)
+        AppPasswordStore appPasswordStore,
+        ILogger<AccountRepository> logger)
     {
         _serviceConfig = serviceConfig;
         _secretsConfig = secretsConfig;
@@ -46,6 +49,7 @@ public class AccountRepository
         _emailTokenStore = emailTokenStore;
         _db = db;
         _appPasswordStore = appPasswordStore;
+        _logger = logger;
     }
 
     public async Task<string?> GetDidForActorAsync(string repo, AvailabilityFlags? flags = null)
@@ -230,6 +234,7 @@ public class AccountRepository
 
             if (user == null)
             {
+                _logger.LogWarning("Failed login attempt for unknown identifier: {Identifier}", identifierNormalized);
                 throw new XRPCError(new AuthRequiredErrorDetail("Invalid username or password"));
             }
 
@@ -258,6 +263,7 @@ public class AccountRepository
                 return new LoginResult(user, "app-password", scope);
             }
 
+            _logger.LogWarning("Failed login attempt for {Did}", user.Did);
             throw new XRPCError(new AuthRequiredErrorDetail("Invalid username or password"));
         }
         finally

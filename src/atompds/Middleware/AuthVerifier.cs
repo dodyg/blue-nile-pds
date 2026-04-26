@@ -6,6 +6,7 @@ using AccountManager.Db;
 using Crypto;
 using Identity;
 using Jose;
+using Microsoft.Extensions.Logging;
 using Xrpc;
 
 namespace atompds.Middleware;
@@ -44,11 +45,13 @@ public class AuthVerifier
     private readonly AuthVerifierConfig _config;
     private readonly IdResolver _idResolver;
     private readonly string? _entrywayJwtDidKey;
-    public AuthVerifier(AccountRepository accountRepository, IdResolver idResolver, AuthVerifierConfig config)
+    private readonly ILogger<AuthVerifier> _logger;
+    public AuthVerifier(AccountRepository accountRepository, IdResolver idResolver, AuthVerifierConfig config, ILogger<AuthVerifier> logger)
     {
         _accountRepository = accountRepository;
         _idResolver = idResolver;
         _config = config;
+        _logger = logger;
         _entrywayJwtDidKey = string.IsNullOrWhiteSpace(config.EntrywayJwtVerifyKeyK256PublicKeyHex)
             ? null
             : Did.FormatDidKey(Const.SECP256K1_JWT_ALG, Convert.FromHexString(config.EntrywayJwtVerifyKeyK256PublicKeyHex));
@@ -114,7 +117,7 @@ public class AuthVerifier
     {
         if (ctx.Response.HasStarted)
         {
-            throw new Exception("Response has already started");
+            throw new InvalidOperationException("Response has already started");
         }
 
         ctx.Response.OnStarting(() =>
@@ -252,8 +255,8 @@ public class AuthVerifier
         {
             var headerBytes = Base64Url.Decode(parts[0]);
             var payloadBytes = Base64Url.Decode(parts[1]);
-            headerJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(headerBytes) ?? throw new Exception();
-            payloadJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadBytes) ?? throw new Exception();
+            headerJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(headerBytes) ?? throw new XRPCError(new InvalidTokenErrorDetail("Invalid token"));
+            payloadJson = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadBytes) ?? throw new XRPCError(new InvalidTokenErrorDetail("Invalid token"));
         }
         catch (XRPCError)
         {
@@ -539,7 +542,7 @@ public class AuthVerifier
         }
     }
 
-    private static Dictionary<string, JsonElement>? DecodeJwtSection(string token, int partIndex)
+    private Dictionary<string, JsonElement>? DecodeJwtSection(string token, int partIndex)
     {
         var parts = token.Split('.');
         if (parts.Length != 3)
@@ -552,8 +555,9 @@ public class AuthVerifier
             var json = Encoding.UTF8.GetString(Base64Url.Decode(parts[partIndex]));
             return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "Failed to decode JWT section at index {PartIndex}", partIndex);
             return null;
         }
     }
@@ -562,7 +566,7 @@ public class AuthVerifier
     {
         if (auth.Type != AuthType.BEARER && auth.Type != AuthType.DPOP)
         {
-            throw new Exception("Invalid auth type");
+            throw new XRPCError(new AuthRequiredErrorDetail("Invalid auth type"));
         }
 
         if (string.IsNullOrWhiteSpace(auth.Token))
@@ -621,6 +625,16 @@ public class AuthVerifier
                 throw new XRPCError(new InvalidTokenErrorDetail("Invalid token type"));
             }
 
+            var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+            if (payload != null && payload.TryGetValue("exp", out var expClaim))
+            {
+                var expTime = DateTimeOffset.FromUnixTimeSeconds(expClaim.GetInt64());
+                if (expTime < DateTimeOffset.UtcNow)
+                {
+                    throw new XRPCError(new ExpiredTokenErrorDetail("Token has expired"));
+                }
+            }
+
             if (options.Audience != null)
             {
                 var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ??
@@ -636,6 +650,7 @@ public class AuthVerifier
         }
         catch (Exception e)
         {
+            _logger.LogWarning("JWT validation failed: {Error}", e.Message);
             throw new XRPCError(new InvalidTokenErrorDetail("Token could not be verified"));
         }
     }

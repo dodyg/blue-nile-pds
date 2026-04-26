@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Threading.Channels;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
@@ -307,12 +308,25 @@ public record ServerConfig
         services.AddSingleton<IdResolver>();
         services.AddSingleton<HandleManager>();
 
+        var adminPassword = config._env.PDS_ADMIN_PASSWORD;
+        if (string.IsNullOrWhiteSpace(adminPassword))
+        {
+            if (config.Service.DevMode)
+            {
+                adminPassword = "secret";
+            }
+            else
+            {
+                throw new Exception("PDS_ADMIN_PASSWORD must be set in production. Set PDS_DEV_MODE=true for development with default password.");
+            }
+        }
+
         // AuthVerifier
         services.AddScoped<AuthVerifier>();
         services.AddSingleton<AuthVerifierConfig>(x =>
             new AuthVerifierConfig(
                 config.SecretsConfig.JwtSecret,
-                "secret",
+                adminPassword!,
                 config.Service.PublicUrl,
                 config.Service.Did,
                 config._env.PDS_OAUTH_ENTRYWAY_URL,
@@ -322,6 +336,9 @@ public record ServerConfig
         // Sequencer
         services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
         services.AddScoped<SequencerRepository>();
+        services.AddSingleton<Services.SequencerPollingService>();
+        services.AddSingleton<Sequencer.ISequencerEventSource>(sp => sp.GetRequiredService<Services.SequencerPollingService>());
+        services.AddHostedService(sp => sp.GetRequiredService<Services.SequencerPollingService>());
         services.AddSingleton<Crawlers>();
         services.AddSingleton(x => new CrawlersConfig(config.Service.Hostname, config.Crawlers));
 
@@ -339,8 +356,8 @@ public record ServerConfig
                 config._env.PDS_SMTP_PASSWORD,
                 config._env.PDS_SMTP_FROM_ADDRESS ?? $"noreply@{config._env.PDS_HOSTNAME}",
                 config._env.PDS_SMTP_USE_TLS);
-            services.AddSingleton<IMailer>(new SmtpMailer(smtpConfig,
-                services.BuildServiceProvider().GetRequiredService<ILogger<SmtpMailer>>()));
+            services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
+                sp.GetRequiredService<ILogger<SmtpMailer>>()));
         }
         else
         {
@@ -363,5 +380,11 @@ public record ServerConfig
 
         services.AddSingleton<ReservedSigningKeyStore>();
         services.AddScoped<EntrywayRelayService>();
+
+        services.AddSingleton<BackgroundJobQueue>();
+        services.AddSingleton<IBackgroundJobQueue>(sp => sp.GetRequiredService<BackgroundJobQueue>());
+        services.AddSingleton<ChannelWriter<Func<IServiceProvider, Task>>>(sp => sp.GetRequiredService<BackgroundJobQueue>().Writer);
+        services.AddSingleton<BackgroundEmailDispatcher>();
+        services.AddHostedService<BackgroundJobWorker>();
     }
 }
