@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using atompds.Tests.Infrastructure;
@@ -89,5 +90,27 @@ public static class AuthTestHelper
     {
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<JsonElement>(json);
+    }
+
+    public static HttpRequestMessage CreateJsonRequest(HttpMethod method, string url, object body)
+    {
+        return new HttpRequestMessage(method, url)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+        };
+    }
+
+    public static HttpRequestMessage WithAuth(this HttpRequestMessage request, string authHeader)
+    {
+        request.Headers.Add("Authorization", authHeader);
+        return request;
+    }
+
+    public static async Task AssertXrpcErrorAsync(HttpResponseMessage response, HttpStatusCode status, string error)
+    {
+        await Assert.That(response.StatusCode).IsEqualTo(status);
+        var json = await ReadJsonAsync(response);
+        await Assert.That(json.GetProperty("error").GetString()).IsEqualTo(error);
     }
 }
