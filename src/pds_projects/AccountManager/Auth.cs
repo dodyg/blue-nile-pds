@@ -94,7 +94,7 @@ public class Auth
 
         var headers = new Dictionary<string, object>
         {
-            ["typ"] = "refresh+jwt"
+            ["typ"] = "rt+jwt"
         };
 
         var encoded = JWT.Encode(payload, GetKey(jwtKey), JwsAlgorithm.HS256, headers);

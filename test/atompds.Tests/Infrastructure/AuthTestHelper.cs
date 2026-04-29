@@ -50,7 +50,7 @@ public static class AuthTestHelper
 
         var headers = new Dictionary<string, object>
         {
-            ["typ"] = "refresh+jwt"
+            ["typ"] = "rt+jwt"
         };
 
         return JWT.Encode(payload, Encoding.UTF8.GetBytes(TestWebAppFactory.JwtSecret), JwsAlgorithm.HS256, headers);

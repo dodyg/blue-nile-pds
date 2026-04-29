@@ -120,7 +120,6 @@ public class AuthScopeTests
     }
 
     [Test]
-    [Skip("Known type mismatch: Auth.cs creates refresh+jwt but AuthVerifier expects rt+jwt")]
     public async Task Refresh_OnlyAcceptsRefreshToken()
     {
         var account = await CreateAccountAsync();

@@ -213,7 +213,6 @@ public class AccountTests
     }
 
     [Test]
-    [Skip("Known type mismatch: Auth.cs creates refresh+jwt but AuthVerifier expects rt+jwt")]
     public async Task RefreshSession_WithRefreshToken()
     {
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());
@@ -241,7 +240,6 @@ public class AccountTests
     }
 
     [Test]
-    [Skip("Known type mismatch: Auth.cs creates refresh+jwt but AuthVerifier expects rt+jwt")]
     public async Task DeleteSession_RevokesRefreshToken()
     {
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());
