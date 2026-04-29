@@ -36,7 +36,6 @@ public class HandleTests
     }
 
     [Test]
-    [Skip("PLC server not available in test environment")]
     public async Task UpdateHandle_Succeeds()
     {
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());

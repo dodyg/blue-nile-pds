@@ -116,7 +116,6 @@ public class AccountTests
     }
 
     [Test]
-    [Skip("Off-by-one in HandleManager with dot-prefixed service domains makes reserved check unreachable")]
     public async Task CreateAccount_ReservedHandle_ReturnsError()
     {
         var body = new Dictionary<string, object?>
