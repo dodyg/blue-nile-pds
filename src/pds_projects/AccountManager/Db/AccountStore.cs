@@ -45,14 +45,16 @@ public class AccountStore
         var accounts = _db.Accounts
             .Include(a => a.Actor)
             .AsQueryable();
+        accounts = accounts.Where(x => x.Actor != null);
+
         if (!flags.IncludeTakenDown)
         {
-            accounts = accounts.Where(x => x.Actor.TakedownRef == null);
+            accounts = accounts.Where(x => x.Actor!.TakedownRef == null);
         }
 
         if (!flags.IncludeDeactivated)
         {
-            accounts = accounts.Where(x => x.Actor.DeactivatedAt == null);
+            accounts = accounts.Where(x => x.Actor!.DeactivatedAt == null);
         }
 
         return accounts;
@@ -63,11 +65,11 @@ public class AccountStore
         var accounts = SelectAccountQb(flags);
         if (handleOrDid.StartsWith("did:"))
         {
-            accounts = accounts.Where(x => x.Actor.Did == handleOrDid);
+            accounts = accounts.Where(x => x.Actor!.Did == handleOrDid);
         }
         else
         {
-            accounts = accounts.Where(x => x.Actor.Handle == handleOrDid);
+            accounts = accounts.Where(x => x.Actor!.Handle == handleOrDid);
         }
 
         var result = await accounts.FirstOrDefaultAsync();
@@ -77,10 +79,10 @@ public class AccountStore
     public async Task<Dictionary<string, ActorAccount>> GetAccountsAsync(string[] dids, AvailabilityFlags? flags = null)
     {
         var actors = SelectAccountQb(flags);
-        actors = actors.Where(x => dids.Contains(x.Actor.Did));
+        actors = actors.Where(x => dids.Contains(x.Actor!.Did));
         var results = await actors.ToArrayAsync();
 
-        return results.ToDictionary(x => x.Actor.Did, x => ActorAccount.From(x.Actor, x)!);
+        return results.ToDictionary(x => x.Actor!.Did, x => ActorAccount.From(x.Actor!, x)!);
     }
 
     public async Task<ActorAccount?> GetAccountByEmailAsync(string email, AvailabilityFlags? flags = null)

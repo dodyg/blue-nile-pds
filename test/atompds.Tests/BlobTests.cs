@@ -11,7 +11,6 @@ public class BlobTests
 {
     private static readonly TestWebAppFactory Factory = new();
     private HttpClient Client => Factory.CreateClient();
-    private static int _counter;
 
     private string UniqueHandle() => $"u{Guid.NewGuid():N}"[..10] + ".test";
     private string UniqueEmail() => $"e{Guid.NewGuid():N}"[..12] + "@test.test";

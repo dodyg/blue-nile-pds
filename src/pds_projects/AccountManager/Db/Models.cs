@@ -14,7 +14,7 @@ public class Account
     public DateTime? EmailConfirmedAt { get; set; }
     public bool InvitesDisabled { get; set; }
 
-    public virtual Actor Actor { get; set; }
+    public virtual Actor? Actor { get; set; }
 }
 
 [Table(TableName)]

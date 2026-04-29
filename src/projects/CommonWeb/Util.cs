@@ -82,7 +82,7 @@ public static partial class Util
                 EnsureValidHandle(parts[2]);
             }
         }
-        catch (Exception e)
+        catch (Exception)
         {
             throw new Exception("ATURI authority must be a valid handle or DID");
         }

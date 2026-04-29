@@ -60,13 +60,13 @@ public class MemoryBlockStore : IRepoStorage
         return Task.CompletedTask;
     }
 
-    public Task<byte[]> GetBytesAsync(Cid cid)
+    public Task<byte[]?> GetBytesAsync(Cid cid)
     {
         if (!_blocks.Has(cid))
         {
             throw new Exception("Block not found");
         }
-        return Task.FromResult(_blocks.Get(cid)!);
+        return Task.FromResult<byte[]?>(_blocks.Get(cid));
     }
 
     public Task<bool> HasAsync(Cid cid)
@@ -103,6 +103,11 @@ public class MemoryBlockStore : IRepoStorage
         try
         {
             var bytes = await GetBytesAsync(cid);
+            if (bytes == null)
+            {
+                return null;
+            }
+
             var obj = CBORObject.DecodeFromBytes(bytes);
             return (obj, bytes);
         }

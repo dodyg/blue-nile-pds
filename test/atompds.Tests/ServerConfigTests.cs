@@ -28,7 +28,8 @@ public class ServerConfigTests
         environment.PDS_DID_CACHE_MAX_TTL = 5_000;
 
         var exception = await Assert.ThrowsAsync<Exception>(() => Task.Run(() => new ServerConfig(environment)));
-        await Assert.That(exception.Message).IsEqualTo("PDS_DID_CACHE_STALE_TTL must be less than or equal to PDS_DID_CACHE_MAX_TTL");
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(exception!.Message).IsEqualTo("PDS_DID_CACHE_STALE_TTL must be less than or equal to PDS_DID_CACHE_MAX_TTL");
     }
 
     private static ServerEnvironment CreateEnvironment()
