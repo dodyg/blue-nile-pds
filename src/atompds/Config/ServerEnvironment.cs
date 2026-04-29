@@ -51,8 +51,8 @@ public class ServerEnvironment
 
 
     public string PDS_DID_PLC_URL { get; set; } = "https://plc.directory";
-    public int PDS_DID_CACHE_STALE_TTL { get; set; } = DAY;
-    public int PDS_DID_CACHE_MAX_TTL { get; set; } = HOUR;
+    public int PDS_DID_CACHE_STALE_TTL { get; set; } = HOUR;
+    public int PDS_DID_CACHE_MAX_TTL { get; set; } = DAY;
     public int PDS_ID_RESOLVER_TIMEOUT { get; set; } = 3 * SECOND;
     public string? PDS_RECOVERY_DID_KEY { get; set; }
     public List<string> PDS_SERVICE_HANDLE_DOMAINS { get; set; } = [];

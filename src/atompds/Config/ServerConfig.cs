@@ -44,6 +44,11 @@ public record ServerConfig
             }
         }
 
+        if (env.PDS_DID_CACHE_STALE_TTL > env.PDS_DID_CACHE_MAX_TTL)
+        {
+            throw new Exception("PDS_DID_CACHE_STALE_TTL must be less than or equal to PDS_DID_CACHE_MAX_TTL");
+        }
+
         var hasEntrywayUrl = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_URL);
         var hasEntrywayDid = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_DID);
         var hasEntrywayJwtVerifyKey = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX);
@@ -148,8 +153,8 @@ public record ServerConfig
         return new IdentityConfig
         {
             PlcUrl = env.PDS_DID_PLC_URL,
-            CacheMaxTTL = env.PDS_DID_CACHE_STALE_TTL,
-            CacheStaleTTL = env.PDS_DID_CACHE_MAX_TTL,
+            CacheStaleTTL = env.PDS_DID_CACHE_STALE_TTL,
+            CacheMaxTTL = env.PDS_DID_CACHE_MAX_TTL,
             ResolverTimeout = env.PDS_ID_RESOLVER_TIMEOUT,
             RecoveryDidKey = env.PDS_RECOVERY_DID_KEY,
             ServiceHandleDomains = env.PDS_SERVICE_HANDLE_DOMAINS?.Count > 0 ? env.PDS_SERVICE_HANDLE_DOMAINS :
