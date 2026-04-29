@@ -54,23 +54,23 @@ public class Program
             await seqDb.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL");
         }
 
+        app.UseExceptionHandler("/error");
         app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+        app.UseWebSockets();
         app.UseRouting();
+
         if (environment.PDS_RATE_LIMITS_ENABLED)
         {
             app.UseRateLimiter();
         }
+
+        app.UseAuthMiddleware();
+        app.UseNotFoundMiddleware();
+
         app.MapEndpoints(
             environment,
             app.Services.GetRequiredService<ServiceConfig>(),
             app.Services.GetRequiredService<IdentityConfig>());
-        app.UseExceptionHandler("/error");
-        app.UseAuthMiddleware();
-        app.UseNotFoundMiddleware();
-        app.UseWebSockets();
-
-
-        var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
         await app.RunAsync();
     }

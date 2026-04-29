@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,24 +13,43 @@ public interface IBackgroundJobQueue
 
 public class BackgroundJobQueue : IBackgroundJobQueue
 {
+    private const int Capacity = 1000;
     private readonly Channel<Func<IServiceProvider, Task>> _channel = Channel.CreateBounded<Func<IServiceProvider, Task>>(
-        new BoundedChannelOptions(1000)
+        new BoundedChannelOptions(Capacity)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true,
             SingleWriter = false
         });
+    private readonly ILogger<BackgroundJobQueue> _logger;
+    private int _pendingCount;
+
+    public BackgroundJobQueue(ILogger<BackgroundJobQueue> logger)
+    {
+        _logger = logger;
+    }
 
     public ChannelWriter<Func<IServiceProvider, Task>> Writer => _channel.Writer;
 
     public ValueTask EnqueueAsync(Func<IServiceProvider, Task> job, CancellationToken ct = default)
     {
+        var pending = Interlocked.Increment(ref _pendingCount);
+        if (pending >= Capacity)
+        {
+            Interlocked.Exchange(ref _pendingCount, Capacity);
+            _logger.LogWarning("Background job queue reached capacity {Capacity}; the oldest queued work item may be dropped", Capacity);
+        }
+
         return _channel.Writer.WriteAsync(job, ct);
     }
 
-    public IAsyncEnumerable<Func<IServiceProvider, Task>> DequeueAllAsync(CancellationToken ct)
+    public async IAsyncEnumerable<Func<IServiceProvider, Task>> DequeueAllAsync([EnumeratorCancellation] CancellationToken ct)
     {
-        return _channel.Reader.ReadAllAsync(ct);
+        await foreach (var job in _channel.Reader.ReadAllAsync(ct))
+        {
+            Interlocked.Decrement(ref _pendingCount);
+            yield return job;
+        }
     }
 }
 
