@@ -1,52 +1,46 @@
 using System.Net.Mail;
 using AccountManager;
 using AccountManager.Db;
+using CarpaNet;
 using ComAtproto.Temp;
 using Handle;
-using Microsoft.AspNetCore.Mvc;
 using Xrpc;
 
-namespace atompds.Controllers.Xrpc.Com.Atproto.Temp;
+namespace atompds.Endpoints.Xrpc.Com.Atproto.Temp;
 
-[ApiController]
-[Route("xrpc")]
-public class CheckHandleAvailabilityController : ControllerBase
+public static class CheckHandleAvailabilityEndpoints
 {
-    private readonly AccountRepository _accountRepository;
-    private readonly HandleManager _handleManager;
-
-    public CheckHandleAvailabilityController(AccountRepository accountRepository, HandleManager handleManager)
+    public static RouteGroupBuilder MapCheckHandleAvailabilityEndpoints(this RouteGroupBuilder group)
     {
-        _accountRepository = accountRepository;
-        _handleManager = handleManager;
+        group.MapGet("com.atproto.temp.checkHandleAvailability", HandleAsync);
+        return group;
     }
 
-    [HttpGet("com.atproto.temp.checkHandleAvailability")]
-    public async Task<IActionResult> CheckHandleAvailabilityAsync(
-        [FromQuery] string handle,
-        [FromQuery] string? email,
-        [FromQuery] string? birthDate)
+    private static async Task<IResult> HandleAsync(
+        string handle,
+        string? email,
+        string? birthDate,
+        AccountRepository accountRepository,
+        HandleManager handleManager)
     {
         if (!string.IsNullOrWhiteSpace(email) && !IsValidEmail(email))
-        {
             throw new XRPCError(new InvalidRequestErrorDetail("InvalidEmail", "Invalid email."));
-        }
 
-        var normalizedHandle = _handleManager.NormalizeAndEnsureValidHandle(handle);
-        var existing = await _accountRepository.GetAccountAsync(normalizedHandle, new AvailabilityFlags(true, true));
+        var normalizedHandle = handleManager.NormalizeAndEnsureValidHandle(handle);
+        var existing = await accountRepository.GetAccountAsync(normalizedHandle, new AvailabilityFlags(true, true));
         if (existing == null)
         {
-            return Ok(new CheckHandleAvailabilityOutput
+            return Results.Ok(new CheckHandleAvailabilityOutput
             {
-                Handle = normalizedHandle,
+                Handle = new ATHandle(normalizedHandle),
                 Result = new CheckHandleAvailabilityResultAvailable()
             });
         }
 
-        var suggestions = await BuildSuggestionsAsync(normalizedHandle, email);
-        return Ok(new CheckHandleAvailabilityOutput
+        var suggestions = await BuildSuggestionsAsync(normalizedHandle, email, handleManager, accountRepository);
+        return Results.Ok(new CheckHandleAvailabilityOutput
         {
-            Handle = normalizedHandle,
+            Handle = new ATHandle(normalizedHandle),
             Result = new CheckHandleAvailabilityResultUnavailable
             {
                 Suggestions = suggestions
@@ -54,13 +48,12 @@ public class CheckHandleAvailabilityController : ControllerBase
         });
     }
 
-    private async Task<List<CheckHandleAvailabilitySuggestion>> BuildSuggestionsAsync(string handle, string? email)
+    private static async Task<List<CheckHandleAvailabilitySuggestion>> BuildSuggestionsAsync(
+        string handle, string? email, HandleManager handleManager, AccountRepository accountRepository)
     {
         var dotIndex = handle.IndexOf('.');
         if (dotIndex <= 0 || dotIndex == handle.Length - 1)
-        {
             return [];
-        }
 
         var stem = handle[..dotIndex];
         var domain = handle[(dotIndex + 1)..];
@@ -68,9 +61,7 @@ public class CheckHandleAvailabilityController : ControllerBase
 
         var candidates = new List<(string Handle, string Method)>();
         for (var i = 1; i <= 5; i++)
-        {
             candidates.Add(($"{stem}{i}.{domain}", "suffix-number"));
-        }
 
         if (!string.IsNullOrWhiteSpace(sanitizedEmailPrefix))
         {
@@ -84,29 +75,25 @@ public class CheckHandleAvailabilityController : ControllerBase
             string normalized;
             try
             {
-                normalized = _handleManager.NormalizeAndEnsureValidHandle(candidate.Handle);
+                normalized = handleManager.NormalizeAndEnsureValidHandle(candidate.Handle);
             }
             catch
             {
                 continue;
             }
 
-            var existing = await _accountRepository.GetAccountAsync(normalized, new AvailabilityFlags(true, true));
+            var existing = await accountRepository.GetAccountAsync(normalized, new AvailabilityFlags(true, true));
             if (existing != null)
-            {
                 continue;
-            }
 
             suggestions.Add(new CheckHandleAvailabilitySuggestion
             {
-                Handle = normalized,
+                Handle = new ATHandle(normalized),
                 Method = candidate.Method
             });
 
             if (suggestions.Count >= 5)
-            {
                 break;
-            }
         }
 
         return suggestions;
@@ -128,16 +115,12 @@ public class CheckHandleAvailabilityController : ControllerBase
     private static string? SanitizeEmailPrefix(string? email)
     {
         if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
-        {
             return null;
-        }
 
         var prefix = email[..email.IndexOf('@')].ToLowerInvariant();
         var filtered = new string(prefix.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
         if (filtered.Length < 3)
-        {
             return null;
-        }
 
         return filtered[..Math.Min(filtered.Length, 18)];
     }

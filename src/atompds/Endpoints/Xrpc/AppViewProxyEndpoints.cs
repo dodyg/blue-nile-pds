@@ -28,7 +28,6 @@ public static class AppViewProxyEndpoints
         group.MapPost("app.bsky.notification.registerPush", RegisterPushAsync);
 
         // Static proxy routes
-        group.MapGet("app.bsky.actor.getProfile", ProxyAsync).WithMetadata(new AccessStandardAttribute());
         group.MapGet("app.bsky.actor.getProfiles", ProxyAsync).WithMetadata(new AccessStandardAttribute());
         group.MapGet("app.bsky.actor.getSuggestions", ProxyAsync).WithMetadata(new AccessStandardAttribute());
         group.MapGet("app.bsky.actor.searchActorsTypeahead", ProxyAsync).WithMetadata(new AccessStandardAttribute());
