@@ -22,8 +22,6 @@ public static class AppViewProxyEndpoints
 {
     public static RouteGroupBuilder MapAppViewProxyEndpoints(this RouteGroupBuilder group)
     {
-        group.MapGet("app.bsky.actor.getPreferences", GetPreferences).WithMetadata(new AccessStandardAttribute());
-        group.MapPost("app.bsky.actor.putPreferences", PutPreferences).WithMetadata(new AccessStandardAttribute());
         group.MapPost("chat.bsky.actor.deleteAccount", StubChatDeleteAccount).WithMetadata(new AccessStandardAttribute());
         group.MapPost("app.bsky.notification.registerPush", RegisterPushAsync);
 
@@ -63,18 +61,6 @@ public static class AppViewProxyEndpoints
         group.MapPost("{nsid}", CatchallProxyAsync).WithMetadata(new AccessStandardAttribute());
 
         return group;
-    }
-
-    private static IResult GetPreferences(HttpContext context)
-    {
-        var auth = context.GetAuthOutput();
-        return Results.Ok(new GetPreferencesOutput { Preferences = [] });
-    }
-
-    private static IResult PutPreferences(HttpContext context)
-    {
-        var auth = context.GetAuthOutput();
-        return Results.Ok();
     }
 
     private static IResult StubChatDeleteAccount(HttpContext context)

@@ -105,6 +105,8 @@ public static class EndpointRegistration
 
         var appGroup = xrpc.MapGroup("").WithTags("App");
         appGroup.MapGetProfileEndpoints();
+        appGroup.MapGetPreferencesEndpoints();
+        appGroup.MapPutPreferencesEndpoints();
 
         // AppViewProxy must be registered LAST — its catchall {nsid} must not override specific routes
         xrpc.MapAppViewProxyEndpoints();
