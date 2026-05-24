@@ -1,6 +1,7 @@
 ﻿using Config;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Scrypt;
 using Xrpc;
 
 namespace AccountManager.Db;
@@ -192,6 +193,7 @@ public class AccountStore
         await _db.RefreshTokens.Where(x => x.Did == did).ExecuteDeleteAsync();
         await _db.Accounts.Where(x => x.Did == did).ExecuteDeleteAsync();
         await _db.Actors.Where(x => x.Did == did).ExecuteDeleteAsync();
+        _logger.LogWarning("Account data deleted from store: {Did}", did);
     }
     public static (bool Active, AccountStore.AccountStatus Status) FormatAccountStatus(ActorAccount? account)
     {
@@ -221,6 +223,7 @@ public class AccountStore
             actor.DeactivatedAt = null;
             actor.DeleteAfter = null;
             await _db.SaveChangesAsync();
+            _logger.LogInformation("Account activated: {Did}", did);
         }
     }
 
@@ -231,6 +234,72 @@ public class AccountStore
         {
             actor.DeactivatedAt = DateTime.UtcNow;
             actor.DeleteAfter = deleteAfter?.UtcDateTime;
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Account deactivated: {Did}", did);
+        }
+    }
+
+    public async Task UpdateHandleAsync(string did, string handle)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.Handle = handle;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task ConfirmEmailAsync(string did)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.EmailConfirmedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateEmailAsync(string did, string email)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            var oldEmail = account.Email;
+            account.Email = email.ToLower();
+            account.EmailConfirmedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Email changed for {Did}: {OldEmail} -> {NewEmail}", did, oldEmail, email.ToLower());
+        }
+    }
+
+    public async Task UpdatePasswordAsync(string did, string password)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            var enc = new ScryptEncoder();
+            account.PasswordSCrypt = enc.Encode(password);
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Password changed for {Did}", did);
+        }
+    }
+
+    public async Task UpdateTakedownRefAsync(string did, string? takedownRef)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.TakedownRef = takedownRef;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateInvitesDisabledAsync(string did, bool disabled)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.InvitesDisabled = disabled;
             await _db.SaveChangesAsync();
         }
     }

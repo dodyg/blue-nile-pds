@@ -86,7 +86,8 @@ public class ActorRepositoryProvider
         }
 
         var blobStore = _blobStoreFactory.Create(did);
-        return new ActorRepository(actorStoreDb, did, KeyPair(did), blobStore);
+        var logger = _loggerFactory.CreateLogger<ActorRepository>();
+        return new ActorRepository(actorStoreDb, did, KeyPair(did), blobStore, logger);
     }
 
 
@@ -123,8 +124,8 @@ public class ActorRepositoryProvider
         actorStoreDb.Database.Migrate();
 
         var blobStore = _blobStoreFactory.Create(did);
-        
-        return new ActorRepository(actorStoreDb, did, keyPair, blobStore);
+        var logger = _loggerFactory.CreateLogger<ActorRepository>();
+        return new ActorRepository(actorStoreDb, did, keyPair, blobStore, logger);
     }
 
     public void Destroy(string did)

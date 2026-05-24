@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using DnsClient;
+using Microsoft.Extensions.Logging;
 
 namespace Identity;
 
@@ -8,10 +9,12 @@ public class HandleResolver
     public const string SUBDOMAIN = "_atproto";
     public const string PREFIX = "did=";
     private readonly HttpClient _httpClient;
+    private readonly ILogger _logger;
 
-    public HandleResolver(HttpClient httpClient)
+    public HandleResolver(HttpClient httpClient, ILogger logger)
     {
         _httpClient = httpClient;
+        _logger = logger;
     }
 
     public async Task<string?> ResolveAsync(string handle, CancellationToken cancellationToken)
@@ -54,8 +57,9 @@ public class HandleResolver
 
             return null;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "DNS resolution failed for handle {Handle}", handle);
             return null;
         }
     }
@@ -80,8 +84,9 @@ public class HandleResolver
 
             return line;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "HTTP resolution failed for handle {Handle}", handle);
             return null;
         }
     }

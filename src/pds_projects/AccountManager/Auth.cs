@@ -1,8 +1,9 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 using AccountManager.Db;
 using Jose;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RefreshToken = AccountManager.Db.RefreshToken;
 
 namespace AccountManager;
@@ -12,10 +13,12 @@ public class Auth
     public const string ACCESS_TOKEN_SCOPE = "com.atproto.access";
     public const string REFRESH_TOKEN_SCOPE = "com.atproto.refresh";
     private readonly AccountManagerDb _accountDb;
+    private readonly ILogger<Auth> _logger;
 
-    public Auth(AccountManagerDb accountDb)
+    public Auth(AccountManagerDb accountDb, ILogger<Auth> logger)
     {
         _accountDb = accountDb;
+        _logger = logger;
     }
 
     public (string AccessToken, string RefreshToken) CreateTokens(string did,
@@ -188,9 +191,9 @@ public class Auth
                 return await RotateRefreshTokenAsync(id, jwtKey, serviceDid);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Concurrent refresh — retry
+            _logger.LogDebug(ex, "Refresh token rotation failed for {Id}, retrying", id);
             return await RotateRefreshTokenAsync(id, jwtKey, serviceDid);
         }
 

@@ -1,9 +1,11 @@
 using System.Text.Json.Serialization;
 using AccountManager.Db;
 using atompds.Config;
+using atompds.Endpoints;
 using atompds.ExceptionHandler;
 using atompds.Middleware;
-using Microsoft.AspNetCore.HttpLogging;
+using atompds.Services;
+using Config;
 using Microsoft.EntityFrameworkCore;
 using Sequencer.Db;
 
@@ -25,20 +27,15 @@ public class Program
         ServerConfig.RegisterServices(builder.Services, serverConfig);
 
         // response serialize, ignore when writing default
-        builder.Services.AddControllers().AddJsonOptions(options =>
+        builder.Services.ConfigureHttpJsonOptions(options =>
         {
-            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
+            options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
         });
 
-        builder.Services.AddHttpLogging(logging =>
-        {
-            logging.LoggingFields = HttpLoggingFields.RequestPath | HttpLoggingFields.ResponseStatusCode |
-                                    HttpLoggingFields.RequestMethod;
-            logging.CombineLogs = true;
-        });
 
         builder.Services.AddExceptionHandler<XRPCExceptionHandler>();
 
+        builder.Services.AddPdsRateLimiting(environment.PDS_RATE_LIMITS_ENABLED);
 
         var app = builder.Build();
 
@@ -46,28 +43,35 @@ public class Program
         {
             var accountManager = scope.ServiceProvider.GetRequiredService<AccountManagerDb>();
             await accountManager.Database.MigrateAsync();
+            await accountManager.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL");
+            await accountManager.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000");
+            await accountManager.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL");
 
             var seqDb = scope.ServiceProvider.GetRequiredService<SequencerDb>();
             await seqDb.Database.MigrateAsync();
+            await seqDb.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL");
+            await seqDb.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000");
+            await seqDb.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL");
         }
 
+        app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
         app.UseRouting();
-        app.MapControllers();
+        if (environment.PDS_RATE_LIMITS_ENABLED)
+        {
+            app.UseRateLimiter();
+        }
+        app.MapEndpoints(
+            environment,
+            app.Services.GetRequiredService<ServiceConfig>(),
+            app.Services.GetRequiredService<IdentityConfig>());
         app.UseExceptionHandler("/error");
         app.UseAuthMiddleware();
         app.UseNotFoundMiddleware();
         app.UseWebSockets();
 
-        app.UseCors(cors => cors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-
-        if (app.Environment.IsDevelopment())
-        {
-            //app.UseHttpLogging();
-        }
 
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        var version = typeof(Program).Assembly.GetName().Version!.ToString(3);
-        app.MapGet("/", () => $"Hello! This is an ATProto PDS instance, running atompds v{version}.");
+
         await app.RunAsync();
     }
 }

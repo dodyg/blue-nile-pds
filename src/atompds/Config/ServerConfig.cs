@@ -1,8 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Threading.Channels;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using atompds.Middleware;
+using atompds.Services;
+using atompds.Services.OAuth;
 using BlobStore;
 using Config;
 using Crypto.Secp256k1;
@@ -13,14 +16,17 @@ using Mailer;
 using Microsoft.EntityFrameworkCore;
 using Sequencer;
 using Sequencer.Db;
+using StackExchange.Redis;
 
 namespace atompds.Config;
 
 public record ServerConfig
 {
+    private readonly ServerEnvironment _env;
 
     public ServerConfig(ServerEnvironment env)
     {
+        _env = env;
         // run model validation on env
         var validationContext = new ValidationContext(env);
         var validationResults = new List<ValidationResult>();
@@ -36,6 +42,25 @@ public record ServerConfig
             {
                 Directory.CreateDirectory(env.PDS_DATA_DIRECTORY);
             }
+        }
+
+        var hasEntrywayUrl = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_URL);
+        var hasEntrywayDid = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_DID);
+        var hasEntrywayJwtVerifyKey = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX);
+        if (hasEntrywayUrl != hasEntrywayDid || hasEntrywayUrl != hasEntrywayJwtVerifyKey)
+        {
+            throw new Exception("PDS_OAUTH_ENTRYWAY_URL, PDS_OAUTH_ENTRYWAY_DID, and PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX must be configured together");
+        }
+
+        if (hasEntrywayUrl)
+        {
+            if (!Uri.TryCreate(env.PDS_OAUTH_ENTRYWAY_URL, UriKind.Absolute, out var entrywayUri) ||
+                (entrywayUri.Scheme != Uri.UriSchemeHttp && entrywayUri.Scheme != Uri.UriSchemeHttps))
+            {
+                throw new Exception("PDS_OAUTH_ENTRYWAY_URL must be an absolute http(s) URL");
+            }
+
+            env.PDS_OAUTH_ENTRYWAY_URL = entrywayUri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
         }
 
         env.PDS_ACTOR_STORE_DIRECTORY = ExpandPath(env.PDS_ACTOR_STORE_DIRECTORY);
@@ -220,6 +245,7 @@ public record ServerConfig
     public static void RegisterServices(IServiceCollection services, ServerConfig config)
     {
         services.AddSingleton(config);
+        services.AddSingleton(config._env);
         services.AddSingleton(config.Service);
         services.AddSingleton(config.Db);
         services.AddSingleton(config.ActorStore);
@@ -245,10 +271,26 @@ public record ServerConfig
         services.AddScoped<RepoStore>();
         services.AddScoped<InviteStore>();
         services.AddScoped<EmailTokenStore>();
+        services.AddScoped<AppPasswordStore>();
         services.AddScoped<Auth>();
 
         // Actor store
         services.AddScoped<ActorRepositoryProvider>();
+
+        // Service JWT builder
+        services.AddScoped<ServiceJwtBuilder>();
+
+        // Captcha verifier
+        services.AddSingleton(x =>
+        {
+            var httpClient = x.GetRequiredService<HttpClient>();
+            var logger = x.GetRequiredService<ILogger<CaptchaVerifier>>();
+            return new CaptchaVerifier(httpClient, logger, config._env.PDS_HCAPTCHA_SECRET);
+        });
+        services.AddSingleton<EmailAddressValidator>();
+
+        // Write snapshot cache
+        services.AddSingleton<WriteSnapshotCache>();
 
         // blobstore
         services.AddSingleton<BlobStoreFactory>();
@@ -266,14 +308,37 @@ public record ServerConfig
         services.AddSingleton<IdResolver>();
         services.AddSingleton<HandleManager>();
 
+        var adminPassword = config._env.PDS_ADMIN_PASSWORD;
+        if (string.IsNullOrWhiteSpace(adminPassword))
+        {
+            if (config.Service.DevMode)
+            {
+                adminPassword = "secret";
+            }
+            else
+            {
+                throw new Exception("PDS_ADMIN_PASSWORD must be set in production. Set PDS_DEV_MODE=true for development with default password.");
+            }
+        }
+
         // AuthVerifier
         services.AddScoped<AuthVerifier>();
         services.AddSingleton<AuthVerifierConfig>(x =>
-            new AuthVerifierConfig(config.SecretsConfig.JwtSecret, "secret", config.Service.PublicUrl, config.Service.Did));
+            new AuthVerifierConfig(
+                config.SecretsConfig.JwtSecret,
+                adminPassword!,
+                config.Service.PublicUrl,
+                config.Service.Did,
+                config._env.PDS_OAUTH_ENTRYWAY_URL,
+                config._env.PDS_OAUTH_ENTRYWAY_DID,
+                config._env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX));
 
         // Sequencer
         services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
         services.AddScoped<SequencerRepository>();
+        services.AddSingleton<Services.SequencerPollingService>();
+        services.AddSingleton<Sequencer.ISequencerEventSource>(sp => sp.GetRequiredService<Services.SequencerPollingService>());
+        services.AddHostedService(sp => sp.GetRequiredService<Services.SequencerPollingService>());
         services.AddSingleton<Crawlers>();
         services.AddSingleton(x => new CrawlersConfig(config.Service.Hostname, config.Crawlers));
 
@@ -282,6 +347,44 @@ public record ServerConfig
         services.AddSingleton<PlcClient>();
 
         // Mailer
-        services.AddSingleton<IMailer, StubMailer>();
+        if (!string.IsNullOrWhiteSpace(config._env.PDS_SMTP_HOST))
+        {
+            var smtpConfig = new SmtpMailerConfig(
+                config._env.PDS_SMTP_HOST,
+                config._env.PDS_SMTP_PORT,
+                config._env.PDS_SMTP_USERNAME,
+                config._env.PDS_SMTP_PASSWORD,
+                config._env.PDS_SMTP_FROM_ADDRESS ?? $"noreply@{config._env.PDS_HOSTNAME}",
+                config._env.PDS_SMTP_USE_TLS);
+            services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
+                sp.GetRequiredService<ILogger<SmtpMailer>>()));
+        }
+        else
+        {
+            services.AddSingleton<IMailer, StubMailer>();
+        }
+
+        // OAuth session store
+        services.AddSingleton<OAuthSessionStore>();
+
+        // Scratch cache
+        if (!string.IsNullOrWhiteSpace(config._env.PDS_REDIS_URL))
+        {
+            services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(config._env.PDS_REDIS_URL));
+            services.AddSingleton<IScratchCache, RedisScratchCache>();
+        }
+        else
+        {
+            services.AddSingleton<IScratchCache, MemoryScratchCache>();
+        }
+
+        services.AddSingleton<ReservedSigningKeyStore>();
+        services.AddScoped<EntrywayRelayService>();
+
+        services.AddSingleton<BackgroundJobQueue>();
+        services.AddSingleton<IBackgroundJobQueue>(sp => sp.GetRequiredService<BackgroundJobQueue>());
+        services.AddSingleton<ChannelWriter<Func<IServiceProvider, Task>>>(sp => sp.GetRequiredService<BackgroundJobQueue>().Writer);
+        services.AddSingleton<BackgroundEmailDispatcher>();
+        services.AddHostedService<BackgroundJobWorker>();
     }
 }

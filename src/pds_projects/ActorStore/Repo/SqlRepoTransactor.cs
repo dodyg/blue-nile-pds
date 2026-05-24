@@ -2,6 +2,7 @@
 using ActorStore.Db;
 using CID;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PeterO.Cbor;
 using Repo;
 using Repo.Car;
@@ -16,11 +17,13 @@ public class SqlRepoTransactor : IRepoStorage
     private readonly BlockMap _cache = new();
     private readonly ActorStoreDb _db;
     private readonly string _did;
+    private readonly ILogger _logger;
 
-    public SqlRepoTransactor(ActorStoreDb db, string did)
+    public SqlRepoTransactor(ActorStoreDb db, string did, ILogger logger)
     {
         _db = db;
         _did = did;
+        _logger = logger;
     }
 
     public async Task<Cid?> GetRootAsync()
@@ -182,8 +185,9 @@ public class SqlRepoTransactor : IRepoStorage
         {
             return await ReadObjAndBytesAsync(cid);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogDebug(ex, "Failed to read block {Cid}", cid);
             return null;
         }
     }

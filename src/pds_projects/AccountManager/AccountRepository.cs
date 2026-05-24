@@ -1,18 +1,27 @@
 ﻿using AccountManager.Db;
 using CID;
 using Config;
+using Microsoft.Extensions.Logging;
 using Scrypt;
 using Xrpc;
 
 namespace AccountManager;
 
+public class AuthScopes
+{
+    public const string AppPass = "com.atproto.appPass";
+    public const string AppPassPrivileged = "com.atproto.appPassPrivileged";
+}
+
 public class AccountRepository
 {
     private readonly AccountStore _accountStore;
+    private readonly AppPasswordStore _appPasswordStore;
     private readonly Auth _auth;
     private readonly AccountManagerDb _db;
     private readonly EmailTokenStore _emailTokenStore;
     private readonly InviteStore _inviteStore;
+    private readonly ILogger<AccountRepository> _logger;
     private readonly PasswordStore _passwordStore;
     private readonly RepoStore _repoStore;
     private readonly SecretsConfig _secretsConfig;
@@ -26,7 +35,9 @@ public class AccountRepository
         Auth auth,
         InviteStore inviteStore,
         EmailTokenStore emailTokenStore,
-        AccountManagerDb db)
+        AccountManagerDb db,
+        AppPasswordStore appPasswordStore,
+        ILogger<AccountRepository> logger)
     {
         _serviceConfig = serviceConfig;
         _secretsConfig = secretsConfig;
@@ -37,6 +48,8 @@ public class AccountRepository
         _inviteStore = inviteStore;
         _emailTokenStore = emailTokenStore;
         _db = db;
+        _appPasswordStore = appPasswordStore;
+        _logger = logger;
     }
 
     public async Task<string?> GetDidForActorAsync(string repo, AvailabilityFlags? flags = null)
@@ -101,18 +114,22 @@ public class AccountRepository
         return await _accountStore.GetAccountAsync(handleOrDid, flags);
     }
 
+    public async Task<Dictionary<string, ActorAccount>> GetAccountsAsync(string[] dids, AvailabilityFlags? flags = null)
+    {
+        return await _accountStore.GetAccountsAsync(dids, flags);
+    }
+
     public async Task<ActorAccount?> GetAccountByEmailAsync(string email, AvailabilityFlags? flags = null)
     {
         return await _accountStore.GetAccountByEmailAsync(email, flags);
     }
 
-    public async Task<(string AccessJwt, string RefreshJwt)> CreateSessionAsync(string did, string? appPassword = null)
+    public async Task<(string AccessJwt, string RefreshJwt)> CreateSessionAsync(string did, string? appPasswordName = null, string? scope = null)
     {
-        // TODO: App password support.
-        // scope=auth.formatScope(appPassword)
-        var tokens = _auth.CreateTokens(did, _secretsConfig.JwtSecret, _serviceConfig.Did, Auth.ACCESS_TOKEN_SCOPE);
+        var tokenScope = scope ?? Auth.ACCESS_TOKEN_SCOPE;
+        var tokens = _auth.CreateTokens(did, _secretsConfig.JwtSecret, _serviceConfig.Did, tokenScope);
         var refreshDecoded = _auth.DecodeRefreshTokenUnsafe(tokens.RefreshToken, _secretsConfig.JwtSecret);
-        await _auth.StoreRefreshTokenAsync(refreshDecoded, appPassword);
+        await _auth.StoreRefreshTokenAsync(refreshDecoded, appPasswordName);
         return (tokens.AccessToken, tokens.RefreshToken);
     }
 
@@ -157,6 +174,11 @@ public class AccountRepository
         return _auth.RevokeRefreshTokenAsync(jti);
     }
 
+    public async Task RevokeAppPasswordRefreshTokensAsync(string did, string appPasswordName)
+    {
+        await _auth.RevokeAppPasswordRefreshTokenAsync(did, appPasswordName);
+    }
+
     public async Task<(string AccessJwt, string RefreshJwt)?> RotateRefreshTokenAsync(string tokenId)
     {
         return await _auth.RotateRefreshTokenAsync(tokenId, _secretsConfig.JwtSecret, _serviceConfig.Did);
@@ -177,7 +199,39 @@ public class AccountRepository
         return await _accountStore.GetAccountStatusAsync(did);
     }
 
-    public async Task<ActorAccount> LoginAsync(string identifier, string password)
+    public async Task UpdateHandleAsync(string did, string handle)
+    {
+        await _accountStore.UpdateHandleAsync(did, handle);
+    }
+
+    public async Task ConfirmEmailAsync(string did)
+    {
+        await _accountStore.ConfirmEmailAsync(did);
+    }
+
+    public async Task UpdateEmailAsync(string did, string email)
+    {
+        await _accountStore.UpdateEmailAsync(did, email);
+    }
+
+    public async Task UpdatePasswordAsync(string did, string password)
+    {
+        await _accountStore.UpdatePasswordAsync(did, password);
+    }
+
+    public async Task UpdateTakedownRefAsync(string did, string? takedownRef)
+    {
+        await _accountStore.UpdateTakedownRefAsync(did, takedownRef);
+    }
+
+    public async Task UpdateInvitesDisabledAsync(string did, bool disabled)
+    {
+        await _accountStore.UpdateInvitesDisabledAsync(did, disabled);
+    }
+
+    public record LoginResult(ActorAccount Account, string? AppPasswordName, string? AppPasswordScope);
+
+    public async Task<LoginResult> LoginAsync(string identifier, string password, bool allowTakendown = false)
     {
         var start = DateTime.UtcNow;
         try
@@ -196,26 +250,40 @@ public class AccountRepository
 
             if (user == null)
             {
+                _logger.LogWarning("Failed login attempt for unknown identifier: {Identifier}", identifierNormalized);
                 throw new XRPCError(new AuthRequiredErrorDetail("Invalid username or password"));
             }
 
             var validAccountPass = await _passwordStore.VerifyAccountPasswordAsync(user.Did, password);
-            if (!validAccountPass)
+            if (validAccountPass)
             {
-                // TODO: App password validation if acc password fails.
-                throw new XRPCError(new AuthRequiredErrorDetail("Invalid username or password"));
+                if (user.SoftDeleted && !allowTakendown)
+                {
+                    throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
+                }
+
+                return new LoginResult(user, null, null);
             }
 
-            if (user.SoftDeleted)
+            var appPassResult = await _appPasswordStore.VerifyAppPasswordAsync(user.Did, password);
+            if (appPassResult != null && appPassResult.Value.Valid)
             {
-                throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
+                if (user.SoftDeleted && !allowTakendown)
+                {
+                    throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
+                }
+
+                var scope = appPassResult.Value.Privileged
+                    ? AuthScopes.AppPassPrivileged
+                    : AuthScopes.AppPass;
+                return new LoginResult(user, "app-password", scope);
             }
 
-            return user;
+            _logger.LogWarning("Failed login attempt for {Did}", user.Did);
+            throw new XRPCError(new AuthRequiredErrorDetail("Invalid username or password"));
         }
         finally
         {
-            // mitigate timing attacks
             var delay = Math.Max(0, 350 - (DateTime.UtcNow - start).Milliseconds);
             await Task.Delay(delay);
         }
