@@ -3,6 +3,7 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using AppBsky.Actor;
+using Config;
 using CarpaNet;
 using CommonWeb;
 using Xrpc;
@@ -22,6 +23,7 @@ public static class GetProfileEndpoints
         HttpContext context,
         AccountRepository accountRepository,
         ActorRepositoryProvider actorRepositoryProvider,
+        ServiceConfig serviceConfig,
         ILogger<Program> logger)
     {
         var account = await accountRepository.GetAccountAsync(actor, new AvailabilityFlags(true, true));
@@ -46,6 +48,8 @@ public static class GetProfileEndpoints
         string? description = null;
         string? pronouns = null;
         string? website = null;
+        string? avatar = null;
+        string? banner = null;
         if (profileRecord.HasValue)
         {
             if (profileRecord.Value.TryGetProperty("displayName", out var dn) && dn.ValueKind == JsonValueKind.String)
@@ -56,6 +60,10 @@ public static class GetProfileEndpoints
                 pronouns = pro.GetString();
             if (profileRecord.Value.TryGetProperty("website", out var web) && web.ValueKind == JsonValueKind.String)
                 website = web.GetString();
+            if (TryGetBlobCid(profileRecord.Value, "avatar", out var avatarCid))
+                avatar = $"{serviceConfig.PublicUrl}/xrpc/com.atproto.sync.getBlob?did={account.Did}&cid={avatarCid}";
+            if (TryGetBlobCid(profileRecord.Value, "banner", out var bannerCid))
+                banner = $"{serviceConfig.PublicUrl}/xrpc/com.atproto.sync.getBlob?did={account.Did}&cid={bannerCid}";
         }
 
         return Results.Ok(new DefsProfileViewDetailed
@@ -66,8 +74,8 @@ public static class GetProfileEndpoints
             Description = description,
             Pronouns = pronouns,
             Website = website,
-            Avatar = null,
-            Banner = null,
+            Avatar = avatar,
+            Banner = banner,
             CreatedAt = account.CreatedAt,
             IndexedAt = profileIndexedAt ?? account.CreatedAt,
             Viewer = null,
@@ -76,5 +84,25 @@ public static class GetProfileEndpoints
             FollowersCount = null,
             FollowsCount = null
         });
+    }
+
+    private static bool TryGetBlobCid(JsonElement record, string propertyName, out string cid)
+    {
+        cid = "";
+        if (!record.TryGetProperty(propertyName, out var blobElem) || blobElem.ValueKind != JsonValueKind.Object)
+            return false;
+        if (!blobElem.TryGetProperty("ref", out var refElem) || refElem.ValueKind != JsonValueKind.Object)
+            return false;
+        if (refElem.TryGetProperty("$link", out var linkElem) && linkElem.ValueKind == JsonValueKind.String)
+        {
+            cid = linkElem.GetString()!;
+            return true;
+        }
+        if (refElem.TryGetProperty("link", out var linkElem2) && linkElem2.ValueKind == JsonValueKind.String)
+        {
+            cid = linkElem2.GetString()!;
+            return true;
+        }
+        return false;
     }
 }
