@@ -2,6 +2,7 @@ using ActorStore;
 using ActorStore.Db;
 using atompds.Config;
 using atompds.Middleware;
+using CarpaNet.Blob;
 using CID;
 using Xrpc;
 using static ActorStore.Repo.BlobTransactor;
@@ -100,11 +101,15 @@ public static class BlobEndpoints
         if (shouldMoveToPermanent)
             await actorRepo.Repo.Blob.BlobStore.MakePermanentAsync(key, Cid.FromString(blob.Cid));
 
-        return Results.Ok(new BlobMetaDataResponse(
-            MimeType: blobMetaData.MimeType,
-            Size: (int)blobMetaData.Size,
-            Cid: blobMetaData.Cid.ToString()
-        ));
+        return Results.Ok(new UploadBlobResponse
+        {
+            Blob = new BlobRef
+            {
+                Ref = new BlobLink { Link = blob.Cid },
+                MimeType = blob.MimeType,
+                Size = blob.Size,
+            }
+        });
     }
 
     public record BlobMetaDataResponse(string MimeType, int Size, string Cid);
