@@ -1,0 +1,63 @@
+{
+    "lexicon": 1,
+    "id": "dev.nomadlife.blog.getAuthorPosts",
+    "defs": {
+        "main": {
+            "type": "query",
+            "description": "Fetch all blog posts for a given author. Returns a list of curated post views with resolved blob URLs, ordered by creation time.",
+            "parameters": {
+                "type": "params",
+                "required": [
+                    "author"
+                ],
+                "properties": {
+                    "author": {
+                        "type": "string",
+                        "format": "at-identifier",
+                        "description": "The handle or DID of the blog owner."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100,
+                        "default": 20,
+                        "description": "Maximum number of posts to return."
+                    },
+                    "cursor": {
+                        "type": "string",
+                        "description": "Pagination cursor (record key)."
+                    }
+                }
+            },
+            "output": {
+                "encoding": "application/json",
+                "schema": {
+                    "type": "object",
+                    "required": [
+                        "posts"
+                    ],
+                    "properties": {
+                        "cursor": {
+                            "type": "string",
+                            "description": "Pagination cursor for the next page."
+                        },
+                        "posts": {
+                            "type": "array",
+                            "items": {
+                                "type": "ref",
+                                "ref": "dev.nomadlife.blog.defs#postView"
+                            },
+                            "description": "The list of blog post views."
+                        }
+                    }
+                }
+            },
+            "errors": [
+                {
+                    "name": "AuthorNotFound",
+                    "description": "No repository found for the given actor."
+                }
+            ]
+        }
+    }
+}

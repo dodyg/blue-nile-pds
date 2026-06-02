@@ -9,6 +9,7 @@ using atompds.Endpoints.Xrpc.Com.Atproto.Repo;
 using atompds.Endpoints.Xrpc.Com.Atproto.Server;
 using atompds.Endpoints.Xrpc.Com.Atproto.Sync;
 using atompds.Endpoints.Xrpc.Com.Atproto.Temp;
+using atompds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 using Config;
 
 namespace atompds.Endpoints;
@@ -102,6 +103,8 @@ public static class EndpointRegistration
 
         xrpc.MapCheckSignupQueueEndpoints();
         xrpc.MapCheckHandleAvailabilityEndpoints();
+        xrpc.MapGetPostEndpoints();
+        xrpc.MapGetAuthorPostsEndpoints();
 
         var appGroup = xrpc.MapGroup("").WithTags("App");
         appGroup.MapGetProfileEndpoints();

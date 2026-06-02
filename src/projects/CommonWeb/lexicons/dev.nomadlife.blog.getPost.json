@@ -1,0 +1,51 @@
+{
+    "lexicon": 1,
+    "id": "dev.nomadlife.blog.getPost",
+    "defs": {
+        "main": {
+            "type": "query",
+            "description": "Fetch a single blog post by its slug. Returns a curated view with resolved blob URLs.",
+            "parameters": {
+                "type": "params",
+                "required": [
+                    "author",
+                    "slug"
+                ],
+                "properties": {
+                    "author": {
+                        "type": "string",
+                        "format": "at-identifier",
+                        "description": "The handle or DID of the blog owner."
+                    },
+                    "slug": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "description": "URL-friendly identifier of the post to fetch"
+                    }
+                }
+            },
+            "output": {
+                "encoding": "application/json",
+                "schema": {
+                    "type": "object",
+                    "required": [
+                        "post"
+                    ],
+                    "properties": {
+                        "post": {
+                            "type": "ref",
+                            "ref": "dev.nomadlife.blog.defs#postView",
+                            "description": "The requested post view with resolved URLs."
+                        }
+                    }
+                }
+            },
+            "errors": [
+                {
+                    "name": "PostNotFound",
+                    "description": "No post exists with the given slug."
+                }
+            ]
+        }
+    }
+}

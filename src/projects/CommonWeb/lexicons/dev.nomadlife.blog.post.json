@@ -1,0 +1,146 @@
+{
+    "lexicon": 1,
+    "id": "dev.nomadlife.blog.post",
+    "defs": {
+        "main": {
+            "type": "record",
+            "description": "A blog post record for nomadlife",
+            "key": "tid",
+            "record": {
+                "type": "object",
+                "required": [
+                    "text",
+                    "createdAt"
+                ],
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "maxLength": 100000,
+                        "description": "The post content in Markdown format"
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "description": "Optional post title"
+                    },
+                    "facets": {
+                        "type": "array",
+                        "description": "Rich text annotations (mentions, links, hashtags, etc)",
+                        "items": {
+                            "type": "ref",
+                            "ref": "app.bsky.richtext.facet"
+                        }
+                    },
+                    "category": {
+                        "type": "string",
+                        "format": "at-uri",
+                        "description": "Reference to the category record"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "description": "Array of tag strings",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 100
+                        }
+                    },
+                    "slug": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "description": "URL-friendly identifier for the post"
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "description": "Optional summary or excerpt of the post"
+                    },
+                    "image": {
+                        "type": "ref",
+                        "ref": "#blobMetadata",
+                        "description": "Single banner or featured image for the post"
+                    },
+                    "status": {
+                        "type": "string",
+                        "knownValues": [
+                            "#statusDraft",
+                            "#statusPublished"
+                        ],
+                        "default": "#statusDraft",
+                        "description": "Post status token"
+                    },
+                    "scheduledAt": {
+                        "type": "string",
+                        "format": "datetime",
+                        "description": "Optional scheduled publication time"
+                    },
+                    "publishedAt": {
+                        "type": "string",
+                        "format": "datetime",
+                        "description": "When the post was published"
+                    },
+                    "visibility": {
+                        "type": "string",
+                        "knownValues": [
+                            "#visibilityPrivate",
+                            "#visibilityPublic"
+                        ],
+                        "default": "#visibilityPrivate",
+                        "description": "Visibility level - affects firehose broadcasting"
+                    },
+                    "blobs": {
+                        "type": "array",
+                        "description": "Attached media files",
+                        "items": {
+                            "type": "ref",
+                            "ref": "#blobMetadata"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "datetime",
+                        "description": "When the post was created"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "datetime",
+                        "description": "When the post was last updated"
+                    }
+                }
+            }
+        },
+        "blobMetadata": {
+            "type": "object",
+            "description": "Metadata for attached blob files",
+            "properties": {
+                "blob": {
+                    "type": "blob",
+                    "description": "The binary file data"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Original filename"
+                },
+                "alt": {
+                    "type": "string",
+                    "description": "Alt text for accessibility"
+                }
+            }
+        },
+        "statusDraft": {
+            "type": "token",
+            "description": "Draft post status - private and not published"
+        },
+        "statusPublished": {
+            "type": "token",
+            "description": "Published post status - public and visible"
+        },
+        "visibilityPrivate": {
+            "type": "token",
+            "description": "Private visibility - post is not broadcast in firehose"
+        },
+        "visibilityPublic": {
+            "type": "token",
+            "description": "Public visibility - post is broadcast in firehose"
+        }
+    }
+}
