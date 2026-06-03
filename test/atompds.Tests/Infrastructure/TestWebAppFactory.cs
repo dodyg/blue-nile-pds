@@ -28,6 +28,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
+        Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
         builder.ConfigureHostConfiguration(config =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -42,6 +43,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                 ["Config:PDS_BLOBSTORE_DISK_LOCATION"] = Path.Combine(_tempDir, "blocks"),
                 ["Config:PDS_BLOBSTORE_DISK_TMP_LOCATION"] = Path.Combine(_tempDir, "temp"),
                 ["Config:PDS_JWT_SECRET"] = JwtSecret,
+                ["Config:PDS_ADMIN_PASSWORD"] = AdminPassword,
                 ["Config:PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX"] = "0000000000000000000000000000000000000000000000000000000000000001",
                 ["Config:PDS_RATE_LIMITS_ENABLED"] = "false",
                 ["Config:PDS_INVITE_REQUIRED"] = "false",
