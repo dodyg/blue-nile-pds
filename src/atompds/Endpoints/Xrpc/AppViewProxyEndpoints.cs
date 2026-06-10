@@ -144,6 +144,34 @@ public static class AppViewProxyEndpoints
         }
     }
 
+    private static readonly HashSet<string> ProtectedMethods = new(StringComparer.Ordinal)
+    {
+        "com.atproto.server.createSession",
+        "com.atproto.server.getSession",
+        "com.atproto.server.refreshSession",
+        "com.atproto.server.deleteSession",
+        "com.atproto.server.updateEmail",
+        "com.atproto.server.confirmEmail",
+        "com.atproto.server.requestEmailConfirmation",
+        "com.atproto.server.requestEmailUpdate",
+        "com.atproto.server.requestPasswordReset",
+        "com.atproto.server.resetPassword",
+        "com.atproto.identity.resolveHandle",
+        "com.atproto.identity.updateHandle",
+        "com.atproto.identity.getRecommendedDidCredentials",
+        "com.atproto.server.createAppPassword",
+        "com.atproto.server.listAppPasswords",
+        "com.atproto.server.revokeAppPassword",
+    };
+
+    private static readonly HashSet<string> PrivilegedMethods = new(StringComparer.Ordinal)
+    {
+        "com.atproto.server.createAccount",
+    };
+
+    private static bool IsPrivilegedMethod(string nsid) =>
+        nsid.StartsWith("chat.bsky.", StringComparison.Ordinal) || PrivilegedMethods.Contains(nsid);
+
     private static async Task<IResult> CatchallProxyAsync(
         string nsid,
         HttpContext context,
@@ -155,9 +183,24 @@ public static class AppViewProxyEndpoints
         WriteSnapshotCache writeSnapshotCache,
         ILogger<Program> logger)
     {
+        if (ProtectedMethods.Contains(nsid))
+        {
+            return Results.NotFound();
+        }
+
         if (!nsid.StartsWith("app.bsky.") && !nsid.StartsWith("chat.bsky.") && !nsid.StartsWith("com.atproto.moderation."))
         {
             return Results.NotFound();
+        }
+
+        // T-18: verify privileged scope for chat and createAccount
+        if (IsPrivilegedMethod(nsid))
+        {
+            var auth = context.GetAuthOutput();
+            if (auth.AccessCredentials.Scope != AuthVerifier.ScopeMap[AuthVerifier.AuthScope.AppPassPrivileged])
+            {
+                throw new XRPCError(new InvalidRequestErrorDetail("Method requires privileged access"));
+            }
         }
 
         try
