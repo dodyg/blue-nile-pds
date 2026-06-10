@@ -29,7 +29,8 @@ public class AuthVerifier
         Refresh,
         AppPass,
         AppPassPrivileged,
-        SignupQueued
+        SignupQueued,
+        Takendown
     }
 
     public static readonly IReadOnlyDictionary<AuthScope, string> ScopeMap = new Dictionary<AuthScope, string>
@@ -38,7 +39,8 @@ public class AuthVerifier
         {AuthScope.Refresh, Auth.REFRESH_TOKEN_SCOPE},
         {AuthScope.AppPass, "com.atproto.appPass"},
         {AuthScope.AppPassPrivileged, "com.atproto.appPassPrivileged"},
-        {AuthScope.SignupQueued, "com.atproto.signupQueued"}
+        {AuthScope.SignupQueued, "com.atproto.signupQueued"},
+        {AuthScope.Takendown, "com.atproto.takendown"}
     };
 
     private readonly AccountRepository _accountRepository;
@@ -59,29 +61,50 @@ public class AuthVerifier
 
     public async Task<AccessOutput> AccessStandardAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessTokenAsync(ctx,
+        var auth = await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access],
             ScopeMap[AuthScope.AppPass],
             ScopeMap[AuthScope.AppPassPrivileged]
         ], checkTakenDown, checkDeactivated);
+
+        if (auth.AccessCredentials.Scope == ScopeMap[AuthScope.Takendown])
+        {
+            throw new XRPCError(new ErrorDetail("AccountTakenDown", "Account has been taken down"));
+        }
+
+        return auth;
     }
 
     public async Task<AccessOutput> AccessFullAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessTokenAsync(ctx,
+        var auth = await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access]
         ], checkTakenDown, checkDeactivated);
+
+        if (auth.AccessCredentials.Scope == ScopeMap[AuthScope.Takendown])
+        {
+            throw new XRPCError(new ErrorDetail("AccountTakenDown", "Account has been taken down"));
+        }
+
+        return auth;
     }
 
     public async Task<AccessOutput> AccessPrivilegedAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
-        return await ValidateAccessTokenAsync(ctx,
+        var auth = await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access],
             ScopeMap[AuthScope.AppPassPrivileged]
         ], checkTakenDown, checkDeactivated);
+
+        if (auth.AccessCredentials.Scope == ScopeMap[AuthScope.Takendown])
+        {
+            throw new XRPCError(new ErrorDetail("AccountTakenDown", "Account has been taken down"));
+        }
+
+        return auth;
     }
 
     public RefreshOutput Refresh(HttpContext ctx)
