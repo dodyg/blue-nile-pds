@@ -188,7 +188,7 @@ public static class AppViewProxyEndpoints
             return Results.NotFound();
         }
 
-        if (!nsid.StartsWith("app.bsky.") && !nsid.StartsWith("chat.bsky.") && !nsid.StartsWith("com.atproto.moderation."))
+        if (!nsid.StartsWith("app.bsky.") && !nsid.StartsWith("chat.bsky.") && !nsid.StartsWith("com.atproto.moderation.") && !nsid.StartsWith("tools.ozone."))
         {
             return Results.NotFound();
         }
@@ -624,7 +624,7 @@ public static class AppViewProxyEndpoints
 
     private static string NormalizeServiceUrl(string url) => url.TrimEnd('/');
 
-    private static string ParseUrlNsid(string requestUrl)
+    public static string ParseUrlNsid(string requestUrl)
     {
         if (!requestUrl.StartsWith("/xrpc/"))
             throw new XRPCError(new InvalidRequestErrorDetail("invalid xrpc path"));
@@ -659,7 +659,7 @@ public static class AppViewProxyEndpoints
         return nsid[..curr];
     }
 
-    private static void ValidateUrlAgainstSsrf(string url)
+    public static void ValidateUrlAgainstSsrf(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
