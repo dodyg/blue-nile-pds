@@ -57,7 +57,7 @@ namespace AccountManager.Migrations
                 {
                     Id = table.Column<string>(type: "TEXT", maxLength: 2048, nullable: false),
                     Did = table.Column<string>(type: "TEXT", maxLength: 2048, nullable: true),
-                    Parameters = table.Column<string>(type: "TEXT", nullable: false),
+                    Parameters = table.Column<string>(type: "TEXT", maxLength: 2048, nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
