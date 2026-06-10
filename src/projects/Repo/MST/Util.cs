@@ -17,7 +17,7 @@ public static partial class Util
         var split = key.Split('/');
         if (split.Length != 2)
         {
-            throw new Exception($"Invalid record key: {key}");
+            throw new InvalidOperationException($"Invalid record key: {key}");
         }
         return (split[0], split[1]);
     }
@@ -116,7 +116,7 @@ public static partial class Util
             var next = entries.Length > i + 1 ? entries[i + 1] : null;
             if (entry is not Leaf leaf)
             {
-                throw new Exception("Not a valid node: two subtrees next to each other");
+                throw new InvalidOperationException("Not a valid node: two subtrees next to each other");
             }
             i++;
             Cid? subtree = null;
@@ -152,7 +152,7 @@ public static partial class Util
     {
         if (!IsValidMstKey(str))
         {
-            throw new Exception($"Not a valid MST key: {str}");
+            throw new ArgumentException($"Not a valid MST key: {str}", nameof(str));
         }
         return true;
     }

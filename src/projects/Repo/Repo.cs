@@ -61,7 +61,7 @@ public class Repo
         var commitCid = cid ?? await storage.GetRootAsync();
         if (commitCid == null)
         {
-            throw new Exception("No root commit found");
+            throw new InvalidOperationException("No root commit found");
         }
 
         var (obj, bytes) = await storage.ReadObjAndBytesAsync(commitCid.Value);
@@ -104,7 +104,7 @@ public class Repo
         var addedLeaves = leaves.GetMany(diff.NewLeafCids.ToArray());
         if (addedLeaves.missing.Length > 0)
         {
-            throw new Exception($"Missing leaves: {string.Join(", ", addedLeaves.missing)}");
+            throw new MissingBlocksException(addedLeaves.missing, nameof(FormatCommitAsync));
         }
 
         newBlocks.AddMap(addedLeaves.blocks);

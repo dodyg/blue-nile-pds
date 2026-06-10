@@ -174,7 +174,7 @@ public class SqlRepoTransactor : IRepoStorage
         var bytes = await GetBytesAsync(cid);
         if (bytes == null)
         {
-            throw new Exception("Block not found");
+            throw new MissingBlockException(cid, nameof(ReadObjAndBytesAsync));
         }
         var obj = CBORObject.DecodeFromBytes(bytes);
         return (obj, bytes);

@@ -64,7 +64,7 @@ public class MemoryBlockStore : IRepoStorage
     {
         if (!_blocks.Has(cid))
         {
-            throw new Exception("Block not found");
+            throw new MissingBlockException(cid, nameof(GetBytesAsync));
         }
         return Task.FromResult<byte[]?>(_blocks.Get(cid));
     }
@@ -93,7 +93,7 @@ public class MemoryBlockStore : IRepoStorage
         var result = await AttemptReadAsync(cid);
         if (result == null)
         {
-            throw new Exception("Block not found");
+            throw new MissingBlockException(cid, nameof(ReadObjAndBytesAsync));
         }
 
         return result.Value;

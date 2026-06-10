@@ -174,7 +174,7 @@ public record MST : INodeEntry
             var first = await AtIndexAsync(index);
             if (first is Leaf leaf && leaf.Key == key)
             {
-                throw new Exception($"There is already a value at key: {key} with value: {leaf.Value}");
+                throw new InvalidOperationException($"There is already a value at key: {key} with value: {leaf.Value}");
             }
             var prevNode = await AtIndexAsync(index - 1);
             if (prevNode is null or Leaf)
@@ -188,7 +188,7 @@ public record MST : INodeEntry
                 var splitSubTree = await mst.SplitAroundAsync(key);
                 return await ReplaceWithSplitAsync(index - 1, splitSubTree.left, newLeaf, splitSubTree.right);
             }
-            throw new Exception("Invalid node type");
+            throw new InvalidOperationException("Invalid node type");
         }
         if (keyZeroes < layer)
         {
@@ -273,7 +273,7 @@ public record MST : INodeEntry
             return await UpdateEntryAsync(index - 1, updatedTree);
         }
 
-        throw new Exception($"Could not find a record with key: {key}");
+        throw new InvalidOperationException($"Could not find a record with key: {key}");
     }
 
     public async Task<MST> DeleteAsync(string key)
@@ -325,14 +325,14 @@ public record MST : INodeEntry
             }
             return await UpdateEntryAsync(index - 1, subtree);
         }
-        throw new Exception($"Could not find a record with key: {key}");
+        throw new InvalidOperationException($"Could not find a record with key: {key}");
     }
 
     public async Task<MST> AppendMergeAsync(MST toMerge)
     {
         if (await GetLayerAsync() != await toMerge.GetLayerAsync())
         {
-            throw new Exception("Cannot merge trees of different layers");
+            throw new InvalidOperationException("Cannot merge trees of different layers");
         }
 
         var entries = await GetEntriesAsync();
