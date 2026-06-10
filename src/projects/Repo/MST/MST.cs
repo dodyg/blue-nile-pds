@@ -2,6 +2,7 @@
 using CID;
 using Common;
 using PeterO.Cbor;
+using Repo.Car;
 
 namespace Repo.MST;
 
@@ -394,6 +395,35 @@ public record MST : INodeEntry
             else
             {
                 yield return entry;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stream blocks in pre-order DFS: node block, then leaf blocks, then subtrees.
+    /// </summary>
+    public async IAsyncEnumerable<CarBlock> CarBlockStreamAsync()
+    {
+        var entries = await GetEntriesAsync();
+        var (cid, bytes) = await SerializeAsync();
+        yield return new CarBlock(cid, bytes);
+
+        foreach (var entry in entries)
+        {
+            if (entry is Leaf leaf)
+            {
+                var leafBytes = await Storage.GetBytesAsync(leaf.Value);
+                if (leafBytes != null)
+                {
+                    yield return new CarBlock(leaf.Value, leafBytes);
+                }
+            }
+            else if (entry is MST mst)
+            {
+                await foreach (var block in mst.CarBlockStreamAsync())
+                {
+                    yield return block;
+                }
             }
         }
     }
