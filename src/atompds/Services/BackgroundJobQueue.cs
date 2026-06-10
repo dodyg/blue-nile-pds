@@ -58,6 +58,7 @@ public class BackgroundJobWorker : BackgroundService
     private readonly BackgroundJobQueue _queue;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<BackgroundJobWorker> _logger;
+    private Task? _processingTask;
 
     public BackgroundJobWorker(
         BackgroundJobQueue queue,
@@ -70,6 +71,12 @@ public class BackgroundJobWorker : BackgroundService
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _processingTask = ExecuteCoreAsync(stoppingToken);
+        await _processingTask;
+    }
+
+    private async Task ExecuteCoreAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Background job worker started");
         await foreach (var job in _queue.DequeueAllAsync(stoppingToken))
@@ -86,5 +93,15 @@ public class BackgroundJobWorker : BackgroundService
         }
 
         _logger.LogInformation("Background job worker stopped");
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _queue.Writer.Complete();
+        if (_processingTask != null)
+        {
+            await _processingTask.WaitAsync(cancellationToken);
+        }
+        await base.StopAsync(cancellationToken);
     }
 }
