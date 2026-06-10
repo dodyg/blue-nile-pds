@@ -140,4 +140,8 @@ public class ServerEnvironment
     // Redis
     public string? PDS_REDIS_URL { get; set; }
 
+    // Repo Import
+    public bool PDS_ACCEPTING_REPO_IMPORTS { get; set; } = true;
+    public long PDS_MAX_REPO_IMPORT_SIZE { get; set; } = 100 * 1024 * 1024; // 100MB
+
 }
