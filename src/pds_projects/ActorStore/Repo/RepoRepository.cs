@@ -4,6 +4,7 @@ using CID;
 using Crypto;
 using Microsoft.EntityFrameworkCore;
 using Repo;
+using Xrpc;
 
 namespace ActorStore.Repo;
 
@@ -82,7 +83,7 @@ public class RepoRepository
         var currRoot = await Storage.GetRootDetailedAsync();
         if (swapCommit != null && !currRoot.Cid.Equals(swapCommit))
         {
-            throw new Exception("Bad commit swap");
+            throw new XRPCError(new InvalidRequestErrorDetail("Bad commit swap"));
         }
 
         await Storage.CacheRevAsync(currRoot.Rev);
@@ -116,19 +117,19 @@ public class RepoRepository
             Cid? currRecord = record != null ? Cid.FromString(record.Cid) : null;
             if (write.Action == WriteOpAction.Create && swapCid != null)
             {
-                throw new Exception("Cannot swap on create");
+                throw new XRPCError(new InvalidRequestErrorDetail("Cannot swap on create"));
             }
             if (write.Action == WriteOpAction.Update && swapCid == null)
             {
-                throw new Exception("Must swap on update");
+                throw new XRPCError(new InvalidRequestErrorDetail("Must swap on update"));
             }
             if (write.Action == WriteOpAction.Delete && swapCid == null)
             {
-                throw new Exception("Must swap on delete");
+                throw new XRPCError(new InvalidRequestErrorDetail("Must swap on delete"));
             }
             if ((currRecord != null || swapCid != null) && !currRecord?.Equals(swapCid) == true)
             {
-                throw new Exception("Bad swap");
+                throw new XRPCError(new InvalidRequestErrorDetail("Bad swap"));
             }
         }
 
@@ -148,6 +149,12 @@ public class RepoRepository
         {
             var missingBlocks = await Storage.GetBlocksAsync(newRecordBlocks.missing);
             commit.NewBlocks.AddMap(missingBlocks.blocks);
+        }
+
+        // T-05: Repo write size limit (2MB)
+        if (commit.NewBlocks.ByteSize > 2 * 1024 * 1024)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Commit too large"));
         }
 
         return commit;
@@ -177,7 +184,7 @@ public class RepoRepository
             PreparedCreate create => create.CreateWriteToOp(),
             PreparedUpdate update => update.UpdateWriteToOp(),
             PreparedDelete delete => delete.DeleteWriteToOp(),
-            _ => throw new Exception("Invalid write type")
+            _ => throw new XRPCError(new InvalidRequestErrorDetail("Invalid write type"))
         };
     }
 }
