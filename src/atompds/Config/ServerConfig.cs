@@ -339,7 +339,8 @@ public record ServerConfig
                 config._env.PDS_OAUTH_ENTRYWAY_URL,
                 config._env.PDS_OAUTH_ENTRYWAY_DID,
                 config._env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX,
-                config._env.PDS_ENTRYWAY_ADMIN_TOKEN));
+                config._env.PDS_ENTRYWAY_ADMIN_TOKEN,
+                config._env.PDS_MOD_SERVICE_DID));
 
         // Sequencer
         services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));

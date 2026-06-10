@@ -19,7 +19,8 @@ public record AuthVerifierConfig(
     string? EntrywayUrl,
     string? EntrywayDid,
     string? EntrywayJwtVerifyKeyK256PublicKeyHex,
-    string? EntrywayAdminToken);
+    string? EntrywayAdminToken,
+    string? ModServiceDid);
 
 public class AuthVerifier
 {
@@ -773,6 +774,193 @@ public class AuthVerifier
         }
 
         throw new XRPCError(new AuthRequiredErrorDetail("Invalid admin credentials"));
+    }
+
+    public async Task<AccessOutput> ModeratorAsync(HttpContext context)
+    {
+        var header = context.Request.Headers.Authorization.FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(header))
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("Missing authorization header"));
+        }
+
+        var parts = header.Split(' ', 2);
+        if (parts.Length != 2)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Malformed authorization header"));
+        }
+
+        if (parts[0].Equals("Basic", StringComparison.OrdinalIgnoreCase))
+        {
+            await AdminTokenAsync(context);
+            // Admin auth doesn't return AccessOutput, so construct one for moderator
+            return new AccessOutput(new AccessCredentials
+            {
+                Did = "admin",
+                Scope = "admin",
+                Audience = _config.PdsDid,
+                IsPrivileged = true
+            }, "");
+        }
+
+        if (parts[0].Equals("Bearer", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ModServiceAsync(context, parts[1]);
+        }
+
+        throw new XRPCError(new InvalidTokenErrorDetail("Unexpected authorization type"));
+    }
+
+    public async Task<AccessOutput> ModServiceAsync(HttpContext context, string? token = null)
+    {
+        token ??= ParseAuthorizationHeader(context.Request.Headers.Authorization).Token;
+        var payload = await ValidateServiceJwtAsync(token);
+        var iss = payload.GetProperty("iss").GetString()!;
+
+        if (!string.IsNullOrWhiteSpace(_config.ModServiceDid) && iss != _config.ModServiceDid)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Invalid mod service issuer"));
+        }
+
+        return new AccessOutput(new AccessCredentials
+        {
+            Did = iss,
+            Scope = ScopeMap[AuthScope.Access],
+            Audience = _config.PdsDid,
+            IsPrivileged = false
+        }, token);
+    }
+
+    public async Task<AccessOutput> UserServiceAuthAsync(HttpContext context)
+    {
+        var auth = ParseAuthorizationHeader(context.Request.Headers.Authorization);
+        if (auth.Type != AuthType.BEARER)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("Invalid auth type"));
+        }
+
+        var payload = await ValidateServiceJwtAsync(auth.Token);
+        var iss = payload.GetProperty("iss").GetString()!;
+
+        return new AccessOutput(new AccessCredentials
+        {
+            Did = iss,
+            Scope = ScopeMap[AuthScope.Access],
+            Audience = _config.PdsDid,
+            IsPrivileged = false
+        }, auth.Token);
+    }
+
+    public async Task<AccessOutput?> UserServiceAuthOptionalAsync(HttpContext context)
+    {
+        var auth = ParseAuthorizationHeader(context.Request.Headers.Authorization);
+        if (auth.Type != AuthType.BEARER || string.IsNullOrWhiteSpace(auth.Token))
+        {
+            return null;
+        }
+
+        try
+        {
+            var payload = await ValidateServiceJwtAsync(auth.Token);
+            var iss = payload.GetProperty("iss").GetString()!;
+            return new AccessOutput(new AccessCredentials
+            {
+                Did = iss,
+                Scope = ScopeMap[AuthScope.Access],
+                Audience = _config.PdsDid,
+                IsPrivileged = false
+            }, auth.Token);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<AccessOutput> AuthorizationOrUserServiceAuthAsync(HttpContext context)
+    {
+        var auth = ParseAuthorizationHeader(context.Request.Headers.Authorization);
+        if (auth.Type != AuthType.BEARER || string.IsNullOrWhiteSpace(auth.Token))
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Missing authorization header"));
+        }
+
+        var decoded = DecodeJwtSection(auth.Token, 1);
+        if (decoded != null && decoded.TryGetValue("lxm", out _))
+        {
+            return await UserServiceAuthAsync(context);
+        }
+
+        return await AccessStandardAsync(context);
+    }
+
+    private async Task<JsonElement> ValidateServiceJwtAsync(string token)
+    {
+        var parts = token.Split('.');
+        if (parts.Length != 3)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Invalid service JWT format"));
+        }
+
+        Dictionary<string, JsonElement> header;
+        Dictionary<string, JsonElement> payload;
+        try
+        {
+            var headerBytes = Base64Url.Decode(parts[0]);
+            var payloadBytes = Base64Url.Decode(parts[1]);
+            header = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(headerBytes) ?? throw new XRPCError(new InvalidTokenErrorDetail("Invalid token"));
+            payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(payloadBytes) ?? throw new XRPCError(new InvalidTokenErrorDetail("Invalid token"));
+        }
+        catch
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Invalid service JWT encoding"));
+        }
+
+        if (!header.TryGetValue("alg", out var algElement) || algElement.ValueKind != JsonValueKind.String)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Missing alg in service JWT"));
+        }
+
+        if (!payload.TryGetValue("iss", out var issElement) || issElement.ValueKind != JsonValueKind.String)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Missing iss in service JWT"));
+        }
+
+        if (!payload.TryGetValue("aud", out var audElement) || audElement.ValueKind != JsonValueKind.String || audElement.GetString() != _config.PdsDid)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Invalid audience in service JWT"));
+        }
+
+        if (!payload.TryGetValue("exp", out var expElement) || expElement.ValueKind != JsonValueKind.Number || !expElement.TryGetInt64(out var exp) || exp < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Service JWT has expired"));
+        }
+
+        var did = issElement.GetString()!;
+        var didDoc = await _idResolver.DidResolver.EnsureResolveAsync(did);
+        var signingKey = Atproto_Data.GetKey(didDoc);
+        if (signingKey == null)
+        {
+            throw new XRPCError(new InvalidTokenErrorDetail("Could not resolve signing key for service JWT"));
+        }
+
+        var toSign = Encoding.UTF8.GetBytes($"{parts[0]}.{parts[1]}");
+        var sig = Base64Url.Decode(parts[2]);
+
+        try
+        {
+            if (!Verify.VerifySignature(signingKey, toSign, sig, null, algElement.GetString()))
+            {
+                throw new XRPCError(new InvalidTokenErrorDetail("Invalid service JWT signature"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Service JWT signature verification failed for {Did}", did);
+            throw new XRPCError(new InvalidTokenErrorDetail("Invalid service JWT signature"));
+        }
+
+        return JsonSerializer.Deserialize<JsonElement>(Base64Url.Decode(parts[1]));
     }
 
     public abstract record AuthOutput

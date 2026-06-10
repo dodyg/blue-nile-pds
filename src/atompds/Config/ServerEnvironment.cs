@@ -154,6 +154,14 @@ public class ServerEnvironment
     // Handle Resolution
     public List<string> PDS_HANDLE_BACKUP_NAMESERVERS { get; set; } = [];
 
+    // Moderation / Ozone
+    public string? PDS_MOD_SERVICE_URL { get; set; }
+    public string? PDS_MOD_SERVICE_DID { get; set; }
+
+    // Chat
+    public string? PDS_CHAT_SERVICE_URL { get; set; }
+    public string? PDS_CHAT_SERVICE_DID { get; set; }
+
     // Moderation Email
     public string? PDS_MODERATION_EMAIL_SMTP_URL { get; set; }
     public string? PDS_MODERATION_EMAIL_ADDRESS { get; set; }
