@@ -25,4 +25,4 @@ jobs:
         run: dotnet build atompds.slnx --no-restore
 
       - name: Test
-        run: dotnet test atompds.slnx --no-build
+        run: dotnet test --solution atompds.slnx --no-build

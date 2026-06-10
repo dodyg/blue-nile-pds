@@ -59,6 +59,8 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                 ["Config:PDS_HOME_URL"] = "https://test.test",
                 ["Config:PDS_SUPPORT_URL"] = "https://test.test/support",
                 ["Config:PDS_LOGO_URL"] = "https://test.test/logo.png",
+                ["Config:PDS_BSKY_APP_VIEW_URL"] = "https://appview.bsky.social",
+                ["Config:PDS_BSKY_APP_VIEW_DID"] = "did:web:appview.bsky.social",
             });
         });
         builder.ConfigureServices(services =>
