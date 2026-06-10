@@ -116,6 +116,8 @@ public class ServerEnvironment
 
     // Rate Limiting
     public bool PDS_RATE_LIMITS_ENABLED { get; set; } = true;
+    public string? PDS_RATE_LIMIT_BYPASS_KEY { get; set; }
+    public List<string> PDS_RATE_LIMIT_BYPASS_IPS { get; set; } = [];
 
     // Anti-Abuse
     public string? PDS_HCAPTCHA_SECRET { get; set; }

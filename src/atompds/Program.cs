@@ -35,7 +35,7 @@ public class Program
 
         builder.Services.AddExceptionHandler<XRPCExceptionHandler>();
 
-        builder.Services.AddPdsRateLimiting(environment.PDS_RATE_LIMITS_ENABLED);
+        builder.Services.AddPdsRateLimiting(environment.PDS_RATE_LIMITS_ENABLED, environment.PDS_RATE_LIMIT_BYPASS_KEY, environment.PDS_RATE_LIMIT_BYPASS_IPS);
 
         var app = builder.Build();
 
