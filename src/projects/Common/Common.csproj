@@ -11,4 +11,8 @@
         <ProjectReference Include="..\CID\CID.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="System.Formats.Cbor" />
+    </ItemGroup>
+
 </Project>

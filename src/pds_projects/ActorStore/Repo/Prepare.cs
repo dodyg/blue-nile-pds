@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using AppBsky.Actor;
 using AppBsky.Feed;
@@ -7,6 +8,7 @@ using CID;
 using Common;
 using Handle;
 using Multiformats.Codec;
+using Multiformats.Hash;
 using PeterO.Cbor;
 using Repo;
 
@@ -81,11 +83,9 @@ public class Prepare
 
     public static Cid CidForSafeRecord(JsonElement record)
     {
-        // TODO: This is probably not in any way correct.
-        var cborObj = CBORObject.FromJSONString(record.GetRawText());
-        var block = CborBlock.Encode(cborObj);
-
-        return block.Cid;
+        var bytes = CanonicalDagCbor.Encode(record);
+        var hash = Multihash.Encode(SHA256.HashData(bytes), HashType.SHA2_256);
+        return Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash);
     }
 
     public static void AssertNoExplicitSlurs(string collection, string rkey, JsonElement record)
