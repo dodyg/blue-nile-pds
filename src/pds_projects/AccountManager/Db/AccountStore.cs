@@ -293,4 +293,44 @@ public class AccountStore
             await _db.SaveChangesAsync();
         }
     }
+
+    public async Task<(ActorAccount[] Accounts, string? Cursor)> SearchAccountsAsync(string? email, string? cursor, int limit)
+    {
+        limit = Math.Clamp(limit, 1, 100);
+
+        var query = _db.Accounts
+            .Include(a => a.Actor)
+            .Where(a => a.Actor != null)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var term = email.ToLower();
+            query = query.Where(a =>
+                a.Email.ToLower().Contains(term) ||
+                a.Actor!.Handle.ToLower().Contains(term));
+        }
+
+        // Cursor-based pagination using Did as cursor
+        if (!string.IsNullOrWhiteSpace(cursor))
+        {
+            query = query.Where(a => string.Compare(a.Actor!.Did, cursor) > 0);
+        }
+
+        query = query.OrderBy(a => a.Actor!.Did).Take(limit + 1);
+        var results = await query.ToArrayAsync();
+
+        string? nextCursor = null;
+        if (results.Length > limit)
+        {
+            nextCursor = results[limit - 1].Actor!.Did;
+            results = results[..limit];
+        }
+
+        var accounts = results
+            .Select(r => ActorAccount.From(r.Actor!, r)!)
+            .ToArray();
+
+        return (accounts, nextCursor);
+    }
 }

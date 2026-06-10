@@ -37,6 +37,7 @@ public static class EndpointRegistration
         admin.MapDisableInviteCodesAdminEndpoints();
         admin.MapGetAccountInfoEndpoints();
         admin.MapGetAccountInfosEndpoints();
+        admin.MapSearchAccountsAdminEndpoints();
         admin.MapGetInviteCodesAdminEndpoints();
         admin.MapSendEmailAdminEndpoints();
         admin.MapSubjectStatusEndpoints();
