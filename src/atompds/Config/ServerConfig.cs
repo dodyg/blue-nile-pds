@@ -360,6 +360,8 @@ public record ServerConfig
         services.AddSingleton<Services.SequencerPollingService>();
         services.AddSingleton<Sequencer.ISequencerEventSource>(sp => sp.GetRequiredService<Services.SequencerPollingService>());
         services.AddHostedService(sp => sp.GetRequiredService<Services.SequencerPollingService>());
+        services.AddSingleton<Services.BlobGarbageCollectionService>();
+        services.AddHostedService(sp => sp.GetRequiredService<Services.BlobGarbageCollectionService>());
         services.AddSingleton<Crawlers>();
         services.AddSingleton(x => new CrawlersConfig(config.Service.Hostname, config.Crawlers));
 
