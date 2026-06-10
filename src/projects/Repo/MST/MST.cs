@@ -56,6 +56,14 @@ public record MST : INodeEntry
         }
 
         var data = await Storage.ReadObjAndBytesAsync(Pointer);
+
+        // T-14: verify block CID matches content
+        var computedCid = CborBlock.Encode(data.obj).Cid;
+        if (!computedCid.Equals(Pointer))
+        {
+            throw new UnexpectedObjectException(Pointer, "MST node", $"CID mismatch: computed {computedCid}");
+        }
+
         var nodeData = NodeData.FromCborObject(data.obj);
         TreeEntry? firstLeaf = nodeData.Entries.Count > 0 ? nodeData.Entries[0] : null;
         int? layer = firstLeaf != null ? Util.LeadingZerosOnHash(firstLeaf.Value.Key) : null;

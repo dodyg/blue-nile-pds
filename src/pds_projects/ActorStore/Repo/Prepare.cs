@@ -310,12 +310,32 @@ public class Prepare
     public static PreparedBlobRef? TryExtractBlobReference(JsonElement elem)
     {
         // https://atproto.com/specs/data-model#blob-type
-        // TODO: maybe support legacy blob format
         if (elem.ValueKind != JsonValueKind.Object)
             return null;
 
         try
         {
+            // Legacy: { "cid": "...", "mimeType": "..." } with no $type
+            if (!elem.TryGetProperty("$type", out _) &&
+                elem.TryGetProperty("cid", out var legacyCidElem) &&
+                elem.TryGetProperty("mimeType", out var legacyMimeElem))
+            {
+                var legacyCidStr = legacyCidElem.GetString();
+                var legacyMime = legacyMimeElem.GetString();
+                if (!string.IsNullOrWhiteSpace(legacyCidStr) && !string.IsNullOrWhiteSpace(legacyMime))
+                {
+                    try
+                    {
+                        var legacyCid = Cid.FromString(legacyCidStr);
+                        return new PreparedBlobRef(legacyCid, legacyMime, 0, new(null, null));
+                    }
+                    catch
+                    {
+                        // invalid CID, fall through
+                    }
+                }
+            }
+
             var typeElem = elem.GetProperty("$type");
             if (typeElem.ValueKind != JsonValueKind.String)
                 return null;
