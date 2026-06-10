@@ -71,11 +71,51 @@ public class RepoRepository
     public async Task<CommitData> ProcessWritesAsync(IPreparedWrite[] writes, Cid? swapCommitCid)
     {
         var commit = await FormatCommitAsync(writes, swapCommitCid);
-        
+
+        // T-11: validate blob constraints before applying
+        await ValidateBlobConstraintsAsync(writes);
+
         await Storage.ApplyCommitAsync(commit);
         await IndexWritesAsync(writes, commit.Rev);
         await Blob.ProcessWriteBlobsAsync(commit.Rev, writes);
         return commit;
+    }
+
+    private async Task ValidateBlobConstraintsAsync(IPreparedWrite[] writes)
+    {
+        var dataWrites = writes
+            .Where(w => w is PreparedCreate or PreparedUpdate)
+            .Cast<IPreparedDataWrite>();
+
+        foreach (var write in dataWrites)
+        {
+            foreach (var blobRef in write.Blobs)
+            {
+                var blob = await Blob.GetBlobAsync(blobRef.Cid);
+                if (blob == null)
+                {
+                    continue; // existence check happens in ProcessWriteBlobsAsync
+                }
+
+                if (blobRef.Constraints.Accept?.Length > 0)
+                {
+                    var accepted = blobRef.Constraints.Accept.Any(a =>
+                        blob.MimeType.Equals(a, StringComparison.OrdinalIgnoreCase) ||
+                        (a.EndsWith("/*") && blob.MimeType.StartsWith(a[..^1], StringComparison.OrdinalIgnoreCase)));
+                    if (!accepted)
+                    {
+                        throw new XRPCError(new InvalidRequestErrorDetail(
+                            $"Blob {blobRef.Cid} MIME type {blob.MimeType} is not accepted for this field. Accepted: {string.Join(", ", blobRef.Constraints.Accept)}"));
+                    }
+                }
+
+                if (blobRef.Constraints.MaxSize.HasValue && blob.Size > blobRef.Constraints.MaxSize.Value)
+                {
+                    throw new XRPCError(new InvalidRequestErrorDetail(
+                        $"Blob {blobRef.Cid} size {blob.Size} exceeds maximum {blobRef.Constraints.MaxSize.Value}"));
+                }
+            }
+        }
     }
 
     public async Task<CommitData> FormatCommitAsync(IPreparedWrite[] writes, Cid? swapCommit)

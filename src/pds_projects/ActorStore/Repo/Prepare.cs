@@ -255,25 +255,26 @@ public class Prepare
         return ExtractBlobReferences(jsonDoc.RootElement);
     }
 
+    private static readonly Dictionary<(string RecordType, string FieldName), BlobConstraint> KnownBlobConstraints = new()
+    {
+        [("app.bsky.actor.profile", "avatar")] = new(["image/png", "image/jpeg", "image/webp"], 1_000_000),
+        [("app.bsky.actor.profile", "banner")] = new(["image/png", "image/jpeg", "image/webp"], 1_000_000),
+    };
+
     public static PreparedBlobRef[] ExtractBlobReferences(JsonElement root)
     {
-        // Do a BFS over the json graph
-        // TODO: there is a constraits stuff they extract in the reference implementaion
-        // I still don't know the purpose of it so I will leave it for now
-
         int MAX_LEVEL = 32;
 
-        var IsRelevantType = (JsonElement elem) => 
+        var IsRelevantType = (JsonElement elem) =>
             elem.ValueKind == JsonValueKind.Object || elem.ValueKind == JsonValueKind.Array;
 
         if (!IsRelevantType(root))
             return [];
 
         List<PreparedBlobRef> result = [];
-        // parent might be useful later for constraints
-        var q = new Queue<(JsonElement elem, int level, JsonElement? parent)>();
+        var q = new Queue<(JsonElement elem, int level, JsonElement? parent, string? fieldName)>();
 
-        q.Enqueue((root, 0, null));
+        q.Enqueue((root, 0, null, null));
 
         while (q.Any())
         {
@@ -285,12 +286,17 @@ public class Prepare
             if (cur.elem.ValueKind == JsonValueKind.Array)
             {
                 foreach (var elem in cur.elem.EnumerateArray().Where(IsRelevantType))
-                    q.Enqueue((elem, cur.level + 1, cur.elem));
-                
+                    q.Enqueue((elem, cur.level + 1, cur.elem, cur.fieldName));
+
                 continue;
             }
 
-            var blobRef = TryExtractBlobReference(cur.elem);
+            var recordType = (cur.parent?.ValueKind == JsonValueKind.Object
+                && cur.parent.Value.TryGetProperty("$type", out var typeProp) == true
+                && typeProp.ValueKind == JsonValueKind.String)
+                ? typeProp.GetString()
+                : null;
+            var blobRef = TryExtractBlobReference(cur.elem, recordType, cur.fieldName);
             if (blobRef is not null)
             {
                 result.Add(blobRef);
@@ -299,15 +305,14 @@ public class Prepare
 
             foreach (var prop in cur.elem.EnumerateObject().Where(p => IsRelevantType(p.Value)))
             {
-                q.Enqueue((prop.Value, cur.level + 1, cur.elem));
+                q.Enqueue((prop.Value, cur.level + 1, cur.elem, prop.Name));
             }
-
         }
 
         return result.ToArray();
     }
 
-    public static PreparedBlobRef? TryExtractBlobReference(JsonElement elem)
+    public static PreparedBlobRef? TryExtractBlobReference(JsonElement elem, string? recordType = null, string? fieldName = null)
     {
         // https://atproto.com/specs/data-model#blob-type
         if (elem.ValueKind != JsonValueKind.Object)
@@ -327,7 +332,8 @@ public class Prepare
                     try
                     {
                         var legacyCid = Cid.FromString(legacyCidStr);
-                        return new PreparedBlobRef(legacyCid, legacyMime, 0, new(null, null));
+                        var constraint = (recordType != null && fieldName != null && KnownBlobConstraints.TryGetValue((recordType, fieldName), out var c)) ? c : new(null, null);
+                        return new PreparedBlobRef(legacyCid, legacyMime, 0, constraint);
                     }
                     catch
                     {
@@ -339,7 +345,7 @@ public class Prepare
             var typeElem = elem.GetProperty("$type");
             if (typeElem.ValueKind != JsonValueKind.String)
                 return null;
-            
+
             string type = typeElem.GetString()!;
 
             if (type != "blob")
@@ -391,8 +397,10 @@ public class Prepare
 
                 if (cid.Codec != (ulong)MulticodecCode.Raw)
                     return null;
-                // TODO: constraints
-                return new PreparedBlobRef(cid, mimeType, size, new(null, null));
+
+                // T-11: populate constraints from known lexicon fields
+                var constraint = (recordType != null && fieldName != null && KnownBlobConstraints.TryGetValue((recordType, fieldName), out var c)) ? c : new(null, null);
+                return new PreparedBlobRef(cid, mimeType, size, constraint);
             }
             catch
             {
