@@ -10,11 +10,13 @@ public class HandleResolver
     public const string PREFIX = "did=";
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
+    private readonly IReadOnlyList<string> _backupNameservers;
 
-    public HandleResolver(HttpClient httpClient, ILogger logger)
+    public HandleResolver(HttpClient httpClient, ILogger logger, IReadOnlyList<string>? backupNameservers = null)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _backupNameservers = backupNameservers ?? Array.Empty<string>();
     }
 
     public async Task<string?> ResolveAsync(string handle, CancellationToken cancellationToken)
@@ -36,9 +38,32 @@ public class HandleResolver
 
     public async Task<string?> ResolveDnsAsync(string handle)
     {
+        var result = await TryResolveDnsAsync(handle, null);
+        if (result != null) return result;
+
+        foreach (var ns in _backupNameservers)
+        {
+            result = await TryResolveDnsAsync(handle, ns);
+            if (result != null) return result;
+        }
+
+        return null;
+    }
+
+    private async Task<string?> TryResolveDnsAsync(string handle, string? nameserver)
+    {
         try
         {
-            var lookup = new LookupClient();
+            LookupClient lookup;
+            if (!string.IsNullOrWhiteSpace(nameserver) && IPAddress.TryParse(nameserver, out var nsIp))
+            {
+                lookup = new LookupClient(nsIp);
+            }
+            else
+            {
+                lookup = new LookupClient();
+            }
+
             var result = await lookup.QueryAsync($"{SUBDOMAIN}.{handle}", QueryType.TXT);
             var records = result.Answers.TxtRecords().ToArray();
             if (records.Length == 0)
@@ -59,7 +84,7 @@ public class HandleResolver
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "DNS resolution failed for handle {Handle}", handle);
+            _logger.LogDebug(ex, "DNS resolution failed for handle {Handle} via {Nameserver}", handle, nameserver ?? "default");
             return null;
         }
     }

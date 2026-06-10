@@ -308,7 +308,8 @@ public record ServerConfig
         {
             DidCache = x.GetRequiredService<IDidCache>(),
             PlcUrl = config.Identity.PlcUrl,
-            TimeoutMs = config.Identity.ResolverTimeout
+            TimeoutMs = config.Identity.ResolverTimeout,
+            BackupNameservers = config._env.PDS_HANDLE_BACKUP_NAMESERVERS
         });
         services.AddSingleton<IdResolver>();
         services.AddSingleton<HandleManager>();
