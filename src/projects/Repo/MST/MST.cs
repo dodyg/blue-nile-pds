@@ -450,6 +450,56 @@ public record MST : INodeEntry
     }
 
     /// <summary>
+    /// Get covering proof blocks for a key.
+    /// Walks from root to leaf, collecting all MST node blocks on the path.
+    /// Also collects left and right siblings of the leaf's parent node.
+    /// </summary>
+    public async Task<BlockMap> GetCoveringProofAsync(string key)
+    {
+        var proof = new BlockMap();
+        var entries = await GetEntriesAsync();
+        var index = await FindGtOrEqualLeafIndexAsync(key);
+
+        // Collect this node's block
+        var (cid, bytes) = await SerializeAsync();
+        proof.Set(cid, bytes);
+
+        var found = index < entries.Length ? entries[index] : null;
+        if (found is Leaf leaf && leaf.Key == key)
+        {
+            // Leaf is at index, parent subtree is at index - 1
+            if (index > 0 && entries[index - 1] is MST parentMst)
+            {
+                await CollectSiblingsAsync(proof, parentMst);
+            }
+            return proof;
+        }
+
+        // Otherwise recurse into the previous subtree
+        var prev = index > 0 ? entries[index - 1] : null;
+        if (prev is MST mst)
+        {
+            var childProof = await mst.GetCoveringProofAsync(key);
+            proof.AddMap(childProof);
+        }
+
+        return proof;
+    }
+
+    private static async Task CollectSiblingsAsync(BlockMap proof, MST node)
+    {
+        var childEntries = await node.GetEntriesAsync();
+        for (var i = 0; i < childEntries.Length; i++)
+        {
+            if (childEntries[i] is MST sibling)
+            {
+                var (sibCid, sibBytes) = await sibling.SerializeAsync();
+                proof.Set(sibCid, sibBytes);
+            }
+        }
+    }
+
+    /// <summary>
     /// Walk tree starting at key
     /// </summary>
     public async IAsyncEnumerable<INodeEntry> WalkFromAsync(string key)

@@ -109,6 +109,24 @@ public class Repo
 
         newBlocks.AddMap(addedLeaves.blocks);
 
+        // T-07: Collect covering proofs for each write key
+        var relevantBlocks = new BlockMap();
+        foreach (var write in toWrite)
+        {
+            var dataKey = write switch
+            {
+                RecordCreateOp create => $"{create.Collection}/{create.RKey}",
+                RecordUpdateOp update => $"{update.Collection}/{update.RKey}",
+                RecordDeleteOp delete => $"{delete.Collection}/{delete.RKey}",
+                _ => null
+            };
+            if (dataKey != null)
+            {
+                var proof = await data.GetCoveringProofAsync(dataKey);
+                relevantBlocks.AddMap(proof);
+            }
+        }
+
         var rev = TID.NextStr(Commit.Rev);
         var commit = Util.SignCommit(new UnsignedCommit(Commit.Did, dataCid, rev, null), keypair);
         var commitCid = newBlocks.Add(commit.ToCborObject());
@@ -122,7 +140,7 @@ public class Repo
             removedCids.Add(Cid);
         }
 
-        return new CommitData(commitCid, rev, commit.Rev, Cid, newBlocks, removedCids);
+        return new CommitData(commitCid, rev, commit.Rev, Cid, newBlocks, removedCids, relevantBlocks);
     }
 
     public async Task<Repo> ApplyCommitAsync(CommitData commit)
