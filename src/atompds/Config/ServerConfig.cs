@@ -302,9 +302,21 @@ public record ServerConfig
         services.AddSingleton<BlobStoreFactory>();
 
         // Resolvers
-        services.AddSingleton<IDidCache>(new MemoryCache(
-            TimeSpan.FromMilliseconds(config.Identity.CacheStaleTTL),
-            TimeSpan.FromMilliseconds(config.Identity.CacheMaxTTL)));
+        var didCacheStaleTtl = TimeSpan.FromMilliseconds(config.Identity.CacheStaleTTL);
+        var didCacheMaxTtl = TimeSpan.FromMilliseconds(config.Identity.CacheMaxTTL);
+        if (!string.IsNullOrWhiteSpace(config._env.PDS_DID_CACHE_DB_LOCATION))
+        {
+            services.AddSingleton<IDidCache>(x => new SqliteDIDCache(
+                config._env.PDS_DID_CACHE_DB_LOCATION,
+                didCacheStaleTtl,
+                didCacheMaxTtl,
+                x.GetRequiredService<ILogger<SqliteDIDCache>>()));
+        }
+        else
+        {
+            services.AddSingleton<IDidCache>(new MemoryCache(didCacheStaleTtl, didCacheMaxTtl));
+        }
+
         services.AddSingleton<IdentityResolverOpts>(x => new IdentityResolverOpts
         {
             DidCache = x.GetRequiredService<IDidCache>(),
