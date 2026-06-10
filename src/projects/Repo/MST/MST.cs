@@ -372,6 +372,84 @@ public record MST : INodeEntry
     }
 
     /// <summary>
+    /// Walk tree gracefully, skipping subtrees with missing blocks.
+    /// </summary>
+    public async IAsyncEnumerable<INodeEntry> WalkReachableAsync()
+    {
+        yield return this;
+        var entries = await TryGetEntriesAsync();
+        if (entries == null)
+        {
+            yield break;
+        }
+        foreach (var entry in entries)
+        {
+            if (entry is MST mst)
+            {
+                await foreach (var subEntry in SafeWalkReachableAsync(mst))
+                {
+                    yield return subEntry;
+                }
+            }
+            else
+            {
+                yield return entry;
+            }
+        }
+    }
+
+    private static async Task<INodeEntry[]?> TryGetEntriesAsync(MST mst)
+    {
+        try
+        {
+            return await mst.GetEntriesAsync();
+        }
+        catch (MissingBlockException)
+        {
+            return null;
+        }
+    }
+
+    private async Task<INodeEntry[]?> TryGetEntriesAsync()
+    {
+        return await TryGetEntriesAsync(this);
+    }
+
+    private static async IAsyncEnumerable<INodeEntry> SafeWalkReachableAsync(MST mst)
+    {
+        var buffer = new List<INodeEntry>();
+        try
+        {
+            await foreach (var entry in mst.WalkReachableAsync())
+            {
+                buffer.Add(entry);
+            }
+        }
+        catch (MissingBlockException)
+        {
+            // skip branch with missing block
+        }
+        foreach (var entry in buffer)
+        {
+            yield return entry;
+        }
+    }
+
+    /// <summary>
+    /// Walk reachable leaves only.
+    /// </summary>
+    public async IAsyncEnumerable<Leaf> ReachableLeavesAsync()
+    {
+        await foreach (var node in WalkReachableAsync())
+        {
+            if (node is Leaf leaf)
+            {
+                yield return leaf;
+            }
+        }
+    }
+
+    /// <summary>
     /// Walk tree starting at key
     /// </summary>
     public async IAsyncEnumerable<INodeEntry> WalkFromAsync(string key)
