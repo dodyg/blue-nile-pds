@@ -266,6 +266,8 @@ public static class CreateAccountEndpoints
         string[] rotationKeys = [secretsConfig.PlcRotationKey.Did()];
         if (identityConfig.RecoveryDidKey != null)
             rotationKeys = [identityConfig.RecoveryDidKey, ..rotationKeys];
+        if (identityConfig.EntrywayPlcRotationKey != null)
+            rotationKeys = [identityConfig.EntrywayPlcRotationKey, ..rotationKeys];
         if (createAccountInput.RecoveryKey != null)
             rotationKeys = [createAccountInput.RecoveryKey, ..rotationKeys];
 

@@ -138,6 +138,8 @@ public class ServerEnvironment
 
     // Admin
     public string? PDS_ADMIN_PASSWORD { get; set; }
+    public string? PDS_ENTRYWAY_ADMIN_TOKEN { get; set; }
+    public string? PDS_ENTRYWAY_PLC_ROTATION_KEY { get; set; }
 
     // OAuth
     public List<string> PDS_OAUTH_ALLOWED_REDIRECT_URIS { get; set; } = [];

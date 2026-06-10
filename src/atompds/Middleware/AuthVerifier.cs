@@ -18,7 +18,8 @@ public record AuthVerifierConfig(
     string PdsDid,
     string? EntrywayUrl,
     string? EntrywayDid,
-    string? EntrywayJwtVerifyKeyK256PublicKeyHex);
+    string? EntrywayJwtVerifyKeyK256PublicKeyHex,
+    string? EntrywayAdminToken);
 
 public class AuthVerifier
 {
@@ -749,13 +750,29 @@ public class AuthVerifier
     }
     public Task<AdminOutput> AdminTokenAsync(HttpContext context)
     {
-        var auth = ParseBasicAuthorization(context.Request.Headers.Authorization);
-        if (auth == null || auth.Username != "admin" || auth.Password != _config.AdminPass)
+        var header = context.Request.Headers.Authorization.FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(header))
         {
-            throw new XRPCError(new AuthRequiredErrorDetail("Invalid admin credentials"));
+            var parts = header.Split(' ', 2);
+            if (parts.Length == 2 && parts[0].Equals("Bearer", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(_config.EntrywayAdminToken) &&
+                    parts[1] == _config.EntrywayAdminToken)
+                {
+                    return Task.FromResult(new AdminOutput(new AdminCredentials(), ""));
+                }
+            }
+            else if (parts.Length == 2 && parts[0].Equals("Basic", StringComparison.OrdinalIgnoreCase))
+            {
+                var auth = ParseBasicAuthorization(header);
+                if (auth != null && auth.Username == "admin" && auth.Password == _config.AdminPass)
+                {
+                    return Task.FromResult(new AdminOutput(new AdminCredentials(), ""));
+                }
+            }
         }
 
-        return Task.FromResult(new AdminOutput(new AdminCredentials(), ""));
+        throw new XRPCError(new AuthRequiredErrorDetail("Invalid admin credentials"));
     }
 
     public abstract record AuthOutput

@@ -157,6 +157,7 @@ public record ServerConfig
             CacheMaxTTL = env.PDS_DID_CACHE_MAX_TTL,
             ResolverTimeout = env.PDS_ID_RESOLVER_TIMEOUT,
             RecoveryDidKey = env.PDS_RECOVERY_DID_KEY,
+            EntrywayPlcRotationKey = env.PDS_ENTRYWAY_PLC_ROTATION_KEY,
             ServiceHandleDomains = env.PDS_SERVICE_HANDLE_DOMAINS?.Count > 0 ? env.PDS_SERVICE_HANDLE_DOMAINS :
                 env.PDS_HOSTNAME == "localhost" ? new List<string> {".test"} : new List<string> {$".{env.PDS_HOSTNAME}"},
             EnableDidDocWithSession = env.PDS_ENABLE_DID_DOC_WITH_SESSION
@@ -337,7 +338,8 @@ public record ServerConfig
                 config.Service.Did,
                 config._env.PDS_OAUTH_ENTRYWAY_URL,
                 config._env.PDS_OAUTH_ENTRYWAY_DID,
-                config._env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX));
+                config._env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX,
+                config._env.PDS_ENTRYWAY_ADMIN_TOKEN));
 
         // Sequencer
         services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
