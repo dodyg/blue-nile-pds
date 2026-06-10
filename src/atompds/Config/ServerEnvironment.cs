@@ -144,4 +144,7 @@ public class ServerEnvironment
     public bool PDS_ACCEPTING_REPO_IMPORTS { get; set; } = true;
     public long PDS_MAX_REPO_IMPORT_SIZE { get; set; } = 100 * 1024 * 1024; // 100MB
 
+    // Record Validation
+    public int PDS_RECORD_CREATED_AT_FUTURE_TOLERANCE_MS { get; set; } = 60_000; // 1 minute
+
 }

@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using AppBsky.Actor;
 using AppBsky.Feed;
@@ -11,34 +10,36 @@ using Multiformats.Codec;
 using Multiformats.Hash;
 using PeterO.Cbor;
 using Repo;
+using Xrpc;
 
 namespace ActorStore.Repo;
 
 public class Prepare
 {
+    private static readonly HashSet<string> KnownCollections =
+    [
+        "app.bsky.feed.post",
+        "app.bsky.actor.profile",
+        "app.bsky.graph.follow",
+        "app.bsky.feed.like",
+        "app.bsky.feed.repost"
+    ];
+
     public static PreparedDelete PrepareDelete(string did, string collection, string rkey, Cid? swapCid)
     {
         return new PreparedDelete(ATUri.Create(did, collection, rkey), swapCid);
     }
 
-    public static PreparedCreate PrepareCreate(string did, string collection, string? rkey, Cid? swapCid, JsonElement record, bool? validate)
+    public static PreparedCreate PrepareCreate(string did, string collection, string? rkey, Cid? swapCid, JsonElement record, bool? validate, TimeSpan? createdAtTolerance = null)
     {
         var maybeValidate = validate != false;
         var recordType = GetRecordType(record);
         if (recordType != collection && maybeValidate)
         {
-            throw new Exception($"Invalid type, expected {collection}, got {recordType}");
+            throw new XRPCError(new InvalidRequestErrorDetail($"Invalid type, expected {collection}, got {recordType}"));
         }
 
-        // TODO: need to properly validate the record
-        var validationStatus = ValidationStatus.Unknown;
-        if (maybeValidate)
-        {
-            // TODO:
-            // 1. ensure type exists
-            // 2. validate against lexicon
-            // 3. ensure createdAt is valid
-        }
+        var validationStatus = ValidateRecord(record, collection, maybeValidate, createdAtTolerance);
 
         var nextRKey = TID.Next();
         rkey ??= nextRKey.ToString();
@@ -56,20 +57,16 @@ public class Prepare
     }
 
 
-    public static PreparedUpdate PrepareUpdate(string did, string collection, string rkey, Cid? swapCid, JsonElement record, bool? validate)
+    public static PreparedUpdate PrepareUpdate(string did, string collection, string rkey, Cid? swapCid, JsonElement record, bool? validate, TimeSpan? createdAtTolerance = null)
     {
         var maybeValidate = validate != false;
         var recordType = GetRecordType(record);
         if (recordType != collection && maybeValidate)
         {
-            throw new Exception($"Invalid type, expected {collection}, got {recordType}");
+            throw new XRPCError(new InvalidRequestErrorDetail($"Invalid type, expected {collection}, got {recordType}"));
         }
 
-        var validationStatus = ValidationStatus.Unknown;
-        if (maybeValidate)
-        {
-            //
-        }
+        var validationStatus = ValidateRecord(record, collection, maybeValidate, createdAtTolerance);
 
         AssertNoExplicitSlurs(collection, rkey, record);
         return new PreparedUpdate(
@@ -81,10 +78,80 @@ public class Prepare
             validationStatus);
     }
 
+    private static ValidationStatus ValidateRecord(JsonElement record, string collection, bool maybeValidate, TimeSpan? createdAtTolerance)
+    {
+        if (!maybeValidate)
+        {
+            return ValidationStatus.Unknown;
+        }
+
+        var recordType = GetRecordType(record);
+        if (string.IsNullOrEmpty(recordType))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("Missing $type in record"));
+        }
+
+        // createdAt future check (applies to all records)
+        if (record.TryGetProperty("createdAt", out var createdAtProp) &&
+            createdAtProp.ValueKind == JsonValueKind.String)
+        {
+            if (DateTime.TryParse(createdAtProp.GetString(), out var createdAt))
+            {
+                var tolerance = createdAtTolerance ?? TimeSpan.FromMinutes(1);
+                if (createdAt > DateTime.UtcNow + tolerance)
+                {
+                    throw new XRPCError(new InvalidRequestErrorDetail("createdAt is in the future"));
+                }
+            }
+        }
+
+        // Known collection validation
+        if (!KnownCollections.Contains(recordType))
+        {
+            return ValidationStatus.Unknown;
+        }
+
+        // Minimal field validation for the 5 most-written lexicons
+        switch (recordType)
+        {
+            case "app.bsky.feed.post":
+                EnsureRequiredField(record, "text");
+                EnsureRequiredField(record, "createdAt");
+                break;
+            case "app.bsky.actor.profile":
+                // profile has no strict required fields
+                break;
+            case "app.bsky.graph.follow":
+                EnsureRequiredField(record, "subject");
+                EnsureRequiredField(record, "createdAt");
+                break;
+            case "app.bsky.feed.like":
+                EnsureRequiredField(record, "subject");
+                EnsureRequiredField(record, "createdAt");
+                break;
+            case "app.bsky.feed.repost":
+                EnsureRequiredField(record, "subject");
+                EnsureRequiredField(record, "createdAt");
+                break;
+        }
+
+        return ValidationStatus.Valid;
+    }
+
+    private static void EnsureRequiredField(JsonElement record, string fieldName)
+    {
+        if (!record.TryGetProperty(fieldName, out _) ||
+            (record.TryGetProperty(fieldName, out var prop) &&
+             (prop.ValueKind == JsonValueKind.Null || prop.ValueKind == JsonValueKind.Undefined)))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail($"Missing required field: {fieldName}"));
+        }
+    }
+
     public static Cid CidForSafeRecord(JsonElement record)
     {
         var bytes = CanonicalDagCbor.Encode(record);
-        var hash = Multihash.Encode(SHA256.HashData(bytes), HashType.SHA2_256);
+        var hash = Multihash.Encode(System.Security.Cryptography.SHA256.HashData(bytes), HashType.SHA2_256);
         return Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash);
     }
 
@@ -155,7 +222,7 @@ public class Prepare
 
         if (HandleManager.HasExplicitSlur(sb.ToString()))
         {
-            throw new Exception("Unacceptable slur in record.");
+            throw new XRPCError(new InvalidRequestErrorDetail("Unacceptable slur in record."));
         }
     }
 

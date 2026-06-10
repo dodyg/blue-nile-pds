@@ -3,6 +3,7 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
+using atompds.Config;
 using atompds.Middleware;
 using atompds.Services;
 using CarpaNet;
@@ -74,7 +75,8 @@ public static class ApplyWritesEndpoints
         ActorRepositoryProvider actorRepositoryProvider,
         SequencerRepository sequencer,
         WriteSnapshotCache writeSnapshotCache,
-        ILogger<Program> logger)
+        ILogger<Program> logger,
+        ServerEnvironment env)
     {
         var tx = PutRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid record payload."));
         logger.LogInformation("PutRecord: {tx}", tx);
@@ -90,7 +92,7 @@ public static class ApplyWritesEndpoints
             ? new ApplyWritesUpdate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }
             : new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record };
 
-        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache);
+        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, env);
         var commitMeta = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev };
 
         if (isUpdate)
@@ -122,11 +124,12 @@ public static class ApplyWritesEndpoints
         ActorRepositoryProvider actorRepositoryProvider,
         SequencerRepository sequencer,
         WriteSnapshotCache writeSnapshotCache,
-        ILogger<Program> logger)
+        ILogger<Program> logger,
+        ServerEnvironment env)
     {
         var tx = DeleteRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete payload."));
         logger.LogInformation("DeleteRecord: {tx}", tx);
-        var (commit, _) = await HandleAsync(context, tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new ApplyWritesDelete { Collection = tx.Collection, Rkey = tx.Rkey }], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache);
+        var (commit, _) = await HandleAsync(context, tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new ApplyWritesDelete { Collection = tx.Collection, Rkey = tx.Rkey }], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, env);
         return Results.Ok(new DeleteRecordOutput
         {
             Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev }
@@ -140,11 +143,12 @@ public static class ApplyWritesEndpoints
         ActorRepositoryProvider actorRepositoryProvider,
         SequencerRepository sequencer,
         WriteSnapshotCache writeSnapshotCache,
-        ILogger<Program> logger)
+        ILogger<Program> logger,
+        ServerEnvironment env)
     {
         var tx = CreateRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid create payload."));
         logger.LogInformation("CreateRecord: {tx}", tx);
-        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, null, [new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache);
+        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, null, [new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, env);
         var write = (PreparedCreate)writeArr[0];
         return Results.Ok(new CreateRecordOutput
         {
@@ -162,12 +166,13 @@ public static class ApplyWritesEndpoints
         ActorRepositoryProvider actorRepositoryProvider,
         SequencerRepository sequencer,
         WriteSnapshotCache writeSnapshotCache,
-        ILogger<Program> logger)
+        ILogger<Program> logger,
+        ServerEnvironment env)
     {
         var tx = JsonSerializer.Deserialize<ApplyWritesInput>(json.RootElement.GetRawText(), ApplyWritesJsonOptions)
                  ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid applyWrites payload."));
         logger.LogInformation("ApplyWrites: {tx}", tx);
-        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, null, tx.Writes, accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache);
+        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, null, tx.Writes, accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, env);
         return Results.Ok(new ApplyWritesOutput
         {
             Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev },
@@ -202,7 +207,8 @@ public static class ApplyWritesEndpoints
         AccountRepository accountRepository,
         ActorRepositoryProvider actorRepositoryProvider,
         SequencerRepository sequencer,
-        WriteSnapshotCache writeSnapshotCache)
+        WriteSnapshotCache writeSnapshotCache,
+        ServerEnvironment env)
     {
         var did = await CheckAccountAsync(context, repo, accountRepository);
         if (writeOps == null || writeOps.Count > 200)
@@ -217,7 +223,8 @@ public static class ApplyWritesEndpoints
                 {
                     if (string.IsNullOrWhiteSpace(create.Collection) || create.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
                         throw new XRPCError(new InvalidRequestErrorDetail("Invalid create."));
-                    var preparedCreate = Prepare.PrepareCreate(did, create.Collection, create.Rkey, null, create.Value, validate);
+                    var tolerance = TimeSpan.FromMilliseconds(env.PDS_RECORD_CREATED_AT_FUTURE_TOLERANCE_MS);
+                    var preparedCreate = Prepare.PrepareCreate(did, create.Collection, create.Rkey, null, create.Value, validate, tolerance);
                     writes.Add(preparedCreate);
                     break;
                 }
@@ -227,7 +234,8 @@ public static class ApplyWritesEndpoints
                         update.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
                         throw new XRPCError(new InvalidRequestErrorDetail("Invalid update."));
                     Cid? swapRecordCid = swapRecord != null ? Cid.FromString(swapRecord) : null;
-                    var preparedUpdate = Prepare.PrepareUpdate(did, update.Collection, update.Rkey, swapRecordCid, update.Value, validate);
+                    var tolerance = TimeSpan.FromMilliseconds(env.PDS_RECORD_CREATED_AT_FUTURE_TOLERANCE_MS);
+                    var preparedUpdate = Prepare.PrepareUpdate(did, update.Collection, update.Rkey, swapRecordCid, update.Value, validate, tolerance);
                     writes.Add(preparedUpdate);
                     break;
                 }
