@@ -1,7 +1,10 @@
-﻿using CID;
+﻿using System.Security.Cryptography;
+using CID;
 using CarpaNet;
 using Common;
 using Crypto;
+using Multiformats.Codec;
+using Multiformats.Hash;
 using PeterO.Cbor;
 using Repo.MST;
 
@@ -154,6 +157,46 @@ public class Repo
         var commit = await FormatCommitAsync(toWrite, keypair);
         return await ApplyCommitAsync(commit);
     }
+
+    /// <summary>
+    /// Re-sign an existing commit with a new keypair. Does not increment rev.
+    /// </summary>
+    public async Task<CommitData> FormatResignCommitAsync(string rev, IKeyPair keypair)
+    {
+        if (Commit.Rev != rev)
+            throw new InvalidOperationException($"Commit rev mismatch: expected {rev}, got {Commit.Rev}");
+
+        var newCommit = Util.SignCommit(new UnsignedCommit(Commit.Did, Commit.Data, Commit.Rev, Commit.Prev), keypair);
+        var newCommitCid = CidForSafeRecord(newCommit.ToCborObject());
+
+        var newBlocks = new BlockMap();
+        newBlocks.Set(newCommitCid, newCommit.ToCborObject().EncodeToBytes());
+
+        var removedCids = new CidSet();
+        if (newCommitCid != Cid)
+        {
+            removedCids.Add(Cid);
+        }
+
+        return new CommitData(newCommitCid, Commit.Rev, null, Commit.Prev, newBlocks, removedCids);
+    }
+
+    /// <summary>
+    /// FormatResignCommit + ApplyCommit.
+    /// </summary>
+    public async Task<Repo> ResignCommitAsync(string rev, IKeyPair keypair)
+    {
+        var commit = await FormatResignCommitAsync(rev, keypair);
+        return await ApplyCommitAsync(commit);
+    }
+
+    private static Cid CidForSafeRecord(CBORObject record)
+    {
+        var bytes = record.EncodeToBytes();
+        var hash = Multihash.Encode(System.Security.Cryptography.SHA256.HashData(bytes), Multiformats.Hash.HashType.SHA2_256);
+        return Cid.NewV1((ulong)Multiformats.Codec.MulticodecCode.MerkleDAGCBOR, hash);
+    }
+
     public record Params(IRepoStorage Storage, MST.MST Data, Commit Commit, Cid Cid);
 }
 
