@@ -2159,7 +2159,7 @@ public class ExtractBlobTests
     public async Task CidValidation_DagCborCodec_InvalidAsync()
     {
         // CID with dag-cbor codec (0x71) - NOT valid for blobs, only for data objects
-        var hash = Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("test data"));
+        var hash = await Task.Run(() => Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("test data")));
         var dagCborCid = Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash, MultibaseEncoding.Base32Lower);
         
         await Assert.That(dagCborCid.Codec).IsEqualTo((ulong)MulticodecCode.MerkleDAGCBOR);
@@ -2174,7 +2174,7 @@ public class ExtractBlobTests
     public async Task CidValidation_DagPbCodec_InvalidAsync()
     {
         // CID with dag-pb codec (0x70) - NOT valid for blobs
-        var hash = Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("test data"));
+        var hash = await Task.Run(() => Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("test data")));
         var dagPbCid = Cid.NewV1(Cid.DAG_PB, hash, MultibaseEncoding.Base32Lower);
         
         await Assert.That(dagPbCid.Codec).IsEqualTo(Cid.DAG_PB);
@@ -2475,7 +2475,7 @@ public class ExtractBlobTests
     public async Task CidValidation_MixedValidAndInvalidCodecs_FindsOnlyRawAsync()
     {
         var rawCid = Cid.Create("raw codec", MultibaseEncoding.Base32Lower);
-        var hash = Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("dag-cbor codec"));
+        var hash = await Task.Run(() => Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("dag-cbor codec")));
         var dagCborCid = Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash, MultibaseEncoding.Base32Lower);
         
         var json = $$"""

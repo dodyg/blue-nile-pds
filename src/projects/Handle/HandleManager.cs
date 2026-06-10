@@ -57,9 +57,9 @@ public partial class HandleManager
             throw new XRPCError(new InvalidHandleErrorDetail("Inappropriate language in handle"));
         }
 
-        if (IsServiceDomain(handle, _identityConfig.ServiceHandleDomains.ToArray()))
+        if (TryGetSupportedServiceDomain(handle, _identityConfig.ServiceHandleDomains.ToArray()) is { } supportedDomain)
         {
-            EnsureHandleServiceConstraints(handle, _identityConfig.ServiceHandleDomains.ToArray(), allowReserved ?? false);
+            EnsureHandleServiceConstraints(handle, supportedDomain, allowReserved ?? false);
         }
         else
         {
@@ -78,13 +78,16 @@ public partial class HandleManager
         return handle;
     }
 
-    private void EnsureHandleServiceConstraints(string handle, string[] availableUserDomains, bool allowReserved = false)
+    private void EnsureHandleServiceConstraints(string handle, string supportedDomain, bool allowReserved = false)
     {
-        var supportedDomain = availableUserDomains.FirstOrDefault(handle.EndsWith) ?? "";
-
         // ex. handle = "foo.bar.baz", supportedDomain = "bar.baz"
         // check that "foo" is valid
-        var front = handle[..(handle.Length - supportedDomain.Length - 1)];
+        if (handle.Length <= supportedDomain.Length + 1)
+        {
+            throw new XRPCError(new InvalidHandleErrorDetail("Handle too short"));
+        }
+
+        var front = handle[..^(supportedDomain.Length + 1)];
         if (front.Contains('.'))
         {
             throw new XRPCError(new InvalidHandleErrorDetail("Invalid characters in handle"));
@@ -106,9 +109,24 @@ public partial class HandleManager
         }
     }
 
-    private bool IsServiceDomain(string handle, string[] serviceDomains)
+    private static string? TryGetSupportedServiceDomain(string handle, string[] serviceDomains)
     {
-        return serviceDomains.Any(handle.EndsWith);
+        foreach (var configuredDomain in serviceDomains)
+        {
+            var normalizedDomain = NormalizeServiceDomain(configuredDomain);
+            if (handle.Equals(normalizedDomain, StringComparison.Ordinal) ||
+                handle.EndsWith($".{normalizedDomain}", StringComparison.Ordinal))
+            {
+                return normalizedDomain;
+            }
+        }
+
+        return null;
+    }
+
+    private static string NormalizeServiceDomain(string serviceDomain)
+    {
+        return serviceDomain.Trim().TrimStart('.').ToLowerInvariant();
     }
 
     private bool IsValidTld(string tld)

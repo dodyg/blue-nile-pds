@@ -84,10 +84,23 @@ public class BlobTransactor
         // let the blob store handle figuring out the size
         // don't try to read the stream length here as it might not be seekable, so it will throw not supported exception
         var size = await BlobStore.GetTempSizeAsync(tempKey);
-        // TODO: content type sniffing 
+
+        // T-12: content type sniffing
+        var sniffedMime = await SniffMimeTypeAsync(tempKey);
+        if (!string.IsNullOrEmpty(sniffedMime) && !string.IsNullOrEmpty(userMimeType))
+        {
+            var highRiskTypes = new[] { "text/html", "image/svg+xml", "application/javascript", "text/javascript" };
+            var isHighRisk = highRiskTypes.Any(ht =>
+                userMimeType.Contains(ht, StringComparison.OrdinalIgnoreCase) ||
+                sniffedMime.Contains(ht, StringComparison.OrdinalIgnoreCase));
+            if (isHighRisk && !userMimeType.Equals(sniffedMime, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"MIME type mismatch: declared {userMimeType}, sniffed {sniffedMime}");
+            }
+        }
 
         var blob = new BlobMetaData(
-            MimeType: string.IsNullOrEmpty(userMimeType) ? "application/octet-stream" : userMimeType,
+            MimeType: string.IsNullOrEmpty(userMimeType) ? (sniffedMime ?? "application/octet-stream") : userMimeType,
             Size: size,
             Cid: cid
         );
@@ -222,6 +235,76 @@ public class BlobTransactor
     }
 
 
+
+    private async Task<string?> SniffMimeTypeAsync(string tempKey)
+    {
+        try
+        {
+            var stream = await BlobStore.GetTempStreamAsync(tempKey);
+            var buffer = new byte[512];
+            var read = await stream.ReadAsync(buffer, 0, buffer.Length);
+            if (read == 0) return null;
+
+            var span = buffer.AsSpan(0, read);
+
+            // SVG
+            if (span.Length > 5 &&
+                (span[0] == 0x3C && span[1] == 0x73 && span[2] == 0x76 && span[3] == 0x67) ||
+                (span[0] == 0x3C && span[1] == 0x3F && span[2] == 0x78 && span[3] == 0x6D && span[4] == 0x6C))
+            {
+                return "image/svg+xml";
+            }
+
+            // HTML
+            if (span.Length > 6 &&
+                (span[0] == 0x3C && span[1] == 0x21 && span[2] == 0x44 && span[3] == 0x4F && span[4] == 0x43 && span[5] == 0x54) ||
+                (span[0] == 0x3C && span[1] == 0x68 && span[2] == 0x74 && span[3] == 0x6D && span[4] == 0x6C) ||
+                (span[0] == 0x3C && span[1] == 0x48 && span[2] == 0x54 && span[3] == 0x4D && span[4] == 0x4C))
+            {
+                return "text/html";
+            }
+
+            // JavaScript
+            if (span.Length > 10)
+            {
+                var text = System.Text.Encoding.UTF8.GetString(span);
+                if (text.Contains("function", StringComparison.Ordinal) ||
+                    text.Contains("var ", StringComparison.Ordinal) ||
+                    text.Contains("const ", StringComparison.Ordinal) ||
+                    text.Contains("let ", StringComparison.Ordinal))
+                {
+                    return "application/javascript";
+                }
+            }
+
+            // PNG
+            if (span.Length > 8 && span[0] == 0x89 && span[1] == 0x50 && span[2] == 0x4E && span[3] == 0x47)
+                return "image/png";
+
+            // JPEG
+            if (span.Length > 3 && span[0] == 0xFF && span[1] == 0xD8)
+                return "image/jpeg";
+
+            // GIF
+            if (span.Length > 6 && span[0] == 0x47 && span[1] == 0x49 && span[2] == 0x46)
+                return "image/gif";
+
+            // WebP
+            if (span.Length > 12 && span[0] == 0x52 && span[1] == 0x49 && span[2] == 0x46 && span[3] == 0x46 &&
+                span[8] == 0x57 && span[9] == 0x45 && span[10] == 0x42 && span[11] == 0x50)
+                return "image/webp";
+
+            // MP4
+            if (span.Length > 12 && span[4] == 0x66 && span[5] == 0x74 && span[6] == 0x79 && span[7] == 0x70)
+                return "video/mp4";
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     public record BlobMetaData(
         string MimeType,

@@ -172,8 +172,16 @@ public class RecordRepository
 
         if (recordType == "app.bsky.feed.like" || recordType == "app.bsky.feed.repost")
         {
+            if (!record.ContainsKey("subject"))
+            {
+                return [];
+            }
+
             var subject = record["subject"];
-            if (subject != null && subject["uri"].Type != CBORType.TextString)
+            if (subject == null ||
+                subject.Type != CBORType.Map ||
+                !subject.ContainsKey("uri") ||
+                subject["uri"].Type != CBORType.TextString)
             {
                 return [];
             }

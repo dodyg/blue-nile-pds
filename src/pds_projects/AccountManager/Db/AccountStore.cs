@@ -45,14 +45,16 @@ public class AccountStore
         var accounts = _db.Accounts
             .Include(a => a.Actor)
             .AsQueryable();
+        accounts = accounts.Where(x => x.Actor != null);
+
         if (!flags.IncludeTakenDown)
         {
-            accounts = accounts.Where(x => x.Actor.TakedownRef == null);
+            accounts = accounts.Where(x => x.Actor!.TakedownRef == null);
         }
 
         if (!flags.IncludeDeactivated)
         {
-            accounts = accounts.Where(x => x.Actor.DeactivatedAt == null);
+            accounts = accounts.Where(x => x.Actor!.DeactivatedAt == null);
         }
 
         return accounts;
@@ -63,11 +65,11 @@ public class AccountStore
         var accounts = SelectAccountQb(flags);
         if (handleOrDid.StartsWith("did:"))
         {
-            accounts = accounts.Where(x => x.Actor.Did == handleOrDid);
+            accounts = accounts.Where(x => x.Actor!.Did == handleOrDid);
         }
         else
         {
-            accounts = accounts.Where(x => x.Actor.Handle == handleOrDid);
+            accounts = accounts.Where(x => x.Actor!.Handle == handleOrDid);
         }
 
         var result = await accounts.FirstOrDefaultAsync();
@@ -77,10 +79,10 @@ public class AccountStore
     public async Task<Dictionary<string, ActorAccount>> GetAccountsAsync(string[] dids, AvailabilityFlags? flags = null)
     {
         var actors = SelectAccountQb(flags);
-        actors = actors.Where(x => dids.Contains(x.Actor.Did));
+        actors = actors.Where(x => dids.Contains(x.Actor!.Did));
         var results = await actors.ToArrayAsync();
 
-        return results.ToDictionary(x => x.Actor.Did, x => ActorAccount.From(x.Actor, x)!);
+        return results.ToDictionary(x => x.Actor!.Did, x => ActorAccount.From(x.Actor!, x)!);
     }
 
     public async Task<ActorAccount?> GetAccountByEmailAsync(string email, AvailabilityFlags? flags = null)
@@ -290,5 +292,45 @@ public class AccountStore
             account.InvitesDisabled = disabled;
             await _db.SaveChangesAsync();
         }
+    }
+
+    public async Task<(ActorAccount[] Accounts, string? Cursor)> SearchAccountsAsync(string? email, string? cursor, int limit)
+    {
+        limit = Math.Clamp(limit, 1, 100);
+
+        var query = _db.Accounts
+            .Include(a => a.Actor)
+            .Where(a => a.Actor != null)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var term = email.ToLower();
+            query = query.Where(a =>
+                a.Email.ToLower().Contains(term) ||
+                a.Actor!.Handle.ToLower().Contains(term));
+        }
+
+        // Cursor-based pagination using Did as cursor
+        if (!string.IsNullOrWhiteSpace(cursor))
+        {
+            query = query.Where(a => string.Compare(a.Actor!.Did, cursor) > 0);
+        }
+
+        query = query.OrderBy(a => a.Actor!.Did).Take(limit + 1);
+        var results = await query.ToArrayAsync();
+
+        string? nextCursor = null;
+        if (results.Length > limit)
+        {
+            nextCursor = results[limit - 1].Actor!.Did;
+            results = results[..limit];
+        }
+
+        var accounts = results
+            .Select(r => ActorAccount.From(r.Actor!, r)!)
+            .ToArray();
+
+        return (accounts, nextCursor);
     }
 }

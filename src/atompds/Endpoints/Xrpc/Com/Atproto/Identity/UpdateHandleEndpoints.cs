@@ -35,6 +35,11 @@ public static class UpdateHandleEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("handle is required"));
 
         var validatedHandle = await handleManager.NormalizeAndValidateHandleAsync(request.Handle, did, false);
+        var existingAccount = await accountRepository.GetAccountAsync(validatedHandle, new AvailabilityFlags(true, true));
+        if (existingAccount != null && existingAccount.Did != did)
+        {
+            throw new XRPCError(new HandleNotAvailableErrorDetail($"Handle already taken: {validatedHandle}"));
+        }
 
         try
         {

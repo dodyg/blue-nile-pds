@@ -51,15 +51,18 @@ public class ServerEnvironment
 
 
     public string PDS_DID_PLC_URL { get; set; } = "https://plc.directory";
-    public int PDS_DID_CACHE_STALE_TTL { get; set; } = DAY;
-    public int PDS_DID_CACHE_MAX_TTL { get; set; } = HOUR;
+    public int PDS_DID_CACHE_STALE_TTL { get; set; } = HOUR;
+    public int PDS_DID_CACHE_MAX_TTL { get; set; } = DAY;
     public int PDS_ID_RESOLVER_TIMEOUT { get; set; } = 3 * SECOND;
     public string? PDS_RECOVERY_DID_KEY { get; set; }
     public List<string> PDS_SERVICE_HANDLE_DOMAINS { get; set; } = [];
     public bool PDS_ENABLE_DID_DOC_WITH_SESSION { get; set; } = false;
 
+    // DPoP
+    public string? PDS_DPOP_SECRET { get; set; }
+
     // Invites
-    public bool PDS_INVITE_REQUIRED { get; set; } = false;
+    public bool PDS_INVITE_REQUIRED { get; set; } = true;
     public int? PDS_INVITE_INTERVAL { get; set; }
     public int InviteEpoch { get; set; } = 0;
 
@@ -116,6 +119,8 @@ public class ServerEnvironment
 
     // Rate Limiting
     public bool PDS_RATE_LIMITS_ENABLED { get; set; } = true;
+    public string? PDS_RATE_LIMIT_BYPASS_KEY { get; set; }
+    public List<string> PDS_RATE_LIMIT_BYPASS_IPS { get; set; } = [];
 
     // Anti-Abuse
     public string? PDS_HCAPTCHA_SECRET { get; set; }
@@ -133,11 +138,54 @@ public class ServerEnvironment
 
     // Admin
     public string? PDS_ADMIN_PASSWORD { get; set; }
+    public string? PDS_ENTRYWAY_ADMIN_TOKEN { get; set; }
+    public string? PDS_ENTRYWAY_PLC_ROTATION_KEY { get; set; }
 
     // OAuth
     public List<string> PDS_OAUTH_ALLOWED_REDIRECT_URIS { get; set; } = [];
 
     // Redis
     public string? PDS_REDIS_URL { get; set; }
+    public string? PDS_REDIS_SCRATCH_PASSWORD { get; set; }
+
+    // SQLite
+    public bool PDS_SQLITE_DISABLE_WAL_AUTO_CHECKPOINT { get; set; } = false;
+
+    // Handle Resolution
+    public List<string> PDS_HANDLE_BACKUP_NAMESERVERS { get; set; } = [];
+
+    // Moderation / Ozone
+    public string? PDS_MOD_SERVICE_URL { get; set; }
+    public string? PDS_MOD_SERVICE_DID { get; set; }
+
+    // Chat
+    public string? PDS_CHAT_SERVICE_URL { get; set; }
+    public string? PDS_CHAT_SERVICE_DID { get; set; }
+
+    // Moderation Email
+    public string? PDS_MODERATION_EMAIL_SMTP_URL { get; set; }
+    public string? PDS_MODERATION_EMAIL_ADDRESS { get; set; }
+
+    // hCaptcha
+    public string? PDS_HCAPTCHA_TOKEN_SALT { get; set; }
+
+    // Lexicon
+    public string? PDS_LEXICON_AUTHORITY_DID { get; set; }
+
+    // Logging
+    public string? LOG_LEVEL { get; set; }
+    public string? LOG_DESTINATION { get; set; }
+
+    // OAuth Branding
+    public string? PDS_PRIMARY_COLOR { get; set; }
+    public string? PDS_ERROR_COLOR { get; set; }
+    public string? PDS_CONTRAST_SATURATION { get; set; }
+
+    // Repo Import
+    public bool PDS_ACCEPTING_REPO_IMPORTS { get; set; } = true;
+    public long PDS_MAX_REPO_IMPORT_SIZE { get; set; } = 100 * 1024 * 1024; // 100MB
+
+    // Record Validation
+    public int PDS_RECORD_CREATED_AT_FUTURE_TOLERANCE_MS { get; set; } = 60_000; // 1 minute
 
 }

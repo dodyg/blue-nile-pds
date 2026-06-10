@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AppBsky.Actor;
 using ActorStore;
+using atompds.Config;
 using atompds.Middleware;
 using atompds.Services;
 using Config;
@@ -24,7 +25,7 @@ public static class AppViewProxyEndpoints
     {
         group.MapGet("app.bsky.actor.getPreferences", GetPreferences).WithMetadata(new AccessStandardAttribute());
         group.MapPost("app.bsky.actor.putPreferences", PutPreferences).WithMetadata(new AccessStandardAttribute());
-        group.MapPost("chat.bsky.actor.deleteAccount", StubChatDeleteAccount).WithMetadata(new AccessStandardAttribute());
+        group.MapPost("chat.bsky.actor.deleteAccount", ProxyChatAsync).WithMetadata(new AccessStandardAttribute());
         group.MapPost("app.bsky.notification.registerPush", RegisterPushAsync);
 
         // Static proxy routes
@@ -78,10 +79,29 @@ public static class AppViewProxyEndpoints
         return Results.Ok();
     }
 
-    private static IResult StubChatDeleteAccount(HttpContext context)
+    private static async Task<IResult> ProxyChatAsync(
+        HttpContext context,
+        IBskyAppViewConfig config,
+        ActorRepositoryProvider actorRepositoryProvider,
+        HttpClient client,
+        IdResolver idResolver,
+        ServiceJwtBuilder serviceJwtBuilder,
+        WriteSnapshotCache writeSnapshotCache,
+        ILogger<Program> logger)
     {
-        var auth = context.GetAuthOutput();
-        return Results.Ok();
+        try
+        {
+            return await InnerAsync(context, config, actorRepositoryProvider, client, idResolver, serviceJwtBuilder, writeSnapshotCache, logger);
+        }
+        catch (XRPCError)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error in ChatProxy");
+            return Results.StatusCode(500);
+        }
     }
 
     private static async Task<IResult> RegisterPushAsync(
@@ -144,6 +164,34 @@ public static class AppViewProxyEndpoints
         }
     }
 
+    private static readonly HashSet<string> ProtectedMethods = new(StringComparer.Ordinal)
+    {
+        "com.atproto.server.createSession",
+        "com.atproto.server.getSession",
+        "com.atproto.server.refreshSession",
+        "com.atproto.server.deleteSession",
+        "com.atproto.server.updateEmail",
+        "com.atproto.server.confirmEmail",
+        "com.atproto.server.requestEmailConfirmation",
+        "com.atproto.server.requestEmailUpdate",
+        "com.atproto.server.requestPasswordReset",
+        "com.atproto.server.resetPassword",
+        "com.atproto.identity.resolveHandle",
+        "com.atproto.identity.updateHandle",
+        "com.atproto.identity.getRecommendedDidCredentials",
+        "com.atproto.server.createAppPassword",
+        "com.atproto.server.listAppPasswords",
+        "com.atproto.server.revokeAppPassword",
+    };
+
+    private static readonly HashSet<string> PrivilegedMethods = new(StringComparer.Ordinal)
+    {
+        "com.atproto.server.createAccount",
+    };
+
+    private static bool IsPrivilegedMethod(string nsid) =>
+        nsid.StartsWith("chat.bsky.", StringComparison.Ordinal) || PrivilegedMethods.Contains(nsid);
+
     private static async Task<IResult> CatchallProxyAsync(
         string nsid,
         HttpContext context,
@@ -155,9 +203,24 @@ public static class AppViewProxyEndpoints
         WriteSnapshotCache writeSnapshotCache,
         ILogger<Program> logger)
     {
-        if (!nsid.StartsWith("app.bsky.") && !nsid.StartsWith("chat.bsky.") && !nsid.StartsWith("com.atproto.moderation."))
+        if (ProtectedMethods.Contains(nsid))
         {
             return Results.NotFound();
+        }
+
+        if (!nsid.StartsWith("app.bsky.") && !nsid.StartsWith("chat.bsky.") && !nsid.StartsWith("com.atproto.moderation.") && !nsid.StartsWith("tools.ozone."))
+        {
+            return Results.NotFound();
+        }
+
+        // T-18: verify privileged scope for chat and createAccount
+        if (IsPrivilegedMethod(nsid))
+        {
+            var auth = context.GetAuthOutput();
+            if (auth.AccessCredentials.Scope != AuthVerifier.ScopeMap[AuthVerifier.AuthScope.AppPassPrivileged])
+            {
+                throw new XRPCError(new InvalidRequestErrorDetail("Method requires privileged access"));
+            }
         }
 
         try
@@ -192,7 +255,7 @@ public static class AppViewProxyEndpoints
         var proxyConfig = context.RequestServices.GetRequiredService<ProxyConfig>();
         var auth = context.GetAuthOutput();
         var reqNsid = ParseUrlNsid(context.Request.Path);
-        var proxyTarget = await ResolveProxyTargetAsync(context, config, idResolver);
+        var proxyTarget = await ResolveProxyTargetAsync(context, config, idResolver, reqNsid);
         var url = $"{proxyTarget.Url}/xrpc/{reqNsid}";
 
         if (!proxyConfig.DisableSsrfProtection)
@@ -264,6 +327,14 @@ public static class AppViewProxyEndpoints
 
             context.Response.StatusCode = (int)response.StatusCode;
             context.Response.ContentType = response.Content.Headers.ContentType?.ToString();
+
+            // T-19: forward select upstream response headers
+            foreach (var header in new[] { "atproto-repo-rev", "atproto-content-labelers", "retry-after" })
+            {
+                if (response.Headers.TryGetValues(header, out var vals))
+                    context.Response.Headers[header] = vals.ToArray();
+            }
+
             await context.Response.WriteAsync(content);
             return Results.Empty;
         }
@@ -495,8 +566,18 @@ public static class AppViewProxyEndpoints
         _ => false
     };
 
-    private static async Task<ProxyServiceDestination> ResolveProxyTargetAsync(HttpContext context, IBskyAppViewConfig config, IdResolver idResolver)
+    private static async Task<ProxyServiceDestination> ResolveProxyTargetAsync(HttpContext context, IBskyAppViewConfig config, IdResolver idResolver, string reqNsid)
     {
+        // T-17: route chat.bsky.* to dedicated chat service
+        if (reqNsid.StartsWith("chat.bsky.", StringComparison.Ordinal))
+        {
+            var env = context.RequestServices.GetRequiredService<ServerEnvironment>();
+            if (!string.IsNullOrWhiteSpace(env.PDS_CHAT_SERVICE_URL) && !string.IsNullOrWhiteSpace(env.PDS_CHAT_SERVICE_DID))
+            {
+                return new ProxyServiceDestination(env.PDS_CHAT_SERVICE_DID, NormalizeServiceUrl(env.PDS_CHAT_SERVICE_URL));
+            }
+        }
+
         var proxyHeader = context.Request.Headers["atproto-proxy"];
         if (proxyHeader.Count == 0)
         {
@@ -573,7 +654,7 @@ public static class AppViewProxyEndpoints
 
     private static string NormalizeServiceUrl(string url) => url.TrimEnd('/');
 
-    private static string ParseUrlNsid(string requestUrl)
+    public static string ParseUrlNsid(string requestUrl)
     {
         if (!requestUrl.StartsWith("/xrpc/"))
             throw new XRPCError(new InvalidRequestErrorDetail("invalid xrpc path"));
@@ -608,7 +689,7 @@ public static class AppViewProxyEndpoints
         return nsid[..curr];
     }
 
-    private static void ValidateUrlAgainstSsrf(string url)
+    public static void ValidateUrlAgainstSsrf(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))

@@ -120,15 +120,13 @@ public class AuthScopeTests
     }
 
     [Test]
-    [Skip("Known type mismatch: Auth.cs creates refresh+jwt but AuthVerifier expects rt+jwt")]
     public async Task Refresh_OnlyAcceptsRefreshToken()
     {
         var account = await CreateAccountAsync();
-        var token = AuthTestHelper.CreateRefreshToken(did: account.Did);
         var request = new HttpRequestMessage(HttpMethod.Post, "/xrpc/com.atproto.server.refreshSession");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.RefreshJwt);
         var response = await Client.SendAsync(request);
-        await Assert.That(response.StatusCode).IsNotEqualTo(HttpStatusCode.Unauthorized);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
     [Test]

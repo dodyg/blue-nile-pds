@@ -5,7 +5,7 @@ using Repo.MST;
 
 namespace Repo;
 
-public record CommitData(Cid Cid, string Rev, string? Since, Cid? Prev, BlockMap NewBlocks, CidSet RemovedCids)
+public record CommitData(Cid Cid, string Rev, string? Since, Cid? Prev, BlockMap NewBlocks, CidSet RemovedCids, BlockMap? RelevantBlocks = null)
 {
     public int Version => 3;
 }

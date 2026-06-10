@@ -246,7 +246,13 @@ public class SequencerRepository
                 });
             }
 
-            carSlice = await Util.BlocksToCarFileAsync(commitData.Cid, commitData.NewBlocks);
+            var blocksForCar = new BlockMap();
+            blocksForCar.AddMap(commitData.NewBlocks);
+            if (commitData.RelevantBlocks != null)
+            {
+                blocksForCar.AddMap(commitData.RelevantBlocks);
+            }
+            carSlice = await Util.BlocksToCarFileAsync(commitData.Cid, blocksForCar);
         }
 
         return new RepoSeq

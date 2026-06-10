@@ -6,5 +6,5 @@ public class IdentityResolverOpts
     public required string PlcUrl { get; init; }
 
     public required IDidCache DidCache { get; init; }
-    // public string[] BackupNameServers { get; set; }
+    public List<string> BackupNameservers { get; set; } = [];
 }

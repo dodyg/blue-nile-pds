@@ -148,7 +148,7 @@ public static class MSTDiff
                 continue;
             }
 
-            throw new Exception("Unidentifiable case in diff walk");
+            throw new InvalidOperationException("Unidentifiable case in diff walk");
         }
 
         return diff;
@@ -202,7 +202,7 @@ public class DataDiff
         }
         else
         {
-            throw new Exception("Unknown node type");
+            throw new InvalidOperationException("Unknown node type");
         }
     }
 
