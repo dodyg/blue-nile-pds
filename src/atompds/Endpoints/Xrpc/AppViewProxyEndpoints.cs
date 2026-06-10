@@ -264,6 +264,14 @@ public static class AppViewProxyEndpoints
 
             context.Response.StatusCode = (int)response.StatusCode;
             context.Response.ContentType = response.Content.Headers.ContentType?.ToString();
+
+            // T-19: forward select upstream response headers
+            foreach (var header in new[] { "atproto-repo-rev", "atproto-content-labelers", "retry-after" })
+            {
+                if (response.Headers.TryGetValues(header, out var vals))
+                    context.Response.Headers[header] = vals.ToArray();
+            }
+
             await context.Response.WriteAsync(content);
             return Results.Empty;
         }
