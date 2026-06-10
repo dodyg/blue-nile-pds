@@ -32,64 +32,61 @@ public class Actor
     public virtual Account? Account { get; set; }
 }
 
-// [Table(TableName)]
-// public class Device
-// {
-//     public const string TableName = "device";
-//
-//     [Key,StringLength(2048)] public required string DeviceId { get; set; }
-//     [StringLength(2048)] public required string SessionId { get; set; }
-//     [StringLength(2048)] public string? UserAgent { get; set; }
-//     [StringLength(2048)] public string? IpAddress { get; set; }
-//     public required DateTime LastSeenAt { get; set; }
-// }
-//
-// [Table(TableName)]
-// public class DeviceAccount
-// {
-//     public const string TableName = "device_account";
-//
-//     [Key,StringLength(2048)] public required string Did { get; set; }
-//     [StringLength(2048)] public required string DeviceId { get; set; }
-//     public required DateTime AuthenticatedAt { get; set; }
-//     public required string[] AuthorizedClients { get; set; }
-//     public required bool Remember { get; set; }
-// }
-//
-// [Table(TableName)]
-// public class AuthorizationRequest
-// {
-//     public const string TableName = "authorization_request";
-//
-//     [Key,StringLength(2048)] public required string RequestId { get; set; }
-//     [StringLength(2048)] public string? Did { get; set; }
-//     [StringLength(2048)] public string? DeviceId { get; set; }
-//     [StringLength(2048)] public required string OAuthClientId { get; set; }
-//     [StringLength(2048)] public required string ClientAuth { get; set; }
-//     [StringLength(2048)] public required string Parameters { get; set; }
-//     public required DateTime ExpiresAt { get; set; }
-//     [StringLength(2048)] public string? Code { get; set; }
-// }
-//
-// [Table(TableName)]
-// public class Token
-// {
-//     public const string TableName = "token";
-//
-//     [Key] public int Id { get; set; }
-//     [StringLength(2048)] public required string Did { get; set; }
-//     [StringLength(2048)] public required string TokenId { get; set; }
-//     public required DateTime CreatedAt { get; set; }
-//     public required DateTime UpdatedAt { get; set; }
-//     public required DateTime ExpiresAt { get; set; }
-//     [StringLength(2048)] public required string OAuthClientId { get; set; }
-//     [StringLength(2048)] public required string ClientAuth { get; set; }
-//     [StringLength(2048)] public string? DeviceId { get; set; }
-//     [StringLength(2048)] public required string Parameters { get; set; }
-//     [StringLength(2048)] public required string Details { get; set; }
-//     [StringLength(2048)] public required string Code { get; set; }
-//     [StringLength(2048)] public string? RefreshToken { get; set; }
-// }
+[Table(TableName)]
+public class Device
+{
+    public const string TableName = "device";
+
+    [Key,StringLength(2048)] public required string Id { get; set; }
+    [StringLength(2048)] public required string AccountDid { get; set; }
+    [StringLength(2048)] public required string SessionId { get; set; }
+    public required DateTime CreatedAt { get; set; }
+    public required DateTime LastSeenAt { get; set; }
+}
+
+[Table(TableName)]
+public class AccountDevice
+{
+    public const string TableName = "account_device";
+
+    [StringLength(2048)] public required string Did { get; set; }
+    [StringLength(2048)] public required string DeviceId { get; set; }
+}
+
+[Table(TableName)]
+public class AuthorizationRequest
+{
+    public const string TableName = "authorization_request";
+
+    [Key,StringLength(2048)] public required string Id { get; set; }
+    [StringLength(2048)] public string? Did { get; set; }
+    [StringLength(2048)] public required string Parameters { get; set; }
+    public required DateTime ExpiresAt { get; set; }
+}
+
+[Table(TableName)]
+public class AuthorizedClient
+{
+    public const string TableName = "authorized_client";
+
+    [Key,StringLength(2048)] public required string Id { get; set; }
+    [StringLength(2048)] public required string Did { get; set; }
+    [StringLength(2048)] public required string ClientId { get; set; }
+    [StringLength(2048)] public required string Scope { get; set; }
+    public required DateTime CreatedAt { get; set; }
+}
+
+[Table(TableName)]
+public class Token
+{
+    public const string TableName = "token";
+
+    [Key,StringLength(2048)] public required string Id { get; set; }
+    [StringLength(2048)] public required string Did { get; set; }
+    [StringLength(2048)] public required string TokenHash { get; set; }
+    public required DateTime CreatedAt { get; set; }
+    public required DateTime ExpiresAt { get; set; }
+}
 
 [Table(TableName)]
 public class RefreshToken
@@ -103,14 +100,26 @@ public class RefreshToken
     [StringLength(2048)] public string? NextId { get; set; }
 }
 
-// [Table(TableName)]
-// public class UsedRefreshToken
-// {
-//     public const string TableName = "used_refresh_token";
-//
-//     [StringLength(2048)] public required string TokenId { get; set; }
-//     [StringLength(2048)] public required string RefreshToken { get; set; }
-// }
+[Table(TableName)]
+public class UsedRefreshToken
+{
+    public const string TableName = "used_refresh_token";
+
+    [Key,StringLength(2048)] public required string Id { get; set; }
+    [StringLength(2048)] public required string Did { get; set; }
+    public required DateTime UsedAt { get; set; }
+}
+
+[Table(TableName)]
+public class Lexicon
+{
+    public const string TableName = "lexicon";
+
+    [Key,StringLength(2048)] public required string Nsid { get; set; }
+    [StringLength(2048)] public required string Uri { get; set; }
+    [StringLength(2048)] public required string Cid { get; set; }
+    public required string Def { get; set; }
+}
 
 [Table(TableName)]
 public class AppPassword

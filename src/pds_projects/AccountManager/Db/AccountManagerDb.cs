@@ -18,18 +18,20 @@ public class AccountManagerDb : DbContext
 
     public DbSet<Account> Accounts { get; set; }
 
-    //public DbSet<Device> Devices { get; set; }
-    //public DbSet<DeviceAccount> DeviceAccounts { get; set; }
-    //public DbSet<AuthorizationRequest> AuthorizationRequests { get; set; }
-    //public DbSet<Token> Tokens { get; set; }
+    public DbSet<Device> Devices { get; set; }
+    public DbSet<AccountDevice> AccountDevices { get; set; }
+    public DbSet<AuthorizationRequest> AuthorizationRequests { get; set; }
+    public DbSet<AuthorizedClient> AuthorizedClients { get; set; }
+    public DbSet<Token> Tokens { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
 
-    //public DbSet<UsedRefreshToken> UsedRefreshTokens { get; set; }
+    public DbSet<UsedRefreshToken> UsedRefreshTokens { get; set; }
     public DbSet<AppPassword> AppPasswords { get; set; }
     public DbSet<RepoRoot> RepoRoots { get; set; }
     public DbSet<InviteCode> InviteCodes { get; set; }
     public DbSet<InviteCodeUse> InviteCodeUses { get; set; }
     public DbSet<EmailToken> EmailTokens { get; set; }
+    public DbSet<Lexicon> Lexicons { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -79,5 +81,14 @@ public class AccountManagerDb : DbContext
         modelBuilder.Entity<EmailToken>().HasKey(et => new {et.Purpose, et.Did});
         // unique constraint, {purpose, token}
         modelBuilder.Entity<EmailToken>().HasIndex(et => new {et.Purpose, et.Token}).IsUnique();
+
+        // T-23: restored security tables
+        modelBuilder.Entity<Device>().HasKey(d => d.Id);
+        modelBuilder.Entity<AccountDevice>().HasKey(ad => new { ad.Did, ad.DeviceId });
+        modelBuilder.Entity<AuthorizationRequest>().HasKey(ar => ar.Id);
+        modelBuilder.Entity<AuthorizedClient>().HasKey(ac => ac.Id);
+        modelBuilder.Entity<Token>().HasKey(t => t.Id);
+        modelBuilder.Entity<UsedRefreshToken>().HasKey(urt => urt.Id);
+        modelBuilder.Entity<Lexicon>().HasKey(l => l.Nsid);
     }
 }
