@@ -58,8 +58,11 @@ public class ServerEnvironment
     public List<string> PDS_SERVICE_HANDLE_DOMAINS { get; set; } = [];
     public bool PDS_ENABLE_DID_DOC_WITH_SESSION { get; set; } = false;
 
+    // DPoP
+    public string? PDS_DPOP_SECRET { get; set; }
+
     // Invites
-    public bool PDS_INVITE_REQUIRED { get; set; } = false;
+    public bool PDS_INVITE_REQUIRED { get; set; } = true;
     public int? PDS_INVITE_INTERVAL { get; set; }
     public int InviteEpoch { get; set; } = 0;
 
@@ -141,6 +144,32 @@ public class ServerEnvironment
 
     // Redis
     public string? PDS_REDIS_URL { get; set; }
+    public string? PDS_REDIS_SCRATCH_PASSWORD { get; set; }
+
+    // SQLite
+    public bool PDS_SQLITE_DISABLE_WAL_AUTO_CHECKPOINT { get; set; } = false;
+
+    // Handle Resolution
+    public List<string> PDS_HANDLE_BACKUP_NAMESERVERS { get; set; } = [];
+
+    // Moderation Email
+    public string? PDS_MODERATION_EMAIL_SMTP_URL { get; set; }
+    public string? PDS_MODERATION_EMAIL_ADDRESS { get; set; }
+
+    // hCaptcha
+    public string? PDS_HCAPTCHA_TOKEN_SALT { get; set; }
+
+    // Lexicon
+    public string? PDS_LEXICON_AUTHORITY_DID { get; set; }
+
+    // Logging
+    public string? LOG_LEVEL { get; set; }
+    public string? LOG_DESTINATION { get; set; }
+
+    // OAuth Branding
+    public string? PDS_PRIMARY_COLOR { get; set; }
+    public string? PDS_ERROR_COLOR { get; set; }
+    public string? PDS_CONTRAST_SATURATION { get; set; }
 
     // Repo Import
     public bool PDS_ACCEPTING_REPO_IMPORTS { get; set; } = true;
