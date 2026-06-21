@@ -41,8 +41,8 @@
                 },
                 "author": {
                     "type": "ref",
-                    "ref": "app.bsky.actor.defs#profileViewBasic",
-                    "description": "Basic profile information for the post author."
+                    "ref": "app.bsky.actor.defs#profileViewDetailed",
+                    "description": "Detailed profile information for the post author."
                 },
                 "tags": {
                     "type": "array",

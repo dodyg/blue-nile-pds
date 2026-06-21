@@ -10,7 +10,7 @@ namespace atompds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 
 public static class BlogViewBuilder
 {
-    public static async Task<DefsProfileViewBasic> ResolveAuthorProfileAsync(
+    public static async Task<DefsProfileViewDetailed> ResolveAuthorProfileAsync(
         AccountRepository accountRepository, ActorRepositoryProvider actorRepositoryProvider,
         ServiceConfig serviceConfig, string did, string author)
     {
@@ -18,8 +18,13 @@ public static class BlogViewBuilder
         accounts.TryGetValue(did, out var authorAccount);
 
         string? displayName = null;
+        string? description = null;
+        string? pronouns = null;
+        string? website = null;
         string? avatarUrl = null;
+        string? bannerUrl = null;
         DateTime? createdAt = authorAccount?.CreatedAt;
+        DateTime? profileIndexedAt = null;
 
         if (actorRepositoryProvider.Exists(did))
         {
@@ -30,18 +35,42 @@ public static class BlogViewBuilder
             {
                 if (record.Value.TryGetProperty("displayName", out var dn) && dn.ValueKind == JsonValueKind.String)
                     displayName = dn.GetString();
+                if (record.Value.TryGetProperty("description", out var desc) && desc.ValueKind == JsonValueKind.String)
+                    description = desc.GetString();
+                if (record.Value.TryGetProperty("pronouns", out var pro) && pro.ValueKind == JsonValueKind.String)
+                    pronouns = pro.GetString();
+                if (record.Value.TryGetProperty("website", out var web) && web.ValueKind == JsonValueKind.String)
+                    website = web.GetString();
                 if (TryGetBlobCid(record.Value, "avatar", out var avatarCid))
                     avatarUrl = $"{serviceConfig.PublicUrl}/xrpc/com.atproto.sync.getBlob?did={did}&cid={avatarCid}";
+                if (TryGetBlobCid(record.Value, "banner", out var bannerCid))
+                    bannerUrl = $"{serviceConfig.PublicUrl}/xrpc/com.atproto.sync.getBlob?did={did}&cid={bannerCid}";
+                profileIndexedAt = record.IndexedAt;
             }
         }
 
-        return new DefsProfileViewBasic
+        return new DefsProfileViewDetailed
         {
             Did = new ATDid(did),
             Handle = new ATHandle(authorAccount?.Handle ?? (author.StartsWith("did:") ? did : author)),
             DisplayName = displayName,
+            Description = description,
+            Pronouns = pronouns,
+            Website = website,
             Avatar = avatarUrl,
-            CreatedAt = createdAt
+            Banner = bannerUrl,
+            CreatedAt = createdAt,
+            IndexedAt = profileIndexedAt ?? createdAt,
+            Viewer = null,
+            Labels = null,
+            PostsCount = null,
+            FollowersCount = null,
+            FollowsCount = null,
+            PinnedPost = null,
+            JoinedViaStarterPack = null,
+            Debug = null,
+            Verification = null,
+            Associated = null
         };
     }
 
@@ -67,7 +96,7 @@ public static class BlogViewBuilder
 
     public static DefsPostView BuildPostView(
         ActorStore.Repo.RecordRepository.RecordForCollection record, string did, ServiceConfig serviceConfig,
-        DefsProfileViewBasic author)
+        DefsProfileViewDetailed profile)
     {
         var val = record.Value;
 
@@ -105,7 +134,7 @@ public static class BlogViewBuilder
         return new DefsPostView
         {
             Uri = new ATUri(record.Uri),
-            Author = author,
+            Author = profile,
             Title = title,
             Slug = slug,
             Text = text,
