@@ -14,7 +14,7 @@ namespace Sequencer;
 
 public record CloseEvt;
 
-public class SequencerRepository
+public class SequencerRepository : IAsyncDisposable
 {
     private readonly Crawlers _crawlers;
 
@@ -88,9 +88,11 @@ public class SequencerRepository
         var rows = await seqs.ToArrayAsync();
         if (rows.Length < 1)
         {
+            _logger.LogDebug("GetRangeAsync(earliest={Earliest}, latest={Latest}, limit={Limit}) returned 0 rows", earliestSeq, latestSeq, limit);
             return [];
         }
 
+        _logger.LogDebug("GetRangeAsync(earliest={Earliest}, latest={Latest}, limit={Limit}) returned {Count} rows (seqs {MinSeq}-{MaxSeq})", earliestSeq, latestSeq, limit, rows.Length, rows.Min(r => r.Seq), rows.Max(r => r.Seq));
         var seqEvents = new List<ISeqEvt>();
         foreach (var row in rows)
         {
@@ -101,7 +103,7 @@ public class SequencerRepository
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error decoding event");
+                _logger.LogError(e, "Error decoding event at seq {Seq}", row.Seq);
             }
         }
 
@@ -157,6 +159,7 @@ public class SequencerRepository
     {
         _db.RepoSeqs.Add(evt);
         await _db.SaveChangesAsync();
+        _logger.LogInformation("Sequenced event seq={Seq} type={Type} did={Did}", evt.Seq, evt.EventType, evt.Did);
         var crawlers = _crawlers;
         await _backgroundJobWriter.WriteAsync(_ => crawlers.NotifyOfUpdateAsync());
         return evt.Seq;
@@ -190,6 +193,11 @@ public class SequencerRepository
     {
         var evt = FormatSeqTombstoneEvent(did);
         return await SequenceEventAsync(evt);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _db.DisposeAsync();
     }
 
     private async Task<RepoSeq> FormatSeqCommitAsync(string did, CommitData commitData, IPreparedWrite[] writes)

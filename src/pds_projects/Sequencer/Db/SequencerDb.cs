@@ -25,6 +25,12 @@ public class SequencerDb : DbContext
         modelBuilder.Entity<RepoSeq>()
             .Property(x => x.Seq)
             .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<RepoSeq>()
+            .Property(x => x.SequencedAt)
+            .HasConversion(
+                v => v.ToUniversalTime(),
+                v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
     }
 }
 

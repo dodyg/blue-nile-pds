@@ -153,7 +153,7 @@ public record ServerConfig
             ResolverTimeout = env.PDS_ID_RESOLVER_TIMEOUT,
             RecoveryDidKey = env.PDS_RECOVERY_DID_KEY,
             ServiceHandleDomains = env.PDS_SERVICE_HANDLE_DOMAINS?.Count > 0 ? env.PDS_SERVICE_HANDLE_DOMAINS :
-                env.PDS_HOSTNAME == "localhost" ? new List<string> {".test"} : new List<string> {$".{env.PDS_HOSTNAME}"},
+                env.PDS_HOSTNAME == "localhost" ? new List<string> { ".test" } : new List<string> { $".{env.PDS_HOSTNAME}" },
             EnableDidDocWithSession = env.PDS_ENABLE_DID_DOC_WITH_SESSION
         };
     }
@@ -232,13 +232,13 @@ public record ServerConfig
     {
         if (string.IsNullOrEmpty(path))
             return path;
-        
+
         if (path.StartsWith("~/"))
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[2..]);
-        
+
         if (path == "~")
             return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        
+
         return path;
     }
 
