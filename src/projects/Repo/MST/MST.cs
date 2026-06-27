@@ -2,6 +2,7 @@
 using CID;
 using Common;
 using PeterO.Cbor;
+using Repo.Car;
 
 namespace Repo.MST;
 
@@ -55,6 +56,14 @@ public record MST : INodeEntry
         }
 
         var data = await Storage.ReadObjAndBytesAsync(Pointer);
+
+        // T-14: verify block CID matches content
+        var computedCid = CborBlock.Encode(data.obj).Cid;
+        if (!computedCid.Equals(Pointer))
+        {
+            throw new UnexpectedObjectException(Pointer, "MST node", $"CID mismatch: computed {computedCid}");
+        }
+
         var nodeData = NodeData.FromCborObject(data.obj);
         TreeEntry? firstLeaf = nodeData.Entries.Count > 0 ? nodeData.Entries[0] : null;
         int? layer = firstLeaf != null ? Util.LeadingZerosOnHash(firstLeaf.Value.Key) : null;
@@ -174,7 +183,7 @@ public record MST : INodeEntry
             var first = await AtIndexAsync(index);
             if (first is Leaf leaf && leaf.Key == key)
             {
-                throw new Exception($"There is already a value at key: {key} with value: {leaf.Value}");
+                throw new InvalidOperationException($"There is already a value at key: {key} with value: {leaf.Value}");
             }
             var prevNode = await AtIndexAsync(index - 1);
             if (prevNode is null or Leaf)
@@ -188,7 +197,7 @@ public record MST : INodeEntry
                 var splitSubTree = await mst.SplitAroundAsync(key);
                 return await ReplaceWithSplitAsync(index - 1, splitSubTree.left, newLeaf, splitSubTree.right);
             }
-            throw new Exception("Invalid node type");
+            throw new InvalidOperationException("Invalid node type");
         }
         if (keyZeroes < layer)
         {
@@ -273,7 +282,7 @@ public record MST : INodeEntry
             return await UpdateEntryAsync(index - 1, updatedTree);
         }
 
-        throw new Exception($"Could not find a record with key: {key}");
+        throw new InvalidOperationException($"Could not find a record with key: {key}");
     }
 
     public async Task<MST> DeleteAsync(string key)
@@ -325,14 +334,14 @@ public record MST : INodeEntry
             }
             return await UpdateEntryAsync(index - 1, subtree);
         }
-        throw new Exception($"Could not find a record with key: {key}");
+        throw new InvalidOperationException($"Could not find a record with key: {key}");
     }
 
     public async Task<MST> AppendMergeAsync(MST toMerge)
     {
         if (await GetLayerAsync() != await toMerge.GetLayerAsync())
         {
-            throw new Exception("Cannot merge trees of different layers");
+            throw new InvalidOperationException("Cannot merge trees of different layers");
         }
 
         var entries = await GetEntriesAsync();
@@ -367,6 +376,163 @@ public record MST : INodeEntry
             else
             {
                 yield return entry;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Walk tree gracefully, skipping subtrees with missing blocks.
+    /// </summary>
+    public async IAsyncEnumerable<INodeEntry> WalkReachableAsync()
+    {
+        yield return this;
+        var entries = await TryGetEntriesAsync();
+        if (entries == null)
+        {
+            yield break;
+        }
+        foreach (var entry in entries)
+        {
+            if (entry is MST mst)
+            {
+                await foreach (var subEntry in SafeWalkReachableAsync(mst))
+                {
+                    yield return subEntry;
+                }
+            }
+            else
+            {
+                yield return entry;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stream blocks in pre-order DFS: node block, then leaf blocks, then subtrees.
+    /// </summary>
+    public async IAsyncEnumerable<CarBlock> CarBlockStreamAsync()
+    {
+        var entries = await GetEntriesAsync();
+        var (cid, bytes) = await SerializeAsync();
+        yield return new CarBlock(cid, bytes);
+
+        foreach (var entry in entries)
+        {
+            if (entry is Leaf leaf)
+            {
+                var leafBytes = await Storage.GetBytesAsync(leaf.Value);
+                if (leafBytes != null)
+                {
+                    yield return new CarBlock(leaf.Value, leafBytes);
+                }
+            }
+            else if (entry is MST mst)
+            {
+                await foreach (var block in mst.CarBlockStreamAsync())
+                {
+                    yield return block;
+                }
+            }
+        }
+    }
+
+    private static async Task<INodeEntry[]?> TryGetEntriesAsync(MST mst)
+    {
+        try
+        {
+            return await mst.GetEntriesAsync();
+        }
+        catch (MissingBlockException)
+        {
+            return null;
+        }
+    }
+
+    private async Task<INodeEntry[]?> TryGetEntriesAsync()
+    {
+        return await TryGetEntriesAsync(this);
+    }
+
+    private static async IAsyncEnumerable<INodeEntry> SafeWalkReachableAsync(MST mst)
+    {
+        var buffer = new List<INodeEntry>();
+        try
+        {
+            await foreach (var entry in mst.WalkReachableAsync())
+            {
+                buffer.Add(entry);
+            }
+        }
+        catch (MissingBlockException)
+        {
+            // skip branch with missing block
+        }
+        foreach (var entry in buffer)
+        {
+            yield return entry;
+        }
+    }
+
+    /// <summary>
+    /// Walk reachable leaves only.
+    /// </summary>
+    public async IAsyncEnumerable<Leaf> ReachableLeavesAsync()
+    {
+        await foreach (var node in WalkReachableAsync())
+        {
+            if (node is Leaf leaf)
+            {
+                yield return leaf;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get covering proof blocks for a key.
+    /// Walks from root to leaf, collecting all MST node blocks on the path.
+    /// Also collects left and right siblings of the leaf's parent node.
+    /// </summary>
+    public async Task<BlockMap> GetCoveringProofAsync(string key)
+    {
+        var proof = new BlockMap();
+        var entries = await GetEntriesAsync();
+        var index = await FindGtOrEqualLeafIndexAsync(key);
+
+        // Collect this node's block
+        var (cid, bytes) = await SerializeAsync();
+        proof.Set(cid, bytes);
+
+        var found = index < entries.Length ? entries[index] : null;
+        if (found is Leaf leaf && leaf.Key == key)
+        {
+            // Leaf is at index, parent subtree is at index - 1
+            if (index > 0 && entries[index - 1] is MST parentMst)
+            {
+                await CollectSiblingsAsync(proof, parentMst);
+            }
+            return proof;
+        }
+
+        // Otherwise recurse into the previous subtree
+        var prev = index > 0 ? entries[index - 1] : null;
+        if (prev is MST mst)
+        {
+            var childProof = await mst.GetCoveringProofAsync(key);
+            proof.AddMap(childProof);
+        }
+
+        return proof;
+    }
+
+    private static async Task CollectSiblingsAsync(BlockMap proof, MST node)
+    {
+        var childEntries = await node.GetEntriesAsync();
+        for (var i = 0; i < childEntries.Length; i++)
+        {
+            if (childEntries[i] is MST sibling)
+            {
+                var (sibCid, sibBytes) = await sibling.SerializeAsync();
+                proof.Set(sibCid, sibBytes);
             }
         }
     }

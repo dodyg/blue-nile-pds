@@ -1,0 +1,35 @@
+services:
+  pds:
+    build: .
+    ports:
+      - "2583:2583"
+    volumes:
+      - pds-data:/app/data
+    env_file:
+      - .env
+    environment:
+      - PDS_DATA_DIRECTORY=/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:2583/xrpc/_health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - pds
+    restart: unless-stopped
+
+volumes:
+  pds-data:
+  caddy-data:
+  caddy-config:

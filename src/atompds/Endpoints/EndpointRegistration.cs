@@ -39,12 +39,17 @@ public static class EndpointRegistration
         admin.MapDisableInviteCodesAdminEndpoints();
         admin.MapGetAccountInfoEndpoints();
         admin.MapGetAccountInfosEndpoints();
+        admin.MapSearchAccountsAdminEndpoints();
         admin.MapGetInviteCodesAdminEndpoints();
         admin.MapSendEmailAdminEndpoints();
         admin.MapSubjectStatusEndpoints();
         admin.MapUpdateAccountEmailAdminEndpoints();
         admin.MapUpdateAccountHandleAdminEndpoints();
         admin.MapUpdateAccountPasswordAdminEndpoints();
+        admin.MapSearchAccountsAdminEndpoints();
+
+        var ozone = xrpc.MapGroup("").WithTags("Ozone");
+        ozone.MapOzoneProxyEndpoints();
 
         var identity = xrpc.MapGroup("").WithTags("Identity");
         identity.MapResolveHandleEndpoints();

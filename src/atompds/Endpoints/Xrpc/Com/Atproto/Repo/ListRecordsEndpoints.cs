@@ -33,7 +33,11 @@ public static class ListRecordsEndpoints
         var records = await actorRepo.Repo.Record.ListRecordsForCollectionAsync(collection, limit, reverse, cursor);
 
         var last = records.LastOrDefault();
-        ATUri? lastUri = last is not null ? new ATUri(last.Uri) : null;
+        ATUri? lastUri = null;
+        if (last is not null)
+        {
+            lastUri = new ATUri(last.Uri);
+        }
 
         return Results.Ok(new ListRecordsOutput
         {

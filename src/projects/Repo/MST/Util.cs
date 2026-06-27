@@ -17,7 +17,7 @@ public static partial class Util
         var split = key.Split('/');
         if (split.Length != 2)
         {
-            throw new Exception($"Invalid record key: {key}");
+            throw new InvalidOperationException($"Invalid record key: {key}");
         }
         return (split[0], split[1]);
     }
@@ -72,21 +72,46 @@ public static partial class Util
 
     public static INodeEntry[] DeserializeNodeData(IRepoStorage storage, NodeData data, MstOpts? opts)
     {
+        // T-14: max 2048 entries per node
+        if (data.Entries.Count > 2048)
+        {
+            throw new InvalidOperationException($"MST node has {data.Entries.Count} entries, max is 2048");
+        }
+
         var entries = new List<INodeEntry>();
         if (data.Left != null)
         {
             entries.Add(MST.Load(storage, data.Left.Value, opts?.Layer == null ? null : new MstOpts(opts.Layer - 1)));
         }
         var lastKey = "";
+        var lastKeyBytes = Array.Empty<byte>();
         foreach (var entry in data.Entries)
         {
             var keyStr = entry.KeyString;
             var key = lastKey[..entry.PrefixCount] + keyStr;
             EnsureValidMstKey(key);
+
+            // T-14: verify strict lexicographic (UTF-8 byte) ascending order
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            if (lastKeyBytes.Length > 0)
+            {
+                var cmp = keyBytes.AsSpan().SequenceCompareTo(lastKeyBytes.AsSpan());
+                if (cmp <= 0)
+                {
+                    throw new InvalidOperationException($"MST entries out of order: '{lastKey}' >= '{key}'");
+                }
+            }
+            lastKeyBytes = keyBytes;
+
             entries.Add(new Leaf(key, entry.Value));
             lastKey = key;
             if (entry.Tree != null)
             {
+                // T-14: verify subtree layer consistency
+                if (opts?.Layer != null && opts.Layer <= 0)
+                {
+                    throw new InvalidOperationException("MST subtree depth inconsistency");
+                }
                 entries.Add(MST.Load(storage, entry.Tree.Value, opts?.Layer == null ? null : new MstOpts(opts.Layer - 1)));
             }
         }
@@ -116,7 +141,7 @@ public static partial class Util
             var next = entries.Length > i + 1 ? entries[i + 1] : null;
             if (entry is not Leaf leaf)
             {
-                throw new Exception("Not a valid node: two subtrees next to each other");
+                throw new InvalidOperationException("Not a valid node: two subtrees next to each other");
             }
             i++;
             Cid? subtree = null;
@@ -152,7 +177,7 @@ public static partial class Util
     {
         if (!IsValidMstKey(str))
         {
-            throw new Exception($"Not a valid MST key: {str}");
+            throw new ArgumentException($"Not a valid MST key: {str}", nameof(str));
         }
         return true;
     }

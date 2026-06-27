@@ -115,3 +115,14 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - Prefer surgical fixes over repo-wide rewrites.
 - If you touch public XRPC behavior, review adjacent endpoints for consistency.
 - If you add configuration, wire it through `ServerEnvironment` and `ServerConfig`.
+
+## .NET context rules
+
+Before making any .NET-specific claims (framework behavior, API availability, best practices):
+
+1. **Check TFM first** — read `global.json`, `Directory.Build.props`, and the relevant `.csproj` to confirm the target framework. This project targets `net10.0` on ASP.NET Core.
+2. **Frame advice around the detected TFM** — behavior differs between .NET Framework, .NET Core/.NET 5+, and .NET 10 preview. Do not apply legacy assumptions.
+3. **ASP.NET Core has no `SynchronizationContext`** — `ConfigureAwait(false)` is a no-op in ASP.NET Core and should never be flagged as missing. This is the single most common .NET analysis mistake in ASP.NET Core codebases.
+4. **Load the `dotnet-advisor` skill** before offering .NET analysis. It routes to domain skills that cover nuances like this.
+
+When in doubt about whether a .NET claim is version-specific, state the TFM version alongside the claim.

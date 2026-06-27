@@ -44,6 +44,11 @@ public record ServerConfig
             }
         }
 
+        if (env.PDS_DID_CACHE_STALE_TTL > env.PDS_DID_CACHE_MAX_TTL)
+        {
+            throw new Exception("PDS_DID_CACHE_STALE_TTL must be less than or equal to PDS_DID_CACHE_MAX_TTL");
+        }
+
         var hasEntrywayUrl = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_URL);
         var hasEntrywayDid = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_DID);
         var hasEntrywayJwtVerifyKey = !string.IsNullOrWhiteSpace(env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX);
@@ -148,10 +153,11 @@ public record ServerConfig
         return new IdentityConfig
         {
             PlcUrl = env.PDS_DID_PLC_URL,
-            CacheMaxTTL = env.PDS_DID_CACHE_STALE_TTL,
-            CacheStaleTTL = env.PDS_DID_CACHE_MAX_TTL,
+            CacheStaleTTL = env.PDS_DID_CACHE_STALE_TTL,
+            CacheMaxTTL = env.PDS_DID_CACHE_MAX_TTL,
             ResolverTimeout = env.PDS_ID_RESOLVER_TIMEOUT,
             RecoveryDidKey = env.PDS_RECOVERY_DID_KEY,
+            EntrywayPlcRotationKey = env.PDS_ENTRYWAY_PLC_ROTATION_KEY,
             ServiceHandleDomains = env.PDS_SERVICE_HANDLE_DOMAINS?.Count > 0 ? env.PDS_SERVICE_HANDLE_DOMAINS :
                 env.PDS_HOSTNAME == "localhost" ? new List<string> { ".test" } : new List<string> { $".{env.PDS_HOSTNAME}" },
             EnableDidDocWithSession = env.PDS_ENABLE_DID_DOC_WITH_SESSION
@@ -296,14 +302,27 @@ public record ServerConfig
         services.AddSingleton<BlobStoreFactory>();
 
         // Resolvers
-        services.AddSingleton<IDidCache>(new MemoryCache(
-            TimeSpan.FromMilliseconds(config.Identity.CacheStaleTTL),
-            TimeSpan.FromMilliseconds(config.Identity.CacheMaxTTL)));
+        var didCacheStaleTtl = TimeSpan.FromMilliseconds(config.Identity.CacheStaleTTL);
+        var didCacheMaxTtl = TimeSpan.FromMilliseconds(config.Identity.CacheMaxTTL);
+        if (!string.IsNullOrWhiteSpace(config._env.PDS_DID_CACHE_DB_LOCATION))
+        {
+            services.AddSingleton<IDidCache>(x => new SqliteDIDCache(
+                config._env.PDS_DID_CACHE_DB_LOCATION,
+                didCacheStaleTtl,
+                didCacheMaxTtl,
+                x.GetRequiredService<ILogger<SqliteDIDCache>>()));
+        }
+        else
+        {
+            services.AddSingleton<IDidCache>(new MemoryCache(didCacheStaleTtl, didCacheMaxTtl));
+        }
+
         services.AddSingleton<IdentityResolverOpts>(x => new IdentityResolverOpts
         {
             DidCache = x.GetRequiredService<IDidCache>(),
             PlcUrl = config.Identity.PlcUrl,
-            TimeoutMs = config.Identity.ResolverTimeout
+            TimeoutMs = config.Identity.ResolverTimeout,
+            BackupNameservers = config._env.PDS_HANDLE_BACKUP_NAMESERVERS
         });
         services.AddSingleton<IdResolver>();
         services.AddSingleton<HandleManager>();
@@ -331,7 +350,9 @@ public record ServerConfig
                 config.Service.Did,
                 config._env.PDS_OAUTH_ENTRYWAY_URL,
                 config._env.PDS_OAUTH_ENTRYWAY_DID,
-                config._env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX));
+                config._env.PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX,
+                config._env.PDS_ENTRYWAY_ADMIN_TOKEN,
+                config._env.PDS_MOD_SERVICE_DID));
 
         // Sequencer
         services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
@@ -339,6 +360,8 @@ public record ServerConfig
         services.AddSingleton<Services.SequencerPollingService>();
         services.AddSingleton<Sequencer.ISequencerEventSource>(sp => sp.GetRequiredService<Services.SequencerPollingService>());
         services.AddHostedService(sp => sp.GetRequiredService<Services.SequencerPollingService>());
+        services.AddSingleton<Services.BlobGarbageCollectionService>();
+        services.AddHostedService(sp => sp.GetRequiredService<Services.BlobGarbageCollectionService>());
         services.AddSingleton<Crawlers>();
         services.AddSingleton(x => new CrawlersConfig(config.Service.Hostname, config.Crawlers));
 

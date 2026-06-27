@@ -54,7 +54,7 @@ public class ActorRepository : IDisposable, IAsyncDisposable
             await tx.CommitAsync();
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             await tx.RollbackAsync();
             throw;
@@ -70,7 +70,7 @@ public class ActorRepository : IDisposable, IAsyncDisposable
             await tx.CommitAsync();
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             await tx.RollbackAsync();
             throw;

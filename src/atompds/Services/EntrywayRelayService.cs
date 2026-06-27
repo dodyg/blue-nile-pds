@@ -73,7 +73,9 @@ public class EntrywayRelayService
     {
         using var request = CreateRequest(incoming, HttpMethod.Post, relativePath);
         request.Content = new FormUrlEncodedContent(form.SelectMany(kvp =>
-            kvp.Value.Select(value => new KeyValuePair<string, string>(kvp.Key, value))));
+            kvp.Value
+                .Where(value => value is not null)
+                .Select(value => new KeyValuePair<string, string>(kvp.Key, value!))));
         return await SendAsync(request, cancellationToken);
     }
 
@@ -143,7 +145,7 @@ public class EntrywayRelayService
         {
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var content = response.Content == null
-                ? null
+                ? string.Empty
                 : await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (string.IsNullOrEmpty(content))
@@ -151,7 +153,7 @@ public class EntrywayRelayService
                 return Results.StatusCode((int)response.StatusCode);
             }
 
-            var contentType = response.Content.Headers.ContentType?.ToString();
+            var contentType = response.Content?.Headers.ContentType?.ToString() ?? "application/octet-stream";
             return Results.Content(content, contentType, statusCode: (int)response.StatusCode);
         }
         catch (Exception ex)

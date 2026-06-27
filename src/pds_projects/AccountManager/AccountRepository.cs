@@ -11,6 +11,7 @@ public class AuthScopes
 {
     public const string AppPass = "com.atproto.appPass";
     public const string AppPassPrivileged = "com.atproto.appPassPrivileged";
+    public const string Takendown = "com.atproto.takendown";
 }
 
 public class AccountRepository
@@ -257,9 +258,13 @@ public class AccountRepository
             var validAccountPass = await _passwordStore.VerifyAccountPasswordAsync(user.Did, password);
             if (validAccountPass)
             {
-                if (user.SoftDeleted && !allowTakendown)
+                if (user.SoftDeleted)
                 {
-                    throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
+                    if (!allowTakendown)
+                    {
+                        throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
+                    }
+                    return new LoginResult(user, null, AuthScopes.Takendown);
                 }
 
                 return new LoginResult(user, null, null);
@@ -268,9 +273,13 @@ public class AccountRepository
             var appPassResult = await _appPasswordStore.VerifyAppPasswordAsync(user.Did, password);
             if (appPassResult != null && appPassResult.Value.Valid)
             {
-                if (user.SoftDeleted && !allowTakendown)
+                if (user.SoftDeleted)
                 {
-                    throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
+                    if (!allowTakendown)
+                    {
+                        throw new XRPCError(new AccountTakenDownErrorDetail("Account has been taken down"));
+                    }
+                    return new LoginResult(user, "app-password", AuthScopes.Takendown);
                 }
 
                 var scope = appPassResult.Value.Privileged

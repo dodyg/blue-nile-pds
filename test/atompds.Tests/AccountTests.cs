@@ -13,7 +13,6 @@ public class AccountTests
 {
     private static readonly TestWebAppFactory Factory = new();
     private HttpClient Client => Factory.CreateClient();
-    private static int _counter;
 
     private string UniqueHandle() => $"u{Guid.NewGuid():N}"[..10] + ".test";
     private string UniqueEmail() => $"e{Guid.NewGuid():N}"[..12] + "@test.test";
@@ -116,7 +115,6 @@ public class AccountTests
     }
 
     [Test]
-    [Skip("Off-by-one in HandleManager with dot-prefixed service domains makes reserved check unreachable")]
     public async Task CreateAccount_ReservedHandle_ReturnsError()
     {
         var body = new Dictionary<string, object?>
@@ -213,7 +211,6 @@ public class AccountTests
     }
 
     [Test]
-    [Skip("Known type mismatch: Auth.cs creates refresh+jwt but AuthVerifier expects rt+jwt")]
     public async Task RefreshSession_WithRefreshToken()
     {
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());
@@ -241,7 +238,6 @@ public class AccountTests
     }
 
     [Test]
-    [Skip("Known type mismatch: Auth.cs creates refresh+jwt but AuthVerifier expects rt+jwt")]
     public async Task DeleteSession_RevokesRefreshToken()
     {
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());

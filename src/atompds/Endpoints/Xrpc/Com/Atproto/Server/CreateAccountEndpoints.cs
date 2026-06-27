@@ -202,8 +202,11 @@ public static class CreateAccountEndpoints
         if (createAccountInput.Did != null)
         {
             var did = createAccountInput.Did.Value;
+            if (string.IsNullOrWhiteSpace(did))
+                throw new XRPCError(new InvalidRequestErrorDetail("Did is required"));
+
             var requesterDid = await GetRequesterDidAsync(context, authVerifier);
-            if (requesterDid != did)
+            if (!string.Equals(requesterDid, did, StringComparison.Ordinal))
                 throw new XRPCError(new AuthRequiredErrorDetail($"Missing auth to create account with did: {did}"));
 
             var handle = await handleManager.NormalizeAndValidateHandleAsync(createAccountInput.Handle.Value, did, false);
@@ -263,6 +266,8 @@ public static class CreateAccountEndpoints
         string[] rotationKeys = [secretsConfig.PlcRotationKey.Did()];
         if (identityConfig.RecoveryDidKey != null)
             rotationKeys = [identityConfig.RecoveryDidKey, ..rotationKeys];
+        if (identityConfig.EntrywayPlcRotationKey != null)
+            rotationKeys = [identityConfig.EntrywayPlcRotationKey, ..rotationKeys];
         if (createAccountInput.RecoveryKey != null)
             rotationKeys = [createAccountInput.RecoveryKey, ..rotationKeys];
 

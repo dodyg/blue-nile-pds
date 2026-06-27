@@ -10,7 +10,7 @@ public class Parse
         var bytes = blocks.Get(cid);
         if (bytes == null)
         {
-            throw new Exception($"Block {cid} not found");
+            throw new MissingBlockException(cid, nameof(GetAndParseByDef));
         }
 
         return ParseObjByDef(bytes, cid, parse);
@@ -22,7 +22,7 @@ public class Parse
         var res = parse(obj);
         if (res == null)
         {
-            throw new Exception($"Failed to parse block {cid}");
+            throw new UnexpectedObjectException(cid, typeof(T).Name, "null");
         }
 
         return res;

@@ -29,7 +29,7 @@ public class Provider
 
         var found = await storage.GetBlocksAsync(allCids.ToArray());
         if (found.missing.Length > 0)
-            throw new Exception("Missing blocks error: " + string.Join(", ", found.missing));
+            throw new MissingBlocksException(found.missing, nameof(GetRecodsAsync));
 
         var map = found.blocks;
         map.Add(commit.ToCborObject());

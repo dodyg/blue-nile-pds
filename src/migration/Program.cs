@@ -116,7 +116,7 @@ public class MigrateOrchestration : TaskOrchestration<string, OrchestrationInput
                 var activityInput = new MigrationInput(dbPath, null);
                 var result = context.ScheduleTask<MigrationInput>(typeof(MigrateActivity), activityInput);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 for (int j = i - 1; j >= 0; j--)
                 {

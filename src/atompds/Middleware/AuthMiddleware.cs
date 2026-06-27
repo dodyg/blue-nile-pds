@@ -56,6 +56,13 @@ public class AuthMiddleware
             context.Items["AuthOutput"] = output;
         }
 
+        var moderator = endpoint.Metadata.GetMetadata<ModeratorTokenAttribute>();
+        if (moderator != null)
+        {
+            var output = await moderator.HandleAsync(verifier, context);
+            context.Items["AuthOutput"] = output;
+        }
+
         await _next(context);
     }
 }
@@ -162,5 +169,13 @@ public class RefreshAttribute : Attribute
     public Task<AuthVerifier.RefreshOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
         return Task.FromResult(verifier.Refresh(context));
+    }
+}
+
+public class ModeratorTokenAttribute : Attribute
+{
+    public async Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return await verifier.ModeratorAsync(context);
     }
 }
