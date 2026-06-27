@@ -102,6 +102,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
     private sealed class TestExternalHttpMessageHandler : HttpMessageHandler
     {
         private static readonly ConcurrentDictionary<string, string> PlcDocuments = new();
+        private static readonly ConcurrentDictionary<string, List<string>> PlcOperationLogs = new();
         private static readonly string PlcDirectoryHost = new Uri(PlcDirectoryUrl).Host;
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -142,7 +143,9 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
 
         private static async Task<HttpResponseMessage> HandlePlcAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var did = Uri.UnescapeDataString(request.RequestUri!.AbsolutePath.Trim('/'));
+            var path = request.RequestUri!.AbsolutePath.Trim('/');
+            var isLog = path.EndsWith("/log", StringComparison.Ordinal);
+            var did = Uri.UnescapeDataString(isLog ? path[..^4] : path);
             if (string.IsNullOrWhiteSpace(did))
             {
                 return Json(HttpStatusCode.BadRequest, "{\"error\":\"missing did\"}");
@@ -150,6 +153,13 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
 
             if (request.Method == HttpMethod.Get)
             {
+                if (isLog)
+                {
+                    return PlcOperationLogs.TryGetValue(did, out var entries)
+                        ? Json(HttpStatusCode.OK, $"[{string.Join(",", entries)}]")
+                        : Json(HttpStatusCode.OK, "[]");
+                }
+
                 return PlcDocuments.TryGetValue(did, out var document)
                     ? Json(HttpStatusCode.OK, document)
                     : Json(HttpStatusCode.NotFound, "{\"error\":\"not found\"}");
@@ -159,6 +169,8 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             {
                 var opJson = await request.Content!.ReadAsStringAsync(cancellationToken);
                 PlcDocuments[did] = BuildDidDocumentJson(did, opJson);
+                var logEntry = PlcOperationLogs.GetOrAdd(did, _ => []);
+                logEntry.Add(opJson);
                 return Json(HttpStatusCode.OK, "{}");
             }
 

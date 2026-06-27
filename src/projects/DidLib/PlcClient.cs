@@ -1,4 +1,7 @@
 ﻿using System.Text;
+using System.Text.Json;
+using Common;
+using PeterO.Cbor;
 
 namespace DidLib;
 
@@ -13,6 +16,21 @@ public class PlcClient
     {
         _client = client;
         _config = config;
+    }
+
+    public async Task<string?> GetLastOperationCidAsync(string did)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"{_config.Host}/{did}/log");
+        var resp = await _client.SendAsync(req);
+        resp.EnsureSuccessStatusCode();
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var arr = doc.RootElement.EnumerateArray().ToArray();
+        if (arr.Length == 0) return null;
+        var lastOpRaw = arr[^1].GetRawText();
+        var cbor = CBORObject.FromJSONString(lastOpRaw);
+        var block = CborBlock.Encode(cbor);
+        return block.Cid.ToString();
     }
 
     public async Task SendOperationAsync(string did, SignedOp<AtProtoOp> op)
