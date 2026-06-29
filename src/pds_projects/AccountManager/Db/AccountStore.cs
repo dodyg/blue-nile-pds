@@ -268,7 +268,7 @@ public class AccountStore
         {
             var oldEmail = account.Email;
             account.Email = email.ToLower();
-            account.EmailConfirmedAt = DateTime.UtcNow;
+            account.EmailConfirmedAt = null;
             await _db.SaveChangesAsync();
             _logger.LogWarning("Email changed for {Did}: {OldEmail} -> {NewEmail}", did, oldEmail, email.ToLower());
         }
