@@ -65,6 +65,23 @@ public class EmailTokenStore
         }
     }
 
+    public async Task<string> GetDidByTokenAsync(string token, EmailToken.EmailTokenPurpose purpose)
+    {
+        var emailToken = await _db.EmailTokens
+            .Where(x => x.Token == token && x.Purpose == purpose)
+            .Select(x => new { x.Did, x.RequestedAt })
+            .FirstOrDefaultAsync();
+
+        if (emailToken == null)
+            throw new XRPCError(new InvalidRequestErrorDetail("InvalidToken", "Token is invalid."));
+
+        var expired = emailToken.RequestedAt + TimeSpan.FromMinutes(15);
+        if (DateTime.UtcNow > expired)
+            throw new XRPCError(new InvalidRequestErrorDetail("ExpiredToken", "Token has expired."));
+
+        return emailToken.Did;
+    }
+
     public Task DeleteTokenAsync(string did, EmailToken.EmailTokenPurpose purpose)
     {
         return _db.EmailTokens

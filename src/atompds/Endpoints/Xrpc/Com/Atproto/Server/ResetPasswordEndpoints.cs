@@ -22,11 +22,9 @@ public static class ResetPasswordEndpoints
         if (request.Password.Length < 8)
             throw new XRPCError(new InvalidRequestErrorDetail("Password must be at least 8 characters"));
 
-        if (string.IsNullOrWhiteSpace(request.Did))
-            throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
-
-        await accountRepository.AssertValidEmailTokenAsync(request.Did, request.Token, EmailToken.EmailTokenPurpose.reset_password);
-        await accountRepository.UpdatePasswordAsync(request.Did, request.Password);
+        var did = await accountRepository.GetDidByTokenAsync(request.Token, EmailToken.EmailTokenPurpose.reset_password);
+        await accountRepository.AssertValidEmailTokenAsync(did, request.Token, EmailToken.EmailTokenPurpose.reset_password);
+        await accountRepository.UpdatePasswordAsync(did, request.Password);
 
         return Results.Ok();
     }
@@ -34,7 +32,6 @@ public static class ResetPasswordEndpoints
 
 public class ResetPasswordInput
 {
-    public string? Did { get; set; }
     public string? Token { get; set; }
     public string? Password { get; set; }
 }

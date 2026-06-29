@@ -144,6 +144,11 @@ public class AccountRepository
         return _emailTokenStore.AssertValidTokenAsync(did, token, purpose);
     }
 
+    public Task<string> GetDidByTokenAsync(string token, EmailToken.EmailTokenPurpose purpose)
+    {
+        return _emailTokenStore.GetDidByTokenAsync(token, purpose);
+    }
+
     public Task DeleteEmailTokenAsync(string did, EmailToken.EmailTokenPurpose purpose)
     {
         return _emailTokenStore.DeleteTokenAsync(did, purpose);
