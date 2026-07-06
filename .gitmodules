@@ -1,0 +1,4 @@
+[submodule "libs/CarpaNet"]
+	path = libs/CarpaNet
+	url = https://github.com/Mostafa-Ehab/CarpaNet
+	branch = json-serialization
