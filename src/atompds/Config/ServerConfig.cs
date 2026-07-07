@@ -307,7 +307,7 @@ public record ServerConfig
         if (!string.IsNullOrWhiteSpace(config._env.PDS_DID_CACHE_DB_LOCATION))
         {
             services.AddSingleton<IDidCache>(x => new SqliteDIDCache(
-                config._env.PDS_DID_CACHE_DB_LOCATION,
+                config.Db.DidCacheDbLoc,
                 didCacheStaleTtl,
                 didCacheMaxTtl,
                 x.GetRequiredService<ILogger<SqliteDIDCache>>()));
