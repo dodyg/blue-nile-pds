@@ -44,12 +44,13 @@ public static class UpdateHandleEndpoints
         try
         {
             var signingKeyDid = secretsConfig.PlcRotationKey.Did();
+            var prevCid = await plcClient.GetLastOperationCidAsync(did);
             var op = await Operations.AtProtoOpAsync(
                 signingKeyDid,
                 validatedHandle,
                 serviceConfig.PublicUrl,
                 [secretsConfig.PlcRotationKey.Did()],
-                null,
+                prevCid,
                 secretsConfig.PlcRotationKey);
             await plcClient.SendOperationAsync(did, op);
         }

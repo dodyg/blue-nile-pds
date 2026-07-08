@@ -49,7 +49,7 @@ public class BlobTests
         response.EnsureSuccessStatusCode();
 
         var json = await AuthTestHelper.ReadJsonAsync(response);
-        var cid = json.GetProperty("cid").GetString()!;
+        var cid = json.GetProperty("blob").GetProperty("ref").GetProperty("$link").GetString()!;
         return (account, cid);
     }
 

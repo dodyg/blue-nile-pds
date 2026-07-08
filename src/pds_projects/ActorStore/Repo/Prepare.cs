@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using AppBsky.Actor;
 using AppBsky.Feed;
@@ -95,7 +96,7 @@ public class Prepare
         if (record.TryGetProperty("createdAt", out var createdAtProp) &&
             createdAtProp.ValueKind == JsonValueKind.String)
         {
-            if (DateTime.TryParse(createdAtProp.GetString(), out var createdAt))
+            if (DateTime.TryParse(createdAtProp.GetString(), null, DateTimeStyles.AdjustToUniversal, out var createdAt))
             {
                 var tolerance = createdAtTolerance ?? TimeSpan.FromMinutes(1);
                 if (createdAt > DateTime.UtcNow + tolerance)

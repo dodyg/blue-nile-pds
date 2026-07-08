@@ -12,12 +12,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="CarpaNet" />
+        <LexiconFiles Include="lexicons/**/*.json" />
     </ItemGroup>
 
     <ItemGroup>
-        <LexiconFiles Include="lexicons/*.json" />
+        <ProjectReference Include="..\..\..\libs\CarpaNet\src\CarpaNet\CarpaNet.csproj" />
+        <ProjectReference Include="..\..\..\libs\CarpaNet\src\CarpaNet.OAuth\CarpaNet.OAuth.csproj" />
+        <ProjectReference Include="..\..\..\libs\CarpaNet\src\CarpaNet.SourceGen\CarpaNet.SourceGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
+
+    <Import Project="..\..\..\libs\CarpaNet\src\CarpaNet\build\CarpaNet.targets" />
 
     <ItemGroup>
         <ProjectReference Include="..\..\pds_projects\Xrpc\Xrpc.csproj" />

@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using AppBsky.Actor;
 using ActorStore;
 using atompds.Config;
 using atompds.Middleware;
@@ -23,13 +22,10 @@ public static class AppViewProxyEndpoints
 {
     public static RouteGroupBuilder MapAppViewProxyEndpoints(this RouteGroupBuilder group)
     {
-        group.MapGet("app.bsky.actor.getPreferences", GetPreferences).WithMetadata(new AccessStandardAttribute());
-        group.MapPost("app.bsky.actor.putPreferences", PutPreferences).WithMetadata(new AccessStandardAttribute());
         group.MapPost("chat.bsky.actor.deleteAccount", ProxyChatAsync).WithMetadata(new AccessStandardAttribute());
         group.MapPost("app.bsky.notification.registerPush", RegisterPushAsync);
 
         // Static proxy routes
-        group.MapGet("app.bsky.actor.getProfile", ProxyAsync).WithMetadata(new AccessStandardAttribute());
         group.MapGet("app.bsky.actor.getProfiles", ProxyAsync).WithMetadata(new AccessStandardAttribute());
         group.MapGet("app.bsky.actor.getSuggestions", ProxyAsync).WithMetadata(new AccessStandardAttribute());
         group.MapGet("app.bsky.actor.searchActorsTypeahead", ProxyAsync).WithMetadata(new AccessStandardAttribute());
@@ -65,18 +61,6 @@ public static class AppViewProxyEndpoints
         group.MapPost("{nsid}", CatchallProxyAsync).WithMetadata(new AccessStandardAttribute());
 
         return group;
-    }
-
-    private static IResult GetPreferences(HttpContext context)
-    {
-        var auth = context.GetAuthOutput();
-        return Results.Ok(new GetPreferencesOutput { Preferences = [] });
-    }
-
-    private static IResult PutPreferences(HttpContext context)
-    {
-        var auth = context.GetAuthOutput();
-        return Results.Ok();
     }
 
     private static async Task<IResult> ProxyChatAsync(

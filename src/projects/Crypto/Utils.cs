@@ -20,6 +20,12 @@ public static class Utils
         return bytes.ToHex();
     }
 
+    public static string RandomNumericCode(int digits)
+    {
+        var max = (int)Math.Pow(10, digits);
+        return RandomNumberGenerator.GetInt32(0, max).ToString($"D{digits}");
+    }
+
     public static string ToHex(this byte[] bytes)
     {
         return Convert.ToHexString(bytes);

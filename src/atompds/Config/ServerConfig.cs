@@ -159,7 +159,7 @@ public record ServerConfig
             RecoveryDidKey = env.PDS_RECOVERY_DID_KEY,
             EntrywayPlcRotationKey = env.PDS_ENTRYWAY_PLC_ROTATION_KEY,
             ServiceHandleDomains = env.PDS_SERVICE_HANDLE_DOMAINS?.Count > 0 ? env.PDS_SERVICE_HANDLE_DOMAINS :
-                env.PDS_HOSTNAME == "localhost" ? new List<string> {".test"} : new List<string> {$".{env.PDS_HOSTNAME}"},
+                env.PDS_HOSTNAME == "localhost" ? new List<string> { ".test" } : new List<string> { $".{env.PDS_HOSTNAME}" },
             EnableDidDocWithSession = env.PDS_ENABLE_DID_DOC_WITH_SESSION
         };
     }
@@ -238,13 +238,13 @@ public record ServerConfig
     {
         if (string.IsNullOrEmpty(path))
             return path;
-        
+
         if (path.StartsWith("~/"))
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[2..]);
-        
+
         if (path == "~")
             return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        
+
         return path;
     }
 
@@ -307,7 +307,7 @@ public record ServerConfig
         if (!string.IsNullOrWhiteSpace(config._env.PDS_DID_CACHE_DB_LOCATION))
         {
             services.AddSingleton<IDidCache>(x => new SqliteDIDCache(
-                config._env.PDS_DID_CACHE_DB_LOCATION,
+                config.Db.DidCacheDbLoc,
                 didCacheStaleTtl,
                 didCacheMaxTtl,
                 x.GetRequiredService<ILogger<SqliteDIDCache>>()));

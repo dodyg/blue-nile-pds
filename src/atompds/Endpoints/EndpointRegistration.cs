@@ -1,6 +1,7 @@
 using atompds.Config;
 using atompds.Endpoints.OAuth;
 using atompds.Endpoints.Xrpc;
+using atompds.Endpoints.Xrpc.App.Bsky.Actor;
 using atompds.Endpoints.Xrpc.Com.Atproto.Admin;
 using atompds.Endpoints.Xrpc.Com.Atproto.Identity;
 using atompds.Endpoints.Xrpc.Com.Atproto.Moderation;
@@ -8,6 +9,7 @@ using atompds.Endpoints.Xrpc.Com.Atproto.Repo;
 using atompds.Endpoints.Xrpc.Com.Atproto.Server;
 using atompds.Endpoints.Xrpc.Com.Atproto.Sync;
 using atompds.Endpoints.Xrpc.Com.Atproto.Temp;
+using atompds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 using Config;
 
 namespace atompds.Endpoints;
@@ -105,6 +107,14 @@ public static class EndpointRegistration
         sync.MapGetRepoStatusEndpoints();
 
         xrpc.MapCheckSignupQueueEndpoints();
+        xrpc.MapCheckHandleAvailabilityEndpoints();
+        xrpc.MapGetPostEndpoints();
+        xrpc.MapGetAuthorPostsEndpoints();
+
+        var appGroup = xrpc.MapGroup("").WithTags("App");
+        appGroup.MapGetProfileEndpoints();
+        appGroup.MapGetPreferencesEndpoints();
+        appGroup.MapPutPreferencesEndpoints();
 
         // AppViewProxy must be registered LAST — its catchall {nsid} must not override specific routes
         xrpc.MapAppViewProxyEndpoints();

@@ -1,0 +1,91 @@
+{
+    "lexicon": 1,
+    "id": "dev.nomadlife.blog.defs",
+    "defs": {
+        "postView": {
+            "type": "object",
+            "description": "A curated blog post view with resolved blob URLs.",
+            "required": [
+                "uri",
+                "slug",
+                "text",
+                "createdAt",
+                "author"
+            ],
+            "properties": {
+                "uri": {
+                    "type": "string",
+                    "format": "at-uri",
+                    "description": "AT URI of the post record."
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "text": {
+                    "type": "string",
+                    "maxLength": 100000
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "image": {
+                    "type": "ref",
+                    "ref": "#imageView",
+                    "description": "Resolved banner/featured image with URL and alt text."
+                },
+                "author": {
+                    "type": "ref",
+                    "ref": "app.bsky.actor.defs#profileViewDetailed",
+                    "description": "Detailed profile information for the post author."
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "maxLength": 100
+                    }
+                },
+                "category": {
+                    "type": "string",
+                    "format": "at-uri"
+                },
+                "publishedAt": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "format": "datetime"
+                }
+            }
+        },
+        "imageView": {
+            "type": "object",
+            "description": "Resolved image reference with download URL and alt text.",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Resolved download URL for the image blob."
+                },
+                "alt": {
+                    "type": "string",
+                    "description": "Accessibility alt text for the image."
+                }
+            }
+        }
+    }
+}

@@ -31,9 +31,11 @@ public static class SubscribeReposEndpoints
         if (!context.WebSockets.IsWebSocketRequest)
             throw new XRPCError(new InvalidRequestErrorDetail("NotWebSocket", "Request is not a websocket."));
 
-        logger.LogInformation("Subscribing to repos, cursor: {Cursor}", cursor);
+        logger.LogInformation("WebSocket subscription request received, cursor: {Cursor}", cursor);
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        logger.LogInformation("WebSocket upgraded for subscription");
         var cborOpts = CBOREncodeOptions.Default;
+        var totalSent = 0;
         try
         {
             var outbox = new Outbox(sequencer, eventSource, new OutboxOpts(subscriptionConfig.MaxSubscriptionBuffer), loggerFactory.CreateLogger<Outbox>());
@@ -41,31 +43,39 @@ public static class SubscribeReposEndpoints
             int? outboxCursor = null;
             if (cursor != null)
             {
+                logger.LogInformation("Cursor provided: {Cursor}, backfill cut-off: {BackfillTime}", cursor, backfillTime);
                 var next = await sequencer.NextAsync(cursor.Value);
                 var curr = await sequencer.CurrentAsync();
                 if (cursor.Value > (curr ?? 0))
                 {
+                    logger.LogWarning("Future cursor requested: {Cursor} > current max {Current}", cursor, curr);
                     var header = CBORObject.NewMap().Add("t", "#info").Add("op", ErrorOperation).EncodeToBytes();
                     var blob = CBORObject.NewMap().Add("atError", "FutureCursor").Add("message", "Requested cursor is in the future.").EncodeToBytes();
                     byte[] buffer = [..header, ..blob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
-                    logger.LogInformation("Future cursor requested.");
                     return;
                 }
 
                 if (next != null && next.SequencedAt < backfillTime)
                 {
+                    logger.LogWarning("Outdated cursor: next seq {NextSeq} at {SequencedAt} is before cut-off {BackfillTime}", next.Seq, next.SequencedAt, backfillTime);
                     var header = CBORObject.NewMap().Add("t", "#info").Add("op", ErrorOperation).EncodeToBytes();
                     var blob = CBORObject.NewMap().Add("atError", "OutdatedCursor").Add("message", "Requested cursor exceeded limit. Possibly missing events.").EncodeToBytes();
                     byte[] buffer = [..header, ..blob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     var startEvt = await sequencer.EarliestAfterTimeAsync(backfillTime);
                     outboxCursor = startEvt?.Seq - 1;
+                    logger.LogInformation("Adjusted outdated cursor to {OutboxCursor} (startEvt seq: {StartSeq})", outboxCursor, startEvt?.Seq);
                 }
                 else
                 {
                     outboxCursor = cursor;
+                    logger.LogInformation("Using provided cursor {Cursor} for backfill", cursor);
                 }
+            }
+            else
+            {
+                logger.LogInformation("No cursor provided, will backfill from seq 0");
             }
 
             await foreach (var evt in outbox.EventsAsync(outboxCursor, cancellationToken, webSocket))
@@ -76,6 +86,7 @@ public static class SubscribeReposEndpoints
                     var evtBlob = commit.Evt.ToCborObject().Add("seq", evt.Seq).Add("time", evt.Time.ToString("O"));
                     byte[] buffer = [..header, ..evtBlob.EncodeToBytes(cborOpts)];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
+                    logger.LogDebug("Sent commit event seq {Seq} for {Repo}", evt.Seq, commit.Evt.Repo);
                 }
                 else if (evt.Type == TypedCommitType.Handle && evt is TypedHandleEvt handle)
                 {
@@ -83,6 +94,7 @@ public static class SubscribeReposEndpoints
                     var evtBlob = handle.Evt.ToCborObject().Add("seq", evt.Seq).Add("time", evt.Time.ToString("O")).EncodeToBytes(cborOpts);
                     byte[] buffer = [..header, ..evtBlob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
+                    logger.LogDebug("Sent handle event seq {Seq} for {Repo}", evt.Seq, handle.Evt.Did);
                 }
                 else if (evt.Type == TypedCommitType.Account && evt is TypedAccountEvt account)
                 {
@@ -90,6 +102,7 @@ public static class SubscribeReposEndpoints
                     var evtBlob = account.Evt.ToCborObject().Add("seq", evt.Seq).Add("time", evt.Time.ToString("O")).EncodeToBytes(cborOpts);
                     byte[] buffer = [..header, ..evtBlob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
+                    logger.LogDebug("Sent account event seq {Seq} for {Repo}, active: {Active}", evt.Seq, account.Evt.Did, account.Evt.Active);
                 }
                 else if (evt.Type == TypedCommitType.Tombstone && evt is TypedTombstoneEvt tombstone)
                 {
@@ -97,21 +110,22 @@ public static class SubscribeReposEndpoints
                     var evtBlob = tombstone.Evt.ToCborObject().Add("seq", evt.Seq).Add("time", evt.Time.ToString("O")).EncodeToBytes(cborOpts);
                     byte[] buffer = [..header, ..evtBlob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
+                    logger.LogDebug("Sent tombstone event seq {Seq} for {Repo}", evt.Seq, tombstone.Evt.Did);
                 }
+                totalSent++;
             }
         }
         catch (OperationCanceledException)
         {
-            logger.LogInformation("Subscription cancelled by client.");
+            logger.LogInformation("Subscription cancelled by client after sending {TotalSent} events", totalSent);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Subscription error.");
+            logger.LogError(e, "Subscription error after sending {TotalSent} events", totalSent);
         }
         finally
         {
-            if (!cancellationToken.IsCancellationRequested)
-                logger.LogInformation("Subscription ended.");
+            logger.LogInformation("Subscription ended, sent {TotalSent} events total", totalSent);
 
             if (!webSocket.CloseStatus.HasValue)
                 await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Subscription ended.", cancellationToken);

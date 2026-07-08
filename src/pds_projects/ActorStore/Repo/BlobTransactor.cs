@@ -154,6 +154,7 @@ public class BlobTransactor
                 RecordUri = pw.Uri.ToString(),
                 BlobCid = b.Cid.ToString(),
             }))
+            .DistinctBy(rb => new { rb.BlobCid, rb.RecordUri })
             .ToArray();
 
         if (newBlobReferences.Length > 0)
@@ -213,6 +214,7 @@ public class BlobTransactor
             .Where(rb => deletedRepoBlobs.Contains(rb.BlobCid))
             .Select(rb => rb.BlobCid)
             .Distinct()
+            .AsNoTracking()
             .ToArrayAsync();
 
         var newBlobCids = preparedWrites

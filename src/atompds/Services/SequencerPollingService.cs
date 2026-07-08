@@ -4,11 +4,10 @@ using Microsoft.Extensions.Logging;
 using Sequencer;
 using Sequencer.Db;
 using Sequencer.Types;
-using System.Threading.Channels;
 
 namespace atompds.Services;
 
-public class SequencerPollingService : BackgroundService, Sequencer.ISequencerEventSource
+public class SequencerPollingService : BackgroundService, ISequencerEventSource
 {
     private readonly IDbContextFactory<SequencerDb> _seqDbFactory;
     private readonly ILogger<SequencerPollingService> _logger;
@@ -28,7 +27,7 @@ public class SequencerPollingService : BackgroundService, Sequencer.ISequencerEv
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogDebug("Starting sequencer poll service");
+        _logger.LogInformation("SequencerPollingService started");
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -44,6 +43,7 @@ public class SequencerPollingService : BackgroundService, Sequencer.ISequencerEv
                 _logger.LogError(e, "Error polling db");
             }
         }
+        _logger.LogInformation("SequencerPollingService stopped, LastSeen={LastSeen}", LastSeen);
     }
 
     private async Task PollDbAsync(CancellationToken cancellationToken)
@@ -53,7 +53,8 @@ public class SequencerPollingService : BackgroundService, Sequencer.ISequencerEv
             using var db = _seqDbFactory.CreateDbContext();
             _logger.LogDebug("Polling db for new events since {LastSeen}", LastSeen);
 
-            var seqs = db.RepoSeqs.AsQueryable()
+            var seqs = db.RepoSeqs
+                .AsNoTracking()
                 .OrderBy(x => x.Seq)
                 .Where(x => x.Invalidated == false);
 
@@ -66,7 +67,9 @@ public class SequencerPollingService : BackgroundService, Sequencer.ISequencerEv
 
             if (rows.Length > 0)
             {
-                _logger.LogInformation("Found {Count} new events", rows.Length);
+                var minSeq = rows.Min(x => x.Seq);
+                var maxSeq = rows.Max(x => x.Seq);
+                _logger.LogInformation("Found {Count} new events (seqs {MinSeq}-{MaxSeq})", rows.Length, minSeq, maxSeq);
                 TriesWithNoResults = 0;
 
                 var seqEvents = new List<ISeqEvt>();
@@ -83,11 +86,12 @@ public class SequencerPollingService : BackgroundService, Sequencer.ISequencerEv
                     }
                 }
 
+                LastSeen = maxSeq;
+                _logger.LogInformation("Invoking OnEvents with {EventCount} decoded events, LastSeen={LastSeen}", seqEvents.Count, LastSeen);
                 if (seqEvents.Count > 0)
                 {
                     OnEvents?.Invoke(this, seqEvents.ToArray());
                 }
-                LastSeen = rows.Max(x => x.Seq);
             }
             else
             {
