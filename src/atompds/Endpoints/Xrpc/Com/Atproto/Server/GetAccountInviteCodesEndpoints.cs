@@ -21,6 +21,7 @@ public static class GetAccountInviteCodesEndpoints
         var did = auth.AccessCredentials.Did;
 
         var codes = await inviteStore.GetInviteCodesForAccountAsync(did);
+        var uses = await inviteStore.GetInviteCodeUsesAsync(codes.Select(c => c.Code));
 
         return Results.Ok(new
         {
@@ -31,7 +32,13 @@ public static class GetAccountInviteCodesEndpoints
                 disabled = c.Disabled,
                 forAccount = c.ForAccount,
                 createdBy = c.CreatedBy,
-                createdAt = c.CreatedAt.ToString("o")
+                createdAt = c.CreatedAt.ToString("o"),
+                uses = uses.GetValueOrDefault(c.Code, [])
+                    .Select(u => new
+                    {
+                        usedBy = u.UsedBy,
+                        usedAt = u.UsedAt.ToString("o")
+                    })
             })
         });
     }
