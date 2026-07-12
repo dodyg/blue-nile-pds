@@ -1,10 +1,11 @@
 using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 
 namespace Mailer;
 
-public record SmtpMailerConfig(string Host, int Port, string? Username, string? Password, string FromAddress, bool UseTls);
+public record SmtpMailerConfig(string Host, int Port, string? Username, string? Password, string FromAddress);
 
 public class SmtpMailer : IMailer
 {
@@ -68,7 +69,7 @@ public class SmtpMailer : IMailer
             message.Body = new TextPart("plain") { Text = body };
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(_config.Host, _config.Port, _config.UseTls);
+            await client.ConnectAsync(_config.Host, _config.Port, SecureSocketOptions.StartTls);
 
             if (!string.IsNullOrWhiteSpace(_config.Username) && !string.IsNullOrWhiteSpace(_config.Password))
             {

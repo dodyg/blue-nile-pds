@@ -115,7 +115,7 @@ public class ServerEnvironment
     public string? PDS_SMTP_USERNAME { get; set; }
     public string? PDS_SMTP_PASSWORD { get; set; }
     public string? PDS_SMTP_FROM_ADDRESS { get; set; }
-    public bool PDS_SMTP_USE_TLS { get; set; } = true;
+
 
     // Rate Limiting
     public bool PDS_RATE_LIMITS_ENABLED { get; set; } = true;

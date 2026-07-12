@@ -37,6 +37,13 @@
     "PDS_LOGO_URL": "https://example.com/logo.png",
     "PDS_CONTACT_EMAIL": "support@example.com",
     "PDS_PRIVACY_POLICY_URL": "https://example.com/privacy",
-    "PDS_TERMS_OF_SERVICE_URL": "https://example.com/terms"
+    "PDS_TERMS_OF_SERVICE_URL": "https://example.com/terms",
+
+    // SMTP Mailer configuration
+    "PDS_SMTP_HOST": "smtp.example.com",
+    "PDS_SMTP_PORT": 587,
+    "PDS_SMTP_USERNAME": "hello@example.com",
+    "PDS_SMTP_PASSWORD": "password",
+    "PDS_SMTP_FROM_ADDRESS": "hello@example.com"
   }
 }

@@ -377,8 +377,7 @@ public record ServerConfig
                 config._env.PDS_SMTP_PORT,
                 config._env.PDS_SMTP_USERNAME,
                 config._env.PDS_SMTP_PASSWORD,
-                config._env.PDS_SMTP_FROM_ADDRESS ?? $"noreply@{config._env.PDS_HOSTNAME}",
-                config._env.PDS_SMTP_USE_TLS);
+                config._env.PDS_SMTP_FROM_ADDRESS ?? $"noreply@{config._env.PDS_HOSTNAME}");
             services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
                 sp.GetRequiredService<ILogger<SmtpMailer>>()));
         }
