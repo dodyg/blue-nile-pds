@@ -30,7 +30,7 @@ public static class UpdateAccountHandleAdminEndpoints
         await accountRepository.UpdateHandleAsync(request.Did, handle);
         await sequencer.SequenceIdentityEventAsync(request.Did, handle);
 
-        return Results.Ok();
+        return Results.Ok(new { });
     }
 }
 

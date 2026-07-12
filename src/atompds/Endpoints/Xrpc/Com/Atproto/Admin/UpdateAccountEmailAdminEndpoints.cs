@@ -19,7 +19,7 @@ public static class UpdateAccountEmailAdminEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("did and email are required"));
 
         await accountRepository.UpdateEmailAsync(request.Did, request.Email);
-        return Results.Ok();
+        return Results.Ok(new { });
     }
 }
 

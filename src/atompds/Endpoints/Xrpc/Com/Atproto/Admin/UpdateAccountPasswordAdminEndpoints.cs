@@ -19,7 +19,7 @@ public static class UpdateAccountPasswordAdminEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("did and password are required"));
 
         await accountRepository.UpdatePasswordAsync(request.Did, request.Password);
-        return Results.Ok();
+        return Results.Ok(new { });
     }
 }
 

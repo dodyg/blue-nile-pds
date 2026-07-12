@@ -20,7 +20,7 @@ public static class AdminDeleteAccountEndpoints
         await accountRepository.DeleteAccountAsync(request.Did);
         var logger = loggerFactory.CreateLogger("AdminDeleteAccountEndpoints");
         logger.LogWarning("Admin account deleted: {Did}", request.Did);
-        return Results.Ok();
+        return Results.Ok(new { });
     }
 }
 

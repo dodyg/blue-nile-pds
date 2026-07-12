@@ -20,7 +20,7 @@ public static class AccountInvitesAdminEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
 
         await accountRepository.UpdateInvitesDisabledAsync(request.Did, false);
-        return Results.Ok();
+        return Results.Ok(new { });
     }
 
     private static async Task<IResult> DisableAsync(DisableInvitesInput request, AccountRepository accountRepository)
@@ -29,7 +29,7 @@ public static class AccountInvitesAdminEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
 
         await accountRepository.UpdateInvitesDisabledAsync(request.Did, true);
-        return Results.Ok();
+        return Results.Ok(new { });
     }
 }
 

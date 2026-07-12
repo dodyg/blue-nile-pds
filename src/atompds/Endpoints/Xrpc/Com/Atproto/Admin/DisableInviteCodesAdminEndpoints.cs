@@ -16,7 +16,7 @@ public static class DisableInviteCodesAdminEndpoints
         await inviteStore.DisableInviteCodesAsync(
             request?.Codes ?? [],
             request?.Accounts ?? []);
-        return Results.Ok();
+        return Results.Ok(new { });
     }
 }
 
