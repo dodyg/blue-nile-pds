@@ -17,7 +17,8 @@ This repository is **not production-ready**. Treat it as a protocol-learning and
 - `src/atompds/` — web host, middleware, endpoint registration, startup
 - `src/pds_projects/` — PDS-specific services such as account management, actor storage, sequencing, blob storage, mail, and XRPC errors
 - `src/projects/` — lower-level shared libraries such as CID, crypto, DID, identity, handle validation, and repo/MST logic
-- `src/pdsadmin/` — admin CLI
+- `src/pdsadmin-cli/` — admin CLI
+- `src/pdsadmin-web/` — admin web UI (React SPA)
 - `src/migration/` — actor-store migration utility
 - `test/` — unit and integration tests
 
@@ -67,7 +68,7 @@ dotnet run --project src/atompds/atompds.csproj
 ## Run the admin CLI
 
 ```bash
-dotnet run --project src/pdsadmin/pdsadmin.csproj
+dotnet run --project src/pdsadmin-cli/pdsadmin-cli.csproj
 ```
 
 ## Local configuration

@@ -1,6 +1,6 @@
 # Audit Checklist Status
 
-_Last reviewed: 2026-04-29_
+_Last reviewed: 2026-07-12_
 
 This audit checklist has been addressed and verified in the current branch.
 
@@ -8,7 +8,7 @@ This audit checklist has been addressed and verified in the current branch.
 
 - [x] Fix refresh token type mismatch
 - [x] Fix reserved handle validation bug
-- [x] Triage and remove vulnerable package warnings
+- [ ] Triage and remove vulnerable package warnings (NU1903 still open)
 
 ## P1 — Configuration correctness and operational safety
 
@@ -50,5 +50,5 @@ dotnet list atompds.slnx package --vulnerable --include-transitive --no-restore
 - build: passing
 - automated tests: passing
 - skipped tests: 0
-- compiler warnings: 0
-- vulnerable package report: clean
+- compiler warnings: 20 (NU1903 vulnerability warnings)
+- vulnerable package report: 1 known (NU1903 — SQLitePCLRaw.lib.e_sqlite3 2.1.11, GHSA-2m69-gcr7-jv3q)

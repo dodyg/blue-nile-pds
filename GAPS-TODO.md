@@ -612,9 +612,9 @@ In `HandleManager` DNS resolution, if the primary DNS lookup fails, retry agains
 ### T-36: Recovery & Maintenance Scripts
 **Gap:** 6.2  
 **Priority:** Medium  
-**Files:** `src/pdsadmin/` or new project `src/pdstools/`
+**Files:** `src/pdsadmin-cli/` or new project `src/pdstools/`
 
-Implement the missing admin tools as subcommands of `pdsadmin` (or a new `pdstools` CLI):
+Implement the missing admin tools as subcommands of `pdsadmin-cli` (or a new `pdstools` CLI):
 
 | Command | Description |
 |---|---|

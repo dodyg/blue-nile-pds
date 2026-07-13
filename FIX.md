@@ -24,7 +24,7 @@ The admin password is the literal string `"secret"`. Any client sending `Authori
 
 ---
 
-### C2. StubMailer Logs Security Tokens in Plaintext
+### C2. StubMailer Logs Security Tokens in Plaintext ✅ RESOLVED
 
 **File:** `src/pds_projects/Mailer/StubMailer.cs:21,27,33,39,45`
 
@@ -37,6 +37,8 @@ _logger.LogInformation("[STUB] Sending account delete email to {to} with token [
 Or use `logger.LogInformation("... with token {token}", "***")` to keep the structured logging parameter.
 
 **Verify:** Grep `StubMailer.cs` for `{token}` — should be zero matches.
+
+**Status:** ✅ Fixed in committed code. All five token log lines use `[REDACTED]`.
 
 ---
 
