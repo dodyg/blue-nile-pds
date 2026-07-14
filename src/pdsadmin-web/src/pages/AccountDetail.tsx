@@ -4,6 +4,7 @@ import { xrpcGet, xrpcPost } from '../api/client';
 import DidLink from '../components/DidLink';
 import type { GetAccountInfoResponse, SubjectStatus } from '../types/admin';
 import Modal from '../components/Modal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function AccountDetail() {
   const { did } = useParams<{ did: string }>();
@@ -20,6 +21,13 @@ export default function AccountDetail() {
     label: string;
     initialValue?: string;
     inputType?: 'text' | 'password';
+  } | null>(null);
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    confirmClass: string;
+    action: () => void;
   } | null>(null);
 
   async function fetchInfo() {
@@ -174,21 +182,39 @@ export default function AccountDetail() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {isTakenDown ? (
           <button
-            onClick={() => doAction('untakedown', { subject: { did: info.did }, takedown: { applied: false } })}
+            onClick={() => setConfirm({
+              title: 'Remove takedown',
+              message: `Remove takedown for ${info.handle}?`,
+              confirmLabel: 'Remove takedown',
+              confirmClass: 'bg-gray-600 hover:bg-gray-700',
+              action: () => doAction('untakedown', { subject: { did: info.did }, takedown: { applied: false } }),
+            })}
             className="w-full px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-200"
           >
             Remove takedown
           </button>
         ) : (
           <button
-            onClick={() => doAction('takedown', { subject: { did: info.did }, takedown: { applied: true } })}
+            onClick={() => setConfirm({
+              title: 'Apply takedown',
+              message: `Apply takedown for ${info.handle}? This hides the account from public views.`,
+              confirmLabel: 'Apply takedown',
+              confirmClass: 'bg-red-600 hover:bg-red-700',
+              action: () => doAction('takedown', { subject: { did: info.did }, takedown: { applied: true } }),
+            })}
             className="w-full px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
           >
             Apply takedown
           </button>
         )}
         <button
-          onClick={() => doAction('deleteAccount', { did: info.did })}
+          onClick={() => setConfirm({
+            title: 'Delete account',
+            message: `Permanently delete account ${info.handle} (${info.did})? This action cannot be undone.`,
+            confirmLabel: 'Delete permanently',
+            confirmClass: 'bg-red-700 hover:bg-red-800',
+            action: () => doAction('deleteAccount', { did: info.did }),
+          })}
           className="w-full px-4 py-2 bg-red-700 text-white rounded text-sm hover:bg-red-800"
         >
           Delete account
@@ -245,6 +271,20 @@ export default function AccountDetail() {
             setModal(null);
           }}
           onClose={() => setModal(null)}
+        />
+      )}
+      {confirm && (
+        <ConfirmDialog
+          open
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel={confirm.confirmLabel}
+          confirmClass={confirm.confirmClass}
+          onConfirm={() => {
+            confirm.action();
+            setConfirm(null);
+          }}
+          onCancel={() => setConfirm(null)}
         />
       )}
     </div>

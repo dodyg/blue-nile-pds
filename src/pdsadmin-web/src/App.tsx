@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
 import AccountDetail from './pages/AccountDetail';
 import InviteCodes from './pages/InviteCodes';
+import CreateInviteCodes from './pages/CreateInviteCodes';
 import SubjectStatus from './pages/SubjectStatus';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="accounts" element={<Accounts />} />
             <Route path="accounts/:did" element={<AccountDetail />} />
+            <Route path="invites/create" element={<CreateInviteCodes />} />
             <Route path="invites" element={<InviteCodes />} />
             <Route path="subjects" element={<SubjectStatus />} />
           </Route>

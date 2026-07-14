@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { xrpcGet, xrpcPost } from '../api/client';
 import DidLink from '../components/DidLink';
 import type { SubjectStatus } from '../types/admin';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function SubjectStatus() {
   const [did, setDid] = useState('');
@@ -9,6 +10,13 @@ export default function SubjectStatus() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    confirmClass: string;
+    action: () => void;
+  } | null>(null);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -93,18 +101,50 @@ export default function SubjectStatus() {
           </div>
           <div className="flex gap-2">
             {!s.takedown?.applied && (
-              <button onClick={handleTakedown} className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">
+              <button
+                onClick={() => setConfirm({
+                  title: 'Apply takedown',
+                  message: `Apply takedown for ${did}? This hides the subject from public views.`,
+                  confirmLabel: 'Apply takedown',
+                  confirmClass: 'bg-red-600 hover:bg-red-700',
+                  action: handleTakedown,
+                })}
+                className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+              >
                 Apply takedown
               </button>
             )}
             {s.takedown?.applied && (
-              <button onClick={handleUntakedown} className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-200">
+              <button
+                onClick={() => setConfirm({
+                  title: 'Remove takedown',
+                  message: `Remove takedown for ${did}?`,
+                  confirmLabel: 'Remove takedown',
+                  confirmClass: 'bg-gray-600 hover:bg-gray-700',
+                  action: handleUntakedown,
+                })}
+                className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-200"
+              >
                 Remove takedown
               </button>
             )}
           </div>
         </div>
       ))}
+      {confirm && (
+        <ConfirmDialog
+          open
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel={confirm.confirmLabel}
+          confirmClass={confirm.confirmClass}
+          onConfirm={() => {
+            confirm.action();
+            setConfirm(null);
+          }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
     </div>
   );
 }

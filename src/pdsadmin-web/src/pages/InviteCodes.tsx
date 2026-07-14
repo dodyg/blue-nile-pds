@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { xrpcGet, xrpcPost } from '../api/client';
 import DidLink from '../components/DidLink';
 import type { InviteCode } from '../types/admin';
 
 export default function InviteCodes() {
+  const navigate = useNavigate();
   const [codes, setCodes] = useState<InviteCode[]>([]);
   const [cursor, setCursor] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,15 @@ export default function InviteCodes() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Invite Codes</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Invite Codes</h1>
+        <button
+          onClick={() => navigate('/invites/create')}
+          className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700"
+        >
+          Create invite codes
+        </button>
+      </div>
       {message && <p className="text-green-600 mb-4">{message}</p>}
       {error && <p className="text-red-600 mb-4">{error}</p>}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
