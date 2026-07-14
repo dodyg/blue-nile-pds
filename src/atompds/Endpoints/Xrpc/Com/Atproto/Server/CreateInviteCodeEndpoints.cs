@@ -1,6 +1,7 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
+using ComAtproto.Server;
 using Xrpc;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
@@ -30,14 +31,9 @@ public static class CreateInviteCodeEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("Invites are disabled for this account"));
 
         var useCount = request.UseCount > 0 ? request.UseCount : 1;
-        var code = await inviteStore.CreateInviteCodeAsync(did, did, useCount);
+        var forAccount = request.ForAccount is not null ? (string)request.ForAccount : did;
+        var code = await inviteStore.CreateInviteCodeAsync(forAccount, did, (int)useCount);
 
-        return Results.Ok(new { code });
+        return Results.Ok(new CreateInviteCodeOutput { Code = code });
     }
-}
-
-public class CreateInviteCodeInput
-{
-    public int UseCount { get; set; } = 1;
-    public string? ForAccount { get; set; }
 }

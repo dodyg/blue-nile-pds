@@ -1,5 +1,6 @@
 using AccountManager.Db;
 using atompds.Middleware;
+using ComAtproto.Admin;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
 
@@ -11,17 +12,11 @@ public static class DisableInviteCodesAdminEndpoints
         return group;
     }
 
-    private static async Task<IResult> HandleAsync(DisableInviteCodesInput? request, InviteStore inviteStore)
+    private static async Task<IResult> HandleAsync(ComAtproto.Admin.DisableInviteCodesInput? request, InviteStore inviteStore)
     {
         await inviteStore.DisableInviteCodesAsync(
             request?.Codes ?? [],
             request?.Accounts ?? []);
         return Results.Ok(new { });
     }
-}
-
-public class DisableInviteCodesInput
-{
-    public List<string> Codes { get; set; } = [];
-    public List<string> Accounts { get; set; } = [];
 }

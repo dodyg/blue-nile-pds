@@ -1,6 +1,8 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
+using CarpaNet;
+using ComAtproto.Admin;
 using Config;
 using DidLib;
 using Handle;
@@ -18,24 +20,19 @@ public static class UpdateAccountHandleAdminEndpoints
     }
 
     private static async Task<IResult> HandleAsync(
-        AdminUpdateHandleInput request,
+        UpdateAccountHandleInput request,
         AccountRepository accountRepository,
         HandleManager handleManager,
         SequencerRepository sequencer)
     {
-        if (string.IsNullOrWhiteSpace(request.Did) || string.IsNullOrWhiteSpace(request.Handle))
+        var did = (string)request.Did;
+        if (string.IsNullOrWhiteSpace(did) || string.IsNullOrWhiteSpace(request.Handle))
             throw new XRPCError(new InvalidRequestErrorDetail("did and handle are required"));
 
-        var handle = await handleManager.NormalizeAndValidateHandleAsync(request.Handle, request.Did, false);
-        await accountRepository.UpdateHandleAsync(request.Did, handle);
-        await sequencer.SequenceIdentityEventAsync(request.Did, handle);
+        var handle = await handleManager.NormalizeAndValidateHandleAsync(request.Handle, did, false);
+        await accountRepository.UpdateHandleAsync(did, handle);
+        await sequencer.SequenceIdentityEventAsync(did, handle);
 
         return Results.Ok(new { });
     }
-}
-
-public class AdminUpdateHandleInput
-{
-    public string? Did { get; set; }
-    public string? Handle { get; set; }
 }

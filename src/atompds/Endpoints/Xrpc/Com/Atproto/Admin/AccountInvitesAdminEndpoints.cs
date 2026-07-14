@@ -1,6 +1,7 @@
 using AccountManager;
-using AccountManager.Db;
 using atompds.Middleware;
+using CarpaNet;
+using ComAtproto.Admin;
 using Xrpc;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
@@ -14,31 +15,15 @@ public static class AccountInvitesAdminEndpoints
         return group;
     }
 
-    private static async Task<IResult> EnableAsync(EnableInvitesInput request, AccountRepository accountRepository)
+    private static async Task<IResult> EnableAsync(EnableAccountInvitesInput request, AccountRepository accountRepository)
     {
-        if (string.IsNullOrWhiteSpace(request.Did))
-            throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
-
-        await accountRepository.UpdateInvitesDisabledAsync(request.Did, false);
+        await accountRepository.UpdateInvitesDisabledAsync(request.Account, false);
         return Results.Ok(new { });
     }
 
-    private static async Task<IResult> DisableAsync(DisableInvitesInput request, AccountRepository accountRepository)
+    private static async Task<IResult> DisableAsync(DisableAccountInvitesInput request, AccountRepository accountRepository)
     {
-        if (string.IsNullOrWhiteSpace(request.Did))
-            throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
-
-        await accountRepository.UpdateInvitesDisabledAsync(request.Did, true);
+        await accountRepository.UpdateInvitesDisabledAsync(request.Account, true);
         return Results.Ok(new { });
     }
-}
-
-public class EnableInvitesInput
-{
-    public string? Did { get; set; }
-}
-
-public class DisableInvitesInput
-{
-    public string? Did { get; set; }
 }

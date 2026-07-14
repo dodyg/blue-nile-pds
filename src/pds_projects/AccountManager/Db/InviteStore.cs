@@ -132,6 +132,21 @@ public class InviteStore
             .ToDictionary(group => group.Key, group => group.ToList());
     }
 
+    public async Task<List<InviteCode>> GetInvitedByAsync(string did)
+    {
+        var use = await _db.InviteCodeUses
+            .Where(u => u.UsedBy == did)
+            .Select(u => u.Code)
+            .FirstOrDefaultAsync();
+
+        if (use == null)
+            return [];
+
+        return await _db.InviteCodes
+            .Where(ic => ic.Code == use)
+            .ToListAsync();
+    }
+
     public async Task DisableInviteCodesAsync(IEnumerable<string> codes, IEnumerable<string> accounts)
     {
         var codeList = codes
