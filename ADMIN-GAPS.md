@@ -32,8 +32,8 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 
 | Endpoint | Backend | CLI | Web UI | Notes |
 |----------|---------|-----|--------|-------|
-| `createInviteCode` | ✅ | ❌ Stub | ❌ | Stub throws `NotSupportedException` |
-| `createInviteCodes` | ✅ | ❌ | ❌ | Bulk creation |
+| `createInviteCode` | ✅ | ❌ Stub | ✅ CreateInviteCodes | AdminToken auth, validates InvitesDisabled |
+| `createInviteCodes` | ✅ | ❌ | ✅ CreateInviteCodes | ForAccounts wired, validates InvitesDisabled |
 | `requestAccountDelete` | ✅ | ❌ | ❌ | Triggers email |
 | `deactivateAccount` | ✅ | ❌ | ❌ | Account lifecycle |
 | `activateAccount` | ✅ | ❌ | ❌ | Account lifecycle |
@@ -51,7 +51,6 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 | **Account Migration** | Low | `checkAccountStatus`, `deactivateAccount`, `activateAccount` |
 | **Audit Log** | Low | (no logging endpoint exists) |
 | **Content Browser** | Medium | `sync.listRepos`, `repo.describeRepo`, `repo.listRecords` |
-| **Invite Code Creation** | High | `createInviteCode`, `createInviteCodes` |
 
 ### 2.2 Missing Features in Existing Pages
 
@@ -59,9 +58,9 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 
 **Accounts:** only searches by email (no handle/DID search, no prefix matching). No initial "browse all". No sorting, no account status indicators (takedown, deactivated, invites disabled). No multi-select or bulk actions.
 
-**AccountDetail:** missing from display — `emailConfirmedAt`, `inviteNote`, `relatedRecords`, `createdAt`, `deactivatedAt` (shown as raw field from response, not part of `accountView`), `threatSignatures`. Missing actions — deactivate/reactivate, update signing key, send email, view migration status. No confirmation dialogs for delete/takedown. No per-button loading states.
+**AccountDetail:** missing from display — `emailConfirmedAt`, `inviteNote`, `relatedRecords`, `createdAt`, `deactivatedAt` (shown as raw field from response, not part of `accountView`), `threatSignatures`. Missing actions — deactivate/reactivate, update signing key, send email, view migration status. No per-button loading states.
 
-**InviteCodes:** missing columns — `forAccount`, `createdBy`, `createdAt`. Missing features — create code(s), sort by usage/recent, filter by disabled/active, pagination, disable all codes for a DID.
+**InviteCodes:** missing columns — `forAccount`, `createdBy`, `createdAt`. Missing features — sort by usage/recent, filter by disabled/active, pagination, disable all codes for a DID.
 
 **SubjectStatus:** only supports DID lookup. Missing record URI (`uri`) and blob CID (`blob`) lookup. Can't update `deactivated` status (only `takedown`).
 
@@ -109,6 +108,7 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 | Input field name | `enableAccountInvites`/`disableAccountInvites` | Accepts `did`, lexicon says `account`. Also ignores optional `note` field. |
 | Missing field | `sendEmail` | Requires `senderDid` per lexicon; local allows it to be absent. |
 | Input field name | `updateAccountEmail` | Accepts `did`, lexicon says `account` (format `at-identifier` — allows DID or handle). |
+| Auth attribute | `createInviteCode`, `createInviteCodes` | Used `AccessPrivileged`; spec says admin auth. Changed to `AdminToken`. |
 | Missing endpoint | `updateAccountSigningKey` | Lexicon defines it, no handler. |
 
 ---
@@ -120,7 +120,7 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 | 1 | Admin password hardcoded to `"secret"` in DevMode | Critical | `ServerConfig.cs:315` |
 | 2 | No rate limiting on admin endpoints | High | No per-endpoint policies for admin routes |
 | 3 | No audit logging for sensitive admin actions | High | Only `deleteAccount` logs; rest are silent |
-| 4 | No confirmation before destructive actions in web UI | Medium | Delete/takedown fire immediately |
+| 4 | No confirmation before destructive actions in web UI | ✅ Resolved | ConfirmDialog component added to AccountDetail and SubjectStatus |
 | 5 | No IP allowlist for admin access | Medium | Admin routes accessible from any IP |
 | 6 | No session timeout for admin web UI | Medium | Password stored indefinitely in sessionStorage |
 | 7 | No CSRF protection | Low | Basic auth only |
@@ -145,7 +145,7 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 | Disable invite codes | ❌ | ✅ |
 | Subject status lookup | ❌ | ✅ |
 | Send email | ❌ | ❌ |
-| Create invite code | ❌ (stub) | ❌ |
+| Create invite code | ❌ (stub) | ✅ |
 | Create account | ❌ (stub) | ❌ |
 | Request crawl | ✅ | ❌ |
 | Self-update | ❌ (stub) | ❌ |
@@ -167,8 +167,8 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 | Admin endpoints with web UI | 11 (73%) |
 | Admin endpoints with CLI | 8 (53%) |
 | Missing backend endpoint | 1 (`updateAccountSigningKey`) |
-| Missing web UI pages | 5 |
+| Missing web UI pages | 4 |
 | Missing CLI commands | 12 |
 | Lexicon compliance gaps (response shape) | 4+ |
 | Lexicon compliance gaps (input field name) | 3 |
-| Security issues identified | 8 |
+| Security issues identified | 7 (1 resolved) |
