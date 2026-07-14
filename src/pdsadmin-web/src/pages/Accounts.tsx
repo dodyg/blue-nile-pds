@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { xrpcGet } from '../api/client';
-import type { SearchAccountsResponse, Account } from '../types/admin';
+import type { GetAccountInfoResponse } from '../types/admin';
 
 export default function Accounts() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<GetAccountInfoResponse[]>([]);
   const [cursor, setCursor] = useState<string | undefined>();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ export default function Accounts() {
       const params: Record<string, string> = { limit: '50' };
       if (searchQuery) params.email = searchQuery;
       if (cursorVal) params.cursor = cursorVal;
-      const res = await xrpcGet<SearchAccountsResponse>('com.atproto.admin.searchAccounts', params);
+      const res = await xrpcGet<{ accounts: GetAccountInfoResponse[]; cursor?: string }>('com.atproto.admin.searchAccounts', params);
       setAccounts(prev => cursorVal ? [...prev, ...res.accounts] : res.accounts);
       setCursor(res.cursor);
     } catch (e: unknown) {
@@ -58,6 +58,7 @@ export default function Accounts() {
               <th className="p-3 font-medium">DID</th>
               <th className="p-3 font-medium">Handle</th>
               <th className="p-3 font-medium">Email</th>
+              <th className="p-3 font-medium">Status</th>
               <th className="p-3 font-medium" />
             </tr>
           </thead>
@@ -67,6 +68,12 @@ export default function Accounts() {
                 <td className="p-3 font-mono text-xs truncate max-w-[200px]">{acc.did}</td>
                 <td className="p-3">{acc.handle}</td>
                 <td className="p-3 text-gray-500">{acc.email || '—'}</td>
+                <td className="p-3">
+                  <div className="flex gap-1 flex-wrap">
+                    {acc.invitesDisabled && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">invites off</span>}
+                    {acc.deactivatedAt && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">deactivated</span>}
+                  </div>
+                </td>
                 <td className="p-3">
                   <button
                     onClick={() => navigate(`/accounts/${encodeURIComponent(acc.did)}`)}
@@ -78,7 +85,7 @@ export default function Accounts() {
               </tr>
             ))}
             {!loading && accounts.length === 0 && (
-              <tr><td colSpan={4} className="p-6 text-center text-gray-400">No accounts found</td></tr>
+              <tr><td colSpan={5} className="p-6 text-center text-gray-400">No accounts found</td></tr>
             )}
           </tbody>
         </table>

@@ -1,11 +1,16 @@
-export interface Account {
-  did: string;
-  handle: string;
-  email?: string;
+export interface InviteCodeUse {
+  usedBy: string;
+  usedAt: string;
 }
 
-export interface GetAccountInfosResponse {
-  accounts: Account[];
+export interface InviteCodeView {
+  code: string;
+  available: number;
+  disabled: boolean;
+  forAccount: string;
+  createdBy: string;
+  createdAt: string;
+  uses: InviteCodeUse[];
 }
 
 export interface GetAccountInfoResponse {
@@ -13,12 +18,19 @@ export interface GetAccountInfoResponse {
   handle: string;
   email?: string;
   emailConfirmedAt?: string;
-  indexedAt?: string;
-  inviteNote?: string;
   invitesDisabled?: boolean;
-  takedownRef?: string;
+  indexedAt: string;
   deactivatedAt?: string;
-  createdAt?: string;
+  invitedBy?: InviteCodeView;
+  invites?: InviteCodeView[];
+  relatedRecords?: unknown[];
+  inviteNote?: string;
+  threatSignatures?: { property: string; value: string }[];
+}
+
+export interface SearchAccountsResponse {
+  accounts: GetAccountInfoResponse[];
+  cursor?: string;
 }
 
 export interface RepoEntry {
@@ -34,24 +46,18 @@ export interface InviteCode {
   available: number;
   disabled: boolean;
   forAccount?: string;
+  createdBy?: string;
+  createdAt?: string;
   uses: { usedBy: string; usedAt: string }[];
 }
 
 export interface GetInviteCodesResponse {
   codes: InviteCode[];
+  cursor?: string;
 }
 
 export interface SubjectStatus {
   subject: { did?: string; uri?: string };
-  takedown?: { applied: boolean };
+  takedown?: { applied: boolean; ref?: string };
   deactivated?: { applied: boolean };
-}
-
-export interface GetSubjectStatusResponse {
-  subjectStatus: SubjectStatus | SubjectStatus[];
-}
-
-export interface SearchAccountsResponse {
-  accounts: { did: string; handle: string; email?: string }[];
-  cursor?: string;
 }

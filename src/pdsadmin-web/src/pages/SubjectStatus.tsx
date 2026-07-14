@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { xrpcGet, xrpcPost } from '../api/client';
-import type { GetSubjectStatusResponse, SubjectStatus } from '../types/admin';
+import DidLink from '../components/DidLink';
+import type { SubjectStatus } from '../types/admin';
 
 export default function SubjectStatus() {
   const [did, setDid] = useState('');
-  const [status, setStatus] = useState<SubjectStatus | SubjectStatus[] | null>(null);
+  const [status, setStatus] = useState<SubjectStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -15,8 +16,8 @@ export default function SubjectStatus() {
     setError('');
     setStatus(null);
     try {
-      const res = await xrpcGet<GetSubjectStatusResponse>('com.atproto.admin.getSubjectStatus', { did });
-      setStatus(res.subjectStatus);
+      const res = await xrpcGet<SubjectStatus>('com.atproto.admin.getSubjectStatus', { did });
+      setStatus(res);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to get subject status');
     } finally {
@@ -54,7 +55,7 @@ export default function SubjectStatus() {
     }
   }
 
-  const items = status ? (Array.isArray(status) ? status : [status]) : [];
+  const items = status ? [status] : [];
 
   return (
     <div>
@@ -78,11 +79,13 @@ export default function SubjectStatus() {
         <div key={i} className="bg-white border border-gray-200 shadow-sm rounded-lg p-5 space-y-3 mb-4">
           <div>
             <span className="text-gray-500 text-sm">Subject DID</span>
-            <div className="font-mono text-xs mt-0.5 text-gray-900">{s.subject.did || s.subject.uri}</div>
+            <div className="font-mono text-xs mt-0.5 text-gray-900">
+              {s.subject.did ? <DidLink did={s.subject.did} /> : s.subject.uri}
+            </div>
           </div>
           <div>
             <span className="text-gray-500 text-sm">Takedown</span>
-            <div className="mt-0.5 text-gray-900">{s.takedown?.applied ? 'Applied' : 'None'}</div>
+            <div className="mt-0.5 text-gray-900">{s.takedown?.applied ? `Applied (ref: ${s.takedown.ref ?? 'default'})` : 'None'}</div>
           </div>
           <div>
             <span className="text-gray-500 text-sm">Deactivated</span>
