@@ -27,7 +27,7 @@ public class AccountCommands
                 "com.atproto.admin.getAccountInfos",
                 [new KeyValuePair<string, string?>("dids", string.Join(',', output.Repos.Select(repo => repo.Did)))],
                 admin: true);
-        var accountsByDid = accountInfos.Accounts.ToDictionary(account => account.Did, StringComparer.Ordinal);
+        var accountsByDid = accountInfos.Infos.ToDictionary(account => account.Did, StringComparer.Ordinal);
         var outputList = new List<(string Handle, string Email, string Did)>();
         foreach (var repo in output.Repos)
         {
@@ -262,7 +262,7 @@ public record AccountInfo(
 
 public sealed class GetAccountInfosResponse
 {
-    public IReadOnlyList<AccountInfo> Accounts { get; init; } = [];
+    public IReadOnlyList<AccountInfo> Infos { get; init; } = [];
 }
 
 public record DidRequest(string Did);

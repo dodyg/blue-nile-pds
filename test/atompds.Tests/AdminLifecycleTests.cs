@@ -55,7 +55,7 @@ public class AdminLifecycleTests
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
         var json = await AuthTestHelper.ReadJsonAsync(response);
-        var accounts = json.GetProperty("accounts").EnumerateArray().ToList();
+        var accounts = json.GetProperty("infos").EnumerateArray().ToList();
         await Assert.That(accounts.Count).IsGreaterThanOrEqualTo(2);
     }
 
@@ -65,7 +65,7 @@ public class AdminLifecycleTests
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());
         var newEmail = UniqueEmail();
 
-        var body = JsonSerializer.Serialize(new Dictionary<string, object?> { ["did"] = account.Did, ["email"] = newEmail });
+        var body = JsonSerializer.Serialize(new Dictionary<string, object?> { ["account"] = account.Did, ["email"] = newEmail });
         var request = CreateAdminRequest("POST", "/xrpc/com.atproto.admin.updateAccountEmail", body);
         var response = await Client.SendAsync(request);
 
@@ -138,7 +138,7 @@ public class AdminLifecycleTests
     {
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());
 
-        var body = JsonSerializer.Serialize(new Dictionary<string, object?> { ["did"] = account.Did });
+        var body = JsonSerializer.Serialize(new Dictionary<string, object?> { ["account"] = account.Did });
         var request = CreateAdminRequest("POST", "/xrpc/com.atproto.admin.enableAccountInvites", body);
         var response = await Client.SendAsync(request);
 
@@ -150,7 +150,7 @@ public class AdminLifecycleTests
     {
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());
 
-        var body = JsonSerializer.Serialize(new Dictionary<string, object?> { ["did"] = account.Did });
+        var body = JsonSerializer.Serialize(new Dictionary<string, object?> { ["account"] = account.Did });
         var request = CreateAdminRequest("POST", "/xrpc/com.atproto.admin.disableAccountInvites", body);
         var response = await Client.SendAsync(request);
 
@@ -187,7 +187,8 @@ public class AdminLifecycleTests
         {
             ["recipientDid"] = account.Did,
             ["content"] = "Test email body",
-            ["subject"] = "Test subject"
+            ["subject"] = "Test subject",
+            ["senderDid"] = account.Did
         });
         var request = CreateAdminRequest("POST", "/xrpc/com.atproto.admin.sendEmail", body);
         var response = await Client.SendAsync(request);
