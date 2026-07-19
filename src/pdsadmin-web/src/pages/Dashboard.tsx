@@ -1,20 +1,7 @@
-import { useEffect, useState } from 'react';
-import { xrpcGet } from '../api/client';
-import type { ListReposResponse } from '../types/admin';
+import { useDashboardStats } from '../hooks/useDashboard';
 
 export default function Dashboard() {
-  const [totalAccounts, setTotalAccounts] = useState<number | null>(null);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    xrpcGet<ListReposResponse>('com.atproto.sync.listRepos', { limit: '1' })
-      .then(() => {
-        xrpcGet<ListReposResponse>('com.atproto.sync.listRepos')
-          .then(res => setTotalAccounts(res.repos.length))
-          .catch(e => setError(e.message));
-      })
-      .catch(e => setError(e.message));
-  }, []);
+  const { data: totalAccounts, isPending, error } = useDashboardStats();
 
   return (
     <div>
@@ -23,11 +10,11 @@ export default function Dashboard() {
         <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-5">
           <div className="text-sm text-gray-500 mb-1">Total Accounts</div>
           <div className="text-3xl font-bold">
-            {totalAccounts !== null ? totalAccounts : '...'}
+            {isPending ? '...' : totalAccounts}
           </div>
         </div>
       </div>
-      {error && <p className="text-red-600 mt-4">{error}</p>}
+      {error && <p className="text-red-600 mt-4">{error.message}</p>}
     </div>
   );
 }

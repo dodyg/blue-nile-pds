@@ -1,4 +1,5 @@
-import { getAdminPassword, clearAdminPassword } from '../stores/auth';
+import { getAdminPassword } from '../stores/auth';
+import { XrpcError } from './queryClient';
 
 async function request<T>(method: string, nsid: string, body?: unknown): Promise<T> {
   const password = getAdminPassword();
@@ -16,15 +17,14 @@ async function request<T>(method: string, nsid: string, body?: unknown): Promise
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (res.status === 401) {
-    clearAdminPassword();
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
-  }
-
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${nsid}: ${text}`);
+    let detail: { error?: string; message?: string } = {};
+    try {
+      detail = await res.json();
+    } catch {
+      // ignore parse errors
+    }
+    throw new XrpcError(res.status, nsid, detail.error, detail.message || res.statusText);
   }
 
   if (res.status === 204) return undefined as T;

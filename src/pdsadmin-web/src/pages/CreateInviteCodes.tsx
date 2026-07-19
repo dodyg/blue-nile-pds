@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { xrpcPost } from '../api/client';
+import { useCreateInviteCode, useCreateInviteCodes } from '../hooks/useInvites';
 
 type Mode = 'single' | 'bulk';
 
@@ -10,40 +10,38 @@ export default function CreateInviteCodes() {
   const [useCount, setUseCount] = useState(1);
   const [forAccount, setForAccount] = useState('');
   const [codeCount, setCodeCount] = useState(5);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [result, setResult] = useState<{ codes: string[]; forAccount: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const createSingle = useCreateInviteCode();
+  const createBulk = useCreateInviteCodes();
+
+  const isPending = createSingle.isPending || createBulk.isPending;
+  const error = createSingle.error || createBulk.error;
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmedFor = forAccount.trim();
-    if (!trimmedFor) {
-      setError('For account is required');
-      return;
-    }
-    setError('');
-    setLoading(true);
+    if (!trimmedFor) return;
     setResult(null);
-    try {
-      if (mode === 'single') {
-        const res = await xrpcPost<{ code: string }>('com.atproto.server.createInviteCode', {
-          useCount,
-          forAccount: trimmedFor,
-        });
-        setResult({ codes: [res.code], forAccount: trimmedFor });
-      } else {
-        const res = await xrpcPost<{ codes: { account: string; codes: string[] }[] }>(
-          'com.atproto.server.createInviteCodes',
-          { useCount, codeCount, forAccounts: [trimmedFor] },
-        );
-        const allCodes = res.codes.flatMap(c => c.codes);
-        setResult({ codes: allCodes, forAccount: trimmedFor });
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to create invite codes');
-    } finally {
-      setLoading(false);
+
+    if (mode === 'single') {
+      createSingle.mutate(
+        { useCount, forAccount: trimmedFor },
+        {
+          onSuccess: (data) => setResult({ codes: [data.code], forAccount: trimmedFor }),
+        },
+      );
+    } else {
+      createBulk.mutate(
+        { useCount, codeCount, forAccounts: [trimmedFor] },
+        {
+          onSuccess: (data) => {
+            const allCodes = data.codes.flatMap(c => c.codes);
+            setResult({ codes: allCodes, forAccount: trimmedFor });
+          },
+        },
+      );
     }
   }
 
@@ -59,7 +57,6 @@ export default function CreateInviteCodes() {
 
   function handleCreateAnother() {
     setResult(null);
-    setError('');
   }
 
   return (
@@ -73,7 +70,7 @@ export default function CreateInviteCodes() {
 
       <h1 className="text-2xl font-bold mb-5">Create Invite Codes</h1>
 
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {error && <p className="text-red-600 mb-4">{error.message}</p>}
 
       {result ? (
         <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-5">
@@ -172,10 +169,10 @@ export default function CreateInviteCodes() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={isPending}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? 'Generating...' : mode === 'single' ? 'Generate code' : `Generate ${codeCount} codes`}
+            {isPending ? 'Generating...' : mode === 'single' ? 'Generate code' : `Generate ${codeCount} codes`}
           </button>
         </form>
       )}

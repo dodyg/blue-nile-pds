@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { xrpcGet, xrpcPost } from '../api/client';
 import DidLink from '../components/DidLink';
-import type { SubjectStatus } from '../types/admin';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useSubjectStatus } from '../hooks/useAccounts';
+import { useUpdateSubjectStatus } from '../hooks/useAccounts';
 
 export default function SubjectStatus() {
   const [did, setDid] = useState('');
-  const [status, setStatus] = useState<SubjectStatus | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [searchDid, setSearchDid] = useState('');
   const [message, setMessage] = useState('');
   const [confirm, setConfirm] = useState<{
     title: string;
@@ -18,52 +16,28 @@ export default function SubjectStatus() {
     action: () => void;
   } | null>(null);
 
-  async function handleSearch(e: React.FormEvent) {
+  const { data: status, isPending, error } = useSubjectStatus(searchDid);
+  const updateMutation = useUpdateSubjectStatus();
+
+  function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    setStatus(null);
-    try {
-      const res = await xrpcGet<SubjectStatus>('com.atproto.admin.getSubjectStatus', { did });
-      setStatus(res);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to get subject status');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleTakedown() {
+    setSearchDid(did);
     setMessage('');
-    setError('');
-    try {
-      await xrpcPost('com.atproto.admin.updateSubjectStatus', {
-        subject: { did },
-        takedown: { applied: true },
-      });
-      setMessage('Takedown applied');
-      handleSearch({ preventDefault: () => {} } as React.FormEvent);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Takedown failed');
-    }
   }
 
-  async function handleUntakedown() {
-    setMessage('');
-    setError('');
-    try {
-      await xrpcPost('com.atproto.admin.updateSubjectStatus', {
-        subject: { did },
-        takedown: { applied: false },
-      });
-      setMessage('Takedown removed');
-      handleSearch({ preventDefault: () => {} } as React.FormEvent);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Remove takedown failed');
-    }
+  function handleTakedown() {
+    updateMutation.mutate(
+      { subject: { did: searchDid }, takedown: { applied: true } },
+      { onSuccess: () => setMessage('Takedown applied') },
+    );
   }
 
-  const items = status ? [status] : [];
+  function handleUntakedown() {
+    updateMutation.mutate(
+      { subject: { did: searchDid }, takedown: { applied: false } },
+      { onSuccess: () => setMessage('Takedown removed') },
+    );
+  }
 
   return (
     <div>
@@ -81,30 +55,30 @@ export default function SubjectStatus() {
         </button>
       </form>
       {message && <p className="text-green-600 mb-4">{message}</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-      {loading && <p className="text-gray-500">Loading...</p>}
-      {items.map((s, i) => (
-        <div key={i} className="bg-white border border-gray-200 shadow-sm rounded-lg p-5 space-y-3 mb-4">
+      {error && <p className="text-red-600 mb-4">{error.message}</p>}
+      {isPending && searchDid && <p className="text-gray-500">Loading...</p>}
+      {status && (
+        <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-5 space-y-3 mb-4">
           <div>
             <span className="text-gray-500 text-sm">Subject DID</span>
             <div className="font-mono text-xs mt-0.5 text-gray-900">
-              {s.subject.did ? <DidLink did={s.subject.did} /> : s.subject.uri}
+              {status.subject.did ? <DidLink did={status.subject.did} /> : status.subject.uri}
             </div>
           </div>
           <div>
             <span className="text-gray-500 text-sm">Takedown</span>
-            <div className="mt-0.5 text-gray-900">{s.takedown?.applied ? `Applied (ref: ${s.takedown.ref ?? 'default'})` : 'None'}</div>
+            <div className="mt-0.5 text-gray-900">{status.takedown?.applied ? `Applied (ref: ${status.takedown.ref ?? 'default'})` : 'None'}</div>
           </div>
           <div>
             <span className="text-gray-500 text-sm">Deactivated</span>
-            <div className="mt-0.5 text-gray-900">{s.deactivated?.applied ? 'Yes' : 'No'}</div>
+            <div className="mt-0.5 text-gray-900">{status.deactivated?.applied ? 'Yes' : 'No'}</div>
           </div>
           <div className="flex gap-2">
-            {!s.takedown?.applied && (
+            {!status.takedown?.applied && (
               <button
                 onClick={() => setConfirm({
                   title: 'Apply takedown',
-                  message: `Apply takedown for ${did}? This hides the subject from public views.`,
+                  message: `Apply takedown for ${searchDid}? This hides the subject from public views.`,
                   confirmLabel: 'Apply takedown',
                   confirmClass: 'bg-red-600 hover:bg-red-700',
                   action: handleTakedown,
@@ -114,11 +88,11 @@ export default function SubjectStatus() {
                 Apply takedown
               </button>
             )}
-            {s.takedown?.applied && (
+            {status.takedown?.applied && (
               <button
                 onClick={() => setConfirm({
                   title: 'Remove takedown',
-                  message: `Remove takedown for ${did}?`,
+                  message: `Remove takedown for ${searchDid}?`,
                   confirmLabel: 'Remove takedown',
                   confirmClass: 'bg-gray-600 hover:bg-gray-700',
                   action: handleUntakedown,
@@ -130,7 +104,7 @@ export default function SubjectStatus() {
             )}
           </div>
         </div>
-      ))}
+      )}
       {confirm && (
         <ConfirmDialog
           open

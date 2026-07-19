@@ -1,19 +1,14 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { xrpcGet, xrpcPost } from '../api/client';
 import DidLink from '../components/DidLink';
-import type { GetAccountInfoResponse, SubjectStatus } from '../types/admin';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useAccountInfo, useSubjectStatus, useUpdateSubjectStatus, useDeleteAccount, useEnableInvites, useDisableInvites, useUpdateAccountPassword, useUpdateAccountEmail, useUpdateAccountHandle } from '../hooks/useAccounts';
 
 export default function AccountDetail() {
   const { did } = useParams<{ did: string }>();
   const navigate = useNavigate();
-  const [info, setInfo] = useState<GetAccountInfoResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [takedownRef, setTakedownRef] = useState<string | null>(null);
   const [expandedCode, setExpandedCode] = useState<string | null>(null);
   const [modal, setModal] = useState<{
     action: 'updateEmail' | 'updateHandle' | 'resetPassword';
@@ -30,58 +25,24 @@ export default function AccountDetail() {
     action: () => void;
   } | null>(null);
 
-  async function fetchInfo() {
-    if (!did) return;
-    const info = await xrpcGet<GetAccountInfoResponse>('com.atproto.admin.getAccountInfo', { did });
-    setInfo(info);
-    const subj = await xrpcGet<SubjectStatus>('com.atproto.admin.getSubjectStatus', { did }).catch(() => null);
-    if (subj) {
-      setTakedownRef(subj.takedown?.ref ?? null);
-    }
-  }
+  const { data: info, isPending, error: infoError } = useAccountInfo(did ?? '');
+  const { data: subjectStatus } = useSubjectStatus(did ?? '');
 
-  useEffect(() => {
-    if (!did) return;
-    setLoading(true);
-    xrpcGet<GetAccountInfoResponse>('com.atproto.admin.getAccountInfo', { did })
-      .then(setInfo)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [did]);
+  const updateSubjectStatus = useUpdateSubjectStatus();
+  const deleteAccount = useDeleteAccount();
+  const enableInvites = useEnableInvites();
+  const disableInvites = useDisableInvites();
+  const updatePassword = useUpdateAccountPassword();
+  const updateEmail = useUpdateAccountEmail();
+  const updateHandle = useUpdateAccountHandle();
 
-  async function doAction(action: string, body?: unknown) {
-    setMessage('');
-    setError('');
-    try {
-      const nsids: Record<string, string> = {
-        takedown: 'com.atproto.admin.updateSubjectStatus',
-        untakedown: 'com.atproto.admin.updateSubjectStatus',
-        deleteAccount: 'com.atproto.admin.deleteAccount',
-        enableInvites: 'com.atproto.admin.enableAccountInvites',
-        disableInvites: 'com.atproto.admin.disableAccountInvites',
-        resetPassword: 'com.atproto.admin.updateAccountPassword',
-        updateEmail: 'com.atproto.admin.updateAccountEmail',
-        updateHandle: 'com.atproto.admin.updateAccountHandle',
-      };
-      await xrpcPost(nsids[action], body);
-      setMessage(`${action} successful`);
-      if (action === 'takedown') {
-        const subj = await xrpcGet<SubjectStatus>('com.atproto.admin.getSubjectStatus', { did: info!.did }).catch(() => null);
-        setTakedownRef(subj?.takedown?.ref ?? 'applied');
-      } else if (action === 'untakedown') {
-        setTakedownRef(null);
-      }
-      await fetchInfo().catch(() => {});
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : `${action} failed`);
-    }
-  }
+  const takedownRef = subjectStatus?.takedown?.ref ?? null;
+  const isTakenDown = !!takedownRef;
 
-  if (loading) return <div className="text-gray-500">Loading...</div>;
-  if (error) return <div className="text-red-600">{error}</div>;
+  if (isPending) return <div className="text-gray-500">Loading...</div>;
+  if (infoError) return <div className="text-red-600">{infoError.message}</div>;
   if (!info) return <div className="text-gray-500">Account not found</div>;
 
-  const isTakenDown = !!takedownRef;
   const inviteCount = info.invites?.length ?? 0;
   const inviteUseCount = info.invites?.reduce((s, c) => s + c.uses.length, 0) ?? 0;
 
@@ -130,46 +91,20 @@ export default function AccountDetail() {
             </thead>
             <tbody>
               {info.invites.map(ic => (
-                <>
-                  <tr key={ic.code} className="border-b border-gray-200">
-                    <td className="p-2 font-mono text-xs">
-                      <button
-                        onClick={() => setExpandedCode(expandedCode === ic.code ? null : ic.code)}
-                        className="mr-1.5 text-gray-400 hover:text-gray-600 text-xs"
-                      >
-                        {expandedCode === ic.code ? '▼' : '▶'}
-                      </button>
-                      {ic.code}
-                    </td>
-                    <td className="p-2">{ic.available}</td>
-                    <td className="p-2">{ic.disabled ? 'Yes' : 'No'}</td>
-                    <td className="p-2">{ic.uses.length}</td>
-                  </tr>
-                  {expandedCode === ic.code && ic.uses.length > 0 && (
-                    <tr key={`${ic.code}-uses`} className="bg-gray-50">
-                      <td colSpan={4} className="p-3">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="text-left text-gray-500 border-b border-gray-200">
-                              <th className="pb-1 pr-4 font-medium">Used By</th>
-                              <th className="pb-1 font-medium">Used At</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {ic.uses.map((u, i) => (
-                              <tr key={i} className="border-b border-gray-100">
-                                <td className="py-1.5 pr-4 font-mono">
-                                  <DidLink did={u.usedBy} />
-                                </td>
-                                <td className="py-1.5">{new Date(u.usedAt).toLocaleString()}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </td>
-                    </tr>
-                  )}
-                </>
+                <tr key={ic.code} className="border-b border-gray-200">
+                  <td className="p-2 font-mono text-xs">
+                    <button
+                      onClick={() => setExpandedCode(expandedCode === ic.code ? null : ic.code)}
+                      className="mr-1.5 text-gray-400 hover:text-gray-600 text-xs"
+                    >
+                      {expandedCode === ic.code ? '▼' : '▶'}
+                    </button>
+                    {ic.code}
+                  </td>
+                  <td className="p-2">{ic.available}</td>
+                  <td className="p-2">{ic.disabled ? 'Yes' : 'No'}</td>
+                  <td className="p-2">{ic.uses.length}</td>
+                </tr>
               ))}
             </tbody>
           </table>
@@ -177,7 +112,6 @@ export default function AccountDetail() {
       )}
 
       {message && <p className="text-green-600 mb-4">{message}</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {isTakenDown ? (
@@ -187,7 +121,10 @@ export default function AccountDetail() {
               message: `Remove takedown for ${info.handle}?`,
               confirmLabel: 'Remove takedown',
               confirmClass: 'bg-gray-600 hover:bg-gray-700',
-              action: () => doAction('untakedown', { subject: { did: info.did }, takedown: { applied: false } }),
+              action: () => updateSubjectStatus.mutate(
+                { subject: { did: info.did }, takedown: { applied: false } },
+                { onSuccess: () => setMessage('Takedown removed') },
+              ),
             })}
             className="w-full px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-200"
           >
@@ -200,7 +137,10 @@ export default function AccountDetail() {
               message: `Apply takedown for ${info.handle}? This hides the account from public views.`,
               confirmLabel: 'Apply takedown',
               confirmClass: 'bg-red-600 hover:bg-red-700',
-              action: () => doAction('takedown', { subject: { did: info.did }, takedown: { applied: true } }),
+              action: () => updateSubjectStatus.mutate(
+                { subject: { did: info.did }, takedown: { applied: true } },
+                { onSuccess: () => setMessage('Takedown applied') },
+              ),
             })}
             className="w-full px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
           >
@@ -213,7 +153,7 @@ export default function AccountDetail() {
             message: `Permanently delete account ${info.handle} (${info.did})? This action cannot be undone.`,
             confirmLabel: 'Delete permanently',
             confirmClass: 'bg-red-700 hover:bg-red-800',
-            action: () => doAction('deleteAccount', { did: info.did }),
+            action: () => deleteAccount.mutate(info.did, { onSuccess: () => setMessage('Account deleted') }),
           })}
           className="w-full px-4 py-2 bg-red-700 text-white rounded text-sm hover:bg-red-800"
         >
@@ -221,14 +161,14 @@ export default function AccountDetail() {
         </button>
         {info.invitesDisabled ? (
           <button
-            onClick={() => doAction('enableInvites', { account: info.did })}
+            onClick={() => enableInvites.mutate(info.did, { onSuccess: () => setMessage('Invites enabled') })}
             className="w-full px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"
           >
             Enable invites
           </button>
         ) : (
           <button
-            onClick={() => doAction('disableInvites', { account: info.did })}
+            onClick={() => disableInvites.mutate(info.did, { onSuccess: () => setMessage('Invites disabled') })}
             className="w-full px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-200"
           >
             Disable invites
@@ -262,12 +202,22 @@ export default function AccountDetail() {
           initialValue={modal.initialValue}
           inputType={modal.inputType}
           onConfirm={value => {
-            const body = modal.action === 'updateEmail'
-              ? { account: info!.did, email: value }
-              : modal.action === 'updateHandle'
-                ? { did: info!.did, handle: value }
-                : { did: info!.did, password: value };
-            doAction(modal.action, body);
+            if (modal.action === 'updateEmail') {
+              updateEmail.mutate(
+                { account: info.did, email: value },
+                { onSuccess: () => setMessage('Email updated') },
+              );
+            } else if (modal.action === 'updateHandle') {
+              updateHandle.mutate(
+                { did: info.did, handle: value },
+                { onSuccess: () => setMessage('Handle updated') },
+              );
+            } else {
+              updatePassword.mutate(
+                { did: info.did, password: value },
+                { onSuccess: () => setMessage('Password reset') },
+              );
+            }
             setModal(null);
           }}
           onClose={() => setModal(null)}

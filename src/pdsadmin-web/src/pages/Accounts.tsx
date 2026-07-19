@@ -1,38 +1,19 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { xrpcGet } from '../api/client';
-import type { GetAccountInfoResponse } from '../types/admin';
+import { useSearchAccounts } from '../hooks/useAccounts';
 
 export default function Accounts() {
-  const [accounts, setAccounts] = useState<GetAccountInfoResponse[]>([]);
-  const [cursor, setCursor] = useState<string | undefined>();
-  const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const [email, setEmail] = useState('');
 
-  const fetchAccounts = useCallback(async (searchQuery = '', cursorVal?: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      const params: Record<string, string> = { limit: '50' };
-      if (searchQuery) params.email = searchQuery;
-      if (cursorVal) params.cursor = cursorVal;
-      const res = await xrpcGet<{ accounts: GetAccountInfoResponse[]; cursor?: string }>('com.atproto.admin.searchAccounts', params);
-      setAccounts(prev => cursorVal ? [...prev, ...res.accounts] : res.accounts);
-      setCursor(res.cursor);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load accounts');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data, isPending, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useSearchAccounts(email);
 
-  useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
+  const accounts = data?.pages.flatMap(p => p.accounts) ?? [];
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    fetchAccounts(query);
+    setEmail(query);
   }
 
   return (
@@ -50,7 +31,9 @@ export default function Accounts() {
           Search
         </button>
       </form>
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {error && <p className="text-red-600 mb-4">{error.message}</p>}
+      {isPending && accounts.length === 0 && <p className="text-gray-500 mb-4">Loading...</p>}
+      {accounts.length === 0 && !isPending && <p className="text-gray-400 mb-4">No accounts found</p>}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -84,19 +67,16 @@ export default function Accounts() {
                 </td>
               </tr>
             ))}
-            {!loading && accounts.length === 0 && (
-              <tr><td colSpan={5} className="p-6 text-center text-gray-400">No accounts found</td></tr>
-            )}
           </tbody>
         </table>
       </div>
-      {cursor && (
+      {hasNextPage && (
         <button
-          onClick={() => fetchAccounts(query, cursor)}
-          disabled={loading}
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
           className="mt-4 px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
         >
-          {loading ? 'Loading...' : 'Load more'}
+          {isFetchingNextPage ? 'Loading...' : 'Load more'}
         </button>
       )}
     </div>

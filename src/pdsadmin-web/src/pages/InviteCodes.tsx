@@ -1,45 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { xrpcGet, xrpcPost } from '../api/client';
 import DidLink from '../components/DidLink';
-import type { InviteCode } from '../types/admin';
+import { useInviteCodes, useDisableInviteCode } from '../hooks/useInvites';
 
 export default function InviteCodes() {
   const navigate = useNavigate();
-  const [codes, setCodes] = useState<InviteCode[]>([]);
-  const [cursor, setCursor] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [expandedCode, setExpandedCode] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
 
-  useEffect(() => { fetchCodes(); }, []);
+  const { data, isPending, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInviteCodes();
+  const disableMutation = useDisableInviteCode();
 
-  async function fetchCodes(cursorVal?: string) {
-    setLoading(true);
-    setError('');
-    try {
-      const params: Record<string, string> = { limit: '100' };
-      if (cursorVal) params.cursor = cursorVal;
-      const res = await xrpcGet<{ codes: InviteCode[]; cursor?: string }>('com.atproto.admin.getInviteCodes', params);
-      setCodes(prev => cursorVal ? [...prev, ...res.codes] : res.codes);
-      setCursor(res.cursor);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load invite codes');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const codes = data?.pages.flatMap(p => p.codes) ?? [];
 
-  async function disableCode(code: string) {
-    setMessage('');
-    try {
-      await xrpcPost('com.atproto.admin.disableInviteCodes', { codes: [code] });
-      setMessage(`Code ${code} disabled`);
-      fetchCodes();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to disable code');
-    }
+  function disableCode(code: string) {
+    disableMutation.mutate(code, {
+      onSuccess: () => setMessage(`Code ${code} disabled`),
+    });
   }
 
   return (
@@ -54,7 +31,9 @@ export default function InviteCodes() {
         </button>
       </div>
       {message && <p className="text-green-600 mb-4">{message}</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {error && <p className="text-red-600 mb-4">{error.message}</p>}
+      {isPending && codes.length === 0 && <p className="text-gray-500 mb-4">Loading...</p>}
+      {codes.length === 0 && !isPending && <p className="text-gray-400 mb-4">No invite codes found</p>}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -71,8 +50,8 @@ export default function InviteCodes() {
           </thead>
           <tbody>
             {codes.map(c => (
-              <>
-                <tr key={c.code} className="border-b border-gray-200">
+              <Fragment key={c.code}>
+                <tr className="border-b border-gray-200">
                   <td className="p-3 font-mono text-xs">
                     <button
                       onClick={() => setExpandedCode(expandedCode === c.code ? null : c.code)}
@@ -104,7 +83,7 @@ export default function InviteCodes() {
                   </td>
                 </tr>
                 {expandedCode === c.code && c.uses && c.uses.length > 0 && (
-                  <tr key={`${c.code}-uses`} className="bg-gray-50">
+                  <tr className="bg-gray-50">
                     <td colSpan={8} className="p-3">
                       <table className="w-full text-xs">
                         <thead>
@@ -127,21 +106,21 @@ export default function InviteCodes() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
-            {codes.length === 0 && !loading && (
+            {codes.length === 0 && !isPending && (
               <tr><td colSpan={8} className="p-6 text-center text-gray-400">No invite codes found</td></tr>
             )}
           </tbody>
         </table>
       </div>
-      {cursor && (
+      {hasNextPage && (
         <button
-          onClick={() => fetchCodes(cursor)}
-          disabled={loading}
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
           className="mt-4 px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
         >
-          {loading ? 'Loading...' : 'Load more'}
+          {isFetchingNextPage ? 'Loading...' : 'Load more'}
         </button>
       )}
     </div>
