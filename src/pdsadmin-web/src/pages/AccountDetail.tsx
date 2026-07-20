@@ -4,6 +4,7 @@ import DidLink from '../components/DidLink';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useAccountInfo, useSubjectStatus, useUpdateSubjectStatus, useDeleteAccount, useEnableInvites, useDisableInvites, useUpdateAccountPassword, useUpdateAccountEmail, useUpdateAccountHandle } from '../hooks/useAccounts';
+import { useDescribeRepo } from '../hooks/useRepo';
 
 export default function AccountDetail() {
   const { did } = useParams<{ did: string }>();
@@ -27,6 +28,7 @@ export default function AccountDetail() {
 
   const { data: info, isPending, error: infoError } = useAccountInfo(did ?? '');
   const { data: subjectStatus } = useSubjectStatus(did ?? '');
+  const { data: repoInfo } = useDescribeRepo(did ?? '');
 
   const updateSubjectStatus = useUpdateSubjectStatus();
   const deleteAccount = useDeleteAccount();
@@ -108,6 +110,23 @@ export default function AccountDetail() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {repoInfo && repoInfo.collections.length > 0 && (
+        <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-5 mb-6">
+          <h2 className="text-lg font-semibold mb-3">Repo Collections</h2>
+          <div className="flex flex-wrap gap-2">
+            {repoInfo.collections.sort().map(col => (
+              <button
+                key={col}
+                onClick={() => navigate(`/accounts/${encodeURIComponent(info.did)}/collections/${encodeURIComponent(col)}`)}
+                className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs font-mono hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              >
+                {col}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

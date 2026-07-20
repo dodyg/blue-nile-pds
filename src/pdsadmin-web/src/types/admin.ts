@@ -61,3 +61,28 @@ export interface SubjectStatus {
   takedown?: { applied: boolean; ref?: string };
   deactivated?: { applied: boolean };
 }
+
+export interface DescribeRepoResponse {
+  handle: string;
+  did: string;
+  didDoc: Record<string, unknown>;
+  collections: string[];
+  handleIsCorrect: boolean;
+}
+
+export interface ListRecordsRecord {
+  uri: string;
+  cid: string;
+  value: unknown;
+}
+
+export interface ListRecordsResponse {
+  cursor?: string;
+  records: ListRecordsRecord[];
+}
+
+export interface GetRecordResponse {
+  uri: string;
+  cid?: string;
+  value: unknown;
+}

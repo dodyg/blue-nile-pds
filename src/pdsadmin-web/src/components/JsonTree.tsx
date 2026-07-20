@@ -1,0 +1,72 @@
+import { useState, type ReactNode } from 'react';
+
+function valueColor(value: unknown): string {
+  if (value === null) return 'text-gray-400';
+  if (typeof value === 'string') return 'text-green-700';
+  if (typeof value === 'number') return 'text-blue-600';
+  if (typeof value === 'boolean') return 'text-purple-600';
+  return '';
+}
+
+function formatPrimitive(value: unknown): string {
+  if (value === null) return 'null';
+  if (typeof value === 'string') return `"${value}"`;
+  return String(value);
+}
+
+function isExpandable(value: unknown): value is Record<string, unknown> | unknown[] {
+  return value !== null && typeof value === 'object';
+}
+
+function JsonNode({ label, value, depth }: { label?: string; value: unknown; depth: number }) {
+  const [expanded, setExpanded] = useState(depth < 2);
+
+  if (!isExpandable(value)) {
+    return (
+      <div className="flex items-start gap-1.5">
+        {label !== undefined && <span className="text-gray-600 shrink-0">{label}:</span>}
+        <span className={`${valueColor(value)} break-all`}>{formatPrimitive(value)}</span>
+      </div>
+    );
+  }
+
+  const entries = Array.isArray(value)
+    ? value.map((v, i) => [String(i), v] as const)
+    : Object.entries(value);
+
+  const isEmpty = entries.length === 0;
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-gray-600 hover:text-gray-900 cursor-pointer"
+      >
+        <span className="text-xs w-3 shrink-0">{expanded ? '▼' : '▶'}</span>
+        {label !== undefined && <span className="text-gray-600">{label}:</span>}
+        <span className="text-gray-400 text-xs">
+          {Array.isArray(value) ? `[${value.length}]` : `{${entries.length}}`}
+        </span>
+      </button>
+      {expanded && !isEmpty && (
+        <div className="ml-4 pl-2 border-l border-gray-200 space-y-0.5">
+          {entries.map(([k, v]) => (
+            <JsonNode key={k} label={k} value={v} depth={depth + 1} />
+          ))}
+        </div>
+      )}
+      {expanded && isEmpty && (
+        <div className="ml-4 text-gray-400 text-xs">{Array.isArray(value) ? '[]' : '{}'}</div>
+      )}
+    </div>
+  );
+}
+
+interface Props {
+  value: unknown;
+  className?: string;
+}
+
+export default function JsonTree({ value, className = '' }: Props): ReactNode {
+  return <div className={`text-xs font-mono ${className}`}><JsonNode value={value} depth={0} /></div>;
+}
