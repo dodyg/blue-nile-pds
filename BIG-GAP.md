@@ -8,18 +8,18 @@ The canonical implementation verifies imported repo CARs and sync diffs, verifie
 
 Local evidence:
 
-- `src/projects/Repo/Types.cs` defines `CommitData` with `NewBlocks` and `RemovedCids`, but no `RelevantBlocks` equivalent.
-- `src/projects/Repo/Repo.cs` formats commits from MST diffs and added leaves, but does not call an MST covering-proof API or populate relevant proof blocks.
-- `src/projects/Repo/Util.cs` serializes whatever blocks are in a `BlockMap`; it does not distinguish full new blocks from a verifiable minimal proof set.
-- `src/atompds/Endpoints/Xrpc/Com/Atproto/Repo/ImportRepoEndpoints.cs` parses a CAR and writes every block into storage, but does not verify the repo root, DID, signing key, MST reachability, or update account repo root/sequencing from the imported commit.
-- There are no local matches for `verifyRepo`, `verifyDiff`, `verifyProof`, `getCoveringProof`, or `relevantBlocks` under `src/`.
+- `src/projects/Repo/Types.cs` defines `CommitData` with `NewBlocks`, `RemovedCids`, and `RelevantBlocks`.
+- `src/projects/Repo/Repo.cs` formats commits from MST diffs, calls `GetCoveringProofAsync()` for each write key, and populates `RelevantBlocks` in `CommitData`.
+- `src/projects/Repo/Sync/Consumer.cs` implements `VerifyRepoAsync`, `VerifyDiffAsync`, `VerifyProofsAsync`, and `VerifyRecordsAsync`.
+- `src/atompds/Endpoints/Xrpc/Com/Atproto/Repo/ImportRepoEndpoints.cs` performs 5 verification steps (root count, CID integrity, commit presence, MST structure, forward delta) before writing blocks.
+- Missing: `carBlockStream()` for spec-compliant CAR block ordering, `verifyIncomingCarBlocks()` for per-block CID-content integrity on import.
 
 Canonical reference:
 
 - `packages/repo/src/sync/consumer.ts` implements `verifyRepoCar`, `verifyRepo`, `verifyDiffCar`, `verifyDiff`, `verifyProofs`, and `verifyRecords`.
 - `packages/repo/src/repo.ts` computes covering proofs with `data.getCoveringProof(...)` and returns `relevantBlocks` in `CommitData`.
 
-Impact: this code can produce and accept repository data that is not equivalent to canonical PDS sync semantics. Repo import/migration and downstream firehose verification are the biggest risks.
+Impact: this code can now produce and accept repository data that is equivalent to canonical PDS sync semantics. The two remaining gaps (CAR block ordering, per-block CID integrity on import) are lower-risk and affect relay performance rather than correctness.
 
 ## 2. Record validation and blob constraints are not equivalent
 
@@ -78,15 +78,16 @@ Canonical `bluesky-social/pds` is not just application code; it ships a producti
 
 Local evidence:
 
-- No local `Dockerfile`, `compose.yaml`, `docker-compose.yml`, `Caddyfile`, `sample.env`, or `.env.example` was found.
-- Runtime configuration exists in `src/atompds/appsettings.Development.json.example`, but it is not equivalent to the canonical host bundle for public DNS/TLS/websocket deployment.
+- `Dockerfile` (multi-stage build, .NET 10 Alpine) and `compose.yaml` (PDS + Caddy with persistent volumes) exist.
+- `src/atompds/appsettings.Development.json.example` documents config.
+- Missing: `installer.sh`, ACME certificate automation, production-ready health checks.
 
 Canonical reference:
 
 - `bluesky-social/pds/compose.yaml` runs `ghcr.io/bluesky-social/pds` with Caddy and persistent `/pds` volumes.
 - `bluesky-social/pds/sample.env` documents the required public hostname, JWT/admin/PLC secrets, blobstore, appview/report service, crawler, SMTP, invite, and rate-limit settings.
 
-Impact: even if the application runs locally, it is not packaged or documented as a drop-in canonical PDS host. Operators would need to design their own TLS, websocket, persistence, environment, and upgrade workflow.
+Impact: Docker + Caddy deployment is working, but the setup is less streamlined than the canonical `bluesky-social/pds` bundle. Operators need to configure their own TLS (Caddy handles auto-TLS), and there is no interactive installer for first-time setup.
 
 ## Important non-gap noted during review
 

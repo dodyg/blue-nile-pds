@@ -26,7 +26,7 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 | 14 | `updateAccountPassword` | ✅ | ✅ `reset-password` | ✅ AccountDetail modal | |
 | 15 | `updateAccountSigningKey` | ❌ **Missing** | ❌ | ❌ | Lexicon defined, no handler |
 
-**Coverage:** 14/15 backend (93%), 11/15 web UI (73%), 8/15 CLI (53%), 1 entirely missing endpoint.
+**Coverage:** 14/15 backend (93%), 13/15 web UI (87%), 8/15 CLI (53%), 1 entirely missing endpoint.
 
 ### 1.2 Server Endpoints (`com.atproto.server.*`) — Admin-Adjacent
 
@@ -50,7 +50,6 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 | **Send Email** | Medium | `sendEmail` |
 | **Account Migration** | Low | `checkAccountStatus`, `deactivateAccount`, `activateAccount` |
 | **Audit Log** | Low | (no logging endpoint exists) |
-| **Content Browser** | Medium | `sync.listRepos`, `repo.describeRepo`, `repo.listRecords` |
 
 ### 2.2 Missing Features in Existing Pages
 
@@ -68,7 +67,6 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 
 | Issue | Detail |
 |-------|--------|
-| No caching layer | Every navigation = fresh API call. No React Query/RTK/ stale-while-revalidate. |
 | No optimistic updates | Actions wait for server response before reflecting changes. |
 | Auth in sessionStorage | No token refresh, no cross-tab persistence. |
 | No error boundaries | Unhandled render errors blank the page. |
@@ -152,7 +150,7 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 | Deactivate/activate | ❌ | ❌ |
 | Check account status | ❌ | ❌ |
 | Update signing key | ❌ | ❌ |
-| Content browsing | ❌ | ❌ |
+| Content browsing | ❌ | ✅ |
 | Audit log | ❌ | ❌ |
 | Bulk operations | ❌ | ❌ |
 
@@ -164,11 +162,13 @@ Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web
 |--------|-------|
 | Admin lexicon endpoints defined | 15 |
 | Admin endpoints implemented | 14 (93%) |
-| Admin endpoints with web UI | 11 (73%) |
+| Admin endpoints with web UI | 13 (87%) |
 | Admin endpoints with CLI | 8 (53%) |
 | Missing backend endpoint | 1 (`updateAccountSigningKey`) |
-| Missing web UI pages | 4 |
+| Missing web UI pages | 2 |
 | Missing CLI commands | 12 |
 | Lexicon compliance gaps (response shape) | 4+ |
 | Lexicon compliance gaps (input field name) | 3 |
 | Security issues identified | 7 (1 resolved) |
+
+---

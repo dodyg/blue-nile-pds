@@ -1,6 +1,6 @@
 # FIX.md -- Prioritized Remediation Guide
 
-> **Status:** Build passes (0 errors, 27 warnings). All 328 tests pass. No vulnerable packages.
+> **Status:** Build passes (0 errors, 27 warnings). All 515 tests pass. No vulnerable packages.
 > This file is ordered by priority. Each item includes exact file locations, what to change, and verification steps.
 
 ---
@@ -21,24 +21,6 @@ The admin password is the literal string `"secret"`. Any client sending `Authori
 4. Fallback to `"secret"` only when `PDS_DEV_MODE=true`
 
 **Verify:** Start app without `PDS_ADMIN_PASSWORD` set, confirm admin endpoints reject `Basic admin:secret`.
-
----
-
-### C2. StubMailer Logs Security Tokens in Plaintext ✅ RESOLVED
-
-**File:** `src/pds_projects/Mailer/StubMailer.cs:21,27,33,39,45`
-
-When SMTP is not configured (the default), all password reset, account deletion, and email confirmation tokens are logged at `Information` level with their full values.
-
-**Fix:** Replace `{token}` in all five `LogInformation` calls with a redacted placeholder:
-```csharp
-_logger.LogInformation("[STUB] Sending account delete email to {to} with token [REDACTED]", to);
-```
-Or use `logger.LogInformation("... with token {token}", "***")` to keep the structured logging parameter.
-
-**Verify:** Grep `StubMailer.cs` for `{token}` — should be zero matches.
-
-**Status:** ✅ Fixed in committed code. All five token log lines use `[REDACTED]`.
 
 ---
 
@@ -462,17 +444,3 @@ Background job registrations are in `Program.cs` while all other DI wiring is in
 
 **Verify:** Build.
 
----
-
-## Recommended Execution Order
-
-1. C1 (admin password) + C2 (token logging) + C3 (CORS) — quick fixes, immediate security impact
-2. C5 (CI/CD) — enables automated validation for all subsequent changes
-3. C4 (Outbox race) + H5 (SequencerRepository lifetime) — concurrency fixes
-4. H4 (sync blocking) + H8 (BuildServiceProvider) + M1 (required keyword) + M10 (unused packages) — clean code warnings
-5. H6 (audit logging) + H7 (proxy logging) + M6 (exception swallowing) — operational safety
-6. H1 (rate limiting) + H2 (SSRF) + H3 (OAuth redirect) + M2 (JWT exp) + M5 (path traversal) — security hardening
-7. H9 (test coverage) — start with Crypto, Repo, Sequencer tests
-8. M3 (SQLite WAL) + M4 (password strength) + M8 (health checks) — production readiness
-9. M7 (raw exceptions) + M11 (AGENTS.md) + M12 (DI split) + M13 (HTTP logging) — cleanup
-10. M9 (observability) — larger effort, plan separately

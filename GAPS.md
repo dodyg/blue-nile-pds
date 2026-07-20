@@ -34,7 +34,7 @@ All other non-deprecated `com.atproto.*` endpoints are present:
 
 ## 2. Proxy / Service Routing Gaps
 
-### 2.1 Ozone / Moderation Service Proxying — Missing
+### 2.1 Ozone / Moderation Service Proxying — Done
 
 The canonical PDS proxies **all `tools.ozone.*` methods** to a configured moderation service (`PDS_MOD_SERVICE_URL`). This includes:
 
@@ -437,14 +437,14 @@ The canonical PDS uses Handlebars templates for emails (`confirm-email.hbs`, `de
 |---|---|---|---|---|
 | XRPC endpoints (non-deprecated) | ~65 | ~65 | 0 missing |
 | Deprecated endpoints | 2 | 0 | 2 missing |
-| Proxy targets (ozone/chat/report) | Full | Partial (ozone done, chat proxied) | Moderate |
+| Proxy targets (ozone/chat/report) | Full | Partial (ozone done, chat proxied to appview, no dedicated service) | Moderate |
 | Repo/MST function parity (61 functions) | Full | 54 equiv | 7 missing (11%) |
 | OAuth features | Full provider | Basic PKCE | Major |
 | Auth scopes/methods | 10+ modes | 5 modes | Significant |
 | Config variables | ~90+ | ~76 | ~14 missing |
 | Account DB tables | 15 | 9 | 6 missing/commented |
 | Test files | ~40+ | ~30 | ~10 missing |
-| Repo/MST functions | 61 | 54 | 7 missing (proofs, verification, CAR compliance) |
+| Repo/MST functions | 61 | 54 | 7 missing (car stream, walkRecords, readable blockstore, sync storage, verifyIncomingCarBlocks, blob constraints, legacy refs) |
 | Recovery scripts | 6 | 0 | All missing |
 | Deployment tooling | Docker+Caddy | Partial (Docker + compose + Caddy) | Installer script, ACME automation |
 
@@ -453,36 +453,6 @@ The canonical PDS uses Handlebars templates for emails (`confirm-email.hbs`, `de
 ## 12. Repository & MST Gaps
 
 Comparison of the core repository data structure implementation (Merkle Search Tree, commits, CAR) against the [AT Protocol Repository Spec](https://atproto.com/specs/repository) and the reference `@atproto/repo` package.
-
-### 12.1 Covering Proofs (`getCoveringProof`) — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | Repository Diffs: "proof chain" for verifying created/updated records independently; operation inversion requires "MST nodes necessary for the inversion process" |
-| **Reference** | `MST.getCoveringProof(key)` in `packages/repo/src/mst/mst.ts` — recursively collects all MST node blocks along the path to a key, plus left and right sibling nodes. Called from `Repo.formatCommit()` in `packages/repo/src/repo.ts` to populate `CommitData.relevantBlocks` |
-| **Local** | `MST.GetCoveringProofAsync()` at `MST.cs:495` — walks the MST from root to leaf, collecting sibling blocks as covering proof. Called from `Repo.cs:115` to populate `CommitData.NewBlocks` and `CommitData.RelevantBlocks` during `FormatCommitAsync` |
-| **Impact** | ✅ Addressed. Covering proofs are collected during commit formatting and included in sequencer events |
-| **Priority** | High |
-
-### 12.2 `relevantBlocks` in CommitData — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | Repository Diffs: "diff is a partial Merkle tree, including a signed commit, and can be partially verified in isolation" — requires inclusion of contextual MST nodes |
-| **Reference** | TypeScript `CommitData` (in `packages/repo/src/types.ts`) has both `newBlocks: BlockMap` (changed blocks) and `relevantBlocks: BlockMap` (covering proofs, contextual MST nodes needed for inversion). `Repo.formatCommit()` populates both |
-| **Local** | C# `CommitData.RelevantBlocks` populated in `Repo.cs:115` — `GetCoveringProofAsync()` is called for each write key during `FormatCommitAsync` and the resulting blocks are stored alongside `NewBlocks` |
-| **Impact** | ✅ Addressed. `RelevantBlocks` is populated during commit formatting and included in sequencer events for downstream verification |
-| **Priority** | High |
-
-### 12.3 Commit Re-signing (`resignCommit`) — Missing
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | Commit Objects: "a new repository commit should be created every time the signing key is rotated. Such a commit does not need to update the `data` CID link" |
-| **Reference** | `Repo.formatResignCommit(rev, keypair)` and `Repo.resignCommit(rev, keypair)` in `packages/repo/src/repo.ts` — re-signs the current commit with a new key, keeping the same `data` CID (MST unchanged). Used during key rotation |
-| **Local** | **Missing entirely** — no equivalent in `Repo.cs` |
-| **Impact** | Key rotation cannot be performed without rewriting the entire repo (creating a new commit via `FormatCommitAsync` with no writes, which would still recompute the MST unnecessarily) |
-| **Priority** | Medium |
 
 ### 12.4 Read-Only Repo Abstraction — Missing
 
@@ -494,26 +464,6 @@ Comparison of the core repository data structure implementation (Merkle Search T
 | **Impact** | Verification workflows (which need read-only access to staged+persisted data) cannot cleanly separate concerns. Code that only needs to read the repo must accept a full read/write interface |
 | **Priority** | Low |
 
-### 12.5 Graceful Tree Walking (`walkReachable`) — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | Security Considerations: handle corrupted data gracefully; CAR imports may have dangling references |
-| **Reference** | `MST.walkReachable()` and `MST.reachableLeaves()` in `packages/repo/src/mst/mst.ts` — graceful walker that catches `MissingBlockError` per subtree and skips unreachable branches, then continues walking the rest of the tree |
-| **Local** | `WalkReachableAsync()` at `MST.cs:386` — gracefully handles missing blocks by catching `MissingBlockException` and returning null. `SafeWalkReachableAsync()` at line 456 — skips subtrees with missing blocks via try/catch. `ReachableLeavesAsync()` at line 479 — streams leaves from `WalkReachableAsync()` |
-| **Impact** | ✅ Addressed. Recovery/verification workflows can walk incomplete repos and recover partial data |
-| **Priority** | Medium |
-
-### 12.6 Sync Verification Module — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | Repository Diffs: verification of diffs, proofs, and full repos; CAR File: import validation |
-| **Reference** | Full `packages/repo/src/sync/consumer.ts` with: `verifyRepo(carBytes)` — verifies full repo CAR (signature, DID, MST structure). `verifyDiff(repo, blocks, root)` — validates incremental diff (operation inversion, proof verification). `verifyProofs(proofs, claims, did, key)` — validates individual Merkle proofs against record claims. `verifyRecords(proofs, did, key)` — extracts and verifies all records from a proof |
-| **Local** | `Consumer.cs` at `src/projects/Repo/Sync/Consumer.cs` — implements 5 verify methods: `VerifyRepoAsync` (2 overloads: `byte[] carBytes` or `BlockMap` + CID), `VerifyDiffAsync` (forward delta check, DID match, commit signature), `VerifyProofsAsync` (Merkle proof validation), `VerifyRecordsAsync` (record extraction from proofs). Used by `ImportRepoEndpoints.cs` for CAR import verification |
-| **Impact** | ✅ Addressed. Full sync verification module exists with all 5 reference-equivalent methods |
-| **Priority** | High |
-
 ### 12.7 CAR Streamable Block Ordering — Not Compliant
 
 | Aspect | Detail |
@@ -523,46 +473,6 @@ Comparison of the core repository data structure implementation (Merkle Search T
 | **Local** | `SqlRepoTransactor.IterateCarBlocksAsync()` in `SqlRepoTransactor.cs` emits blocks ordered by `(repoRev DESC, cid DESC)` — a flat storage-level pagination with no awareness of the MST tree structure. `GetRepoController.cs` uses this to stream CAR responses |
 | **Impact** | CAR exports from this PDS are not in streamable ordering. Clients must buffer all blocks in memory to reconstruct the MST, defeating the memory-efficiency purpose of streamable CAR |
 | **Priority** | Medium |
-
-### 12.8 CAR Import Verification — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | Security Considerations: "When importing CAR files, the completeness of the repository structure should be verified" |
-| **Reference** | `importRepo.ts` calls `verifyDiff(currRepo, blockMap, roots[0])` before persisting blocks — validates the MST structure, ensures a valid diff from the current state, checks for completeness |
-| **Local** | `ImportRepoEndpoints.cs` performs 5 verification steps: (1) root count validation (exactly 1), (2) per-block CID integrity (SHA256 + CID recompute), (3) root commit block presence, (4) MST structural verification by walking all nodes, (5) forward-only delta check against current repo root. Uses `Consumer.VerifyRepoAsync()` internally |
-| **Impact** | ✅ Addressed. CAR import verification is fully implemented |
-| **Priority** | High |
-
-### 12.9 Repo Write and Import Size Limits — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | Security Considerations: "limit the number of TreeEntries per Node to a statistically unlikely maximum length... limit the overall depth of the repo" |
-| **Reference** | `RepoTransactor.processWrites()` enforces max 2MB `relevantBlocks` check. `PDS_MAX_REPO_IMPORT_SIZE` controls max import size. `PDS_ACCEPTING_REPO_IMPORTS` gates the import endpoint |
-| **Local** | `RepoRepository.cs:194` enforces 2MB limit on commit `NewBlocks.ByteSize`. `ImportRepoEndpoints.cs:38,43,64` enforces `PDS_ACCEPTING_REPO_IMPORTS` gate and `PDS_MAX_REPO_IMPORT_SIZE` (default 100MB) on imported CAR files |
-| **Impact** | ✅ Addressed. Write and import size limits are enforced |
-| **Priority** | Medium |
-
-### 12.10 Missing Block Error Types — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | — (robustness) |
-| **Reference** | `packages/repo/src/error.ts` exports: `MissingBlockError`, `MissingBlocksError`, `MissingCommitBlocksError`, `UnexpectedObjectError` — typed errors that callers can catch and handle differently |
-| **Local** | `Errors.cs` at `src/projects/Repo/Errors.cs` — typed error hierarchy: `RepoException` base class, `MissingBlockException(Cid)`, `MissingBlocksException(Cid[])`, `MissingCommitBlocksException(Cid commitCid, Cid[] missing)`, `UnexpectedObjectException(Cid, string expectedType, string actualType)`. Used throughout `MST.cs`, `Repo.cs`, and `Consumer.cs` |
-| **Impact** | ✅ Addressed. Typed error hierarchy matching the reference structure |
-| **Priority** | Low |
-
-### 12.11 Record Schema / Lexicon Validation — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | Lexicon spec: records must conform to their lexicon schema; validation before writing |
-| **Reference** | `Prepare.prepareCreate()` and `prepareUpdate()` in `packages/pds/src/repo/prepare.ts` — validates records against a map of 18 known lexicon schemas using `RecordSchema.safeValidate()`. Rejects records that fail schema validation |
-| **Local** | `Prepare.cs:ValidateRecord()` at lines 82-140 — performs: `createdAt` future tolerance check (configurable, default 1 minute), required field validation for 5 known lexicons (feed.post, graph.follow, graph.like, graph.repost, actor.profile). Returns `ValidationStatus.Valid` or `ValidationStatus.Unknown`. Called from `PrepareCreate()` and `PrepareUpdate()` when `validate=true` |
-| **Impact** | ✅ Addressed. Record schema validation is implemented for the most-written lexicons. Unknown collections are allowed through. 18 lexicons vs 5 coverage gap remains |
-| **Priority** | High |
 
 ### 12.12 Blob Constraints Enforcement — Not Enforced
 
@@ -594,16 +504,6 @@ Comparison of the core repository data structure implementation (Merkle Search T
 | **Impact** | Records created by older clients using legacy blob format will have blob references that cannot be processed |
 | **Priority** | Low |
 
-### 12.15 CID for Record Computation — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | CID format: blessed CID (CIDv1 + DAG-CBOR). Deterministic CID computation must be cross-implementation compatible |
-| **Reference** | `cidForCbor(record)` in `packages/repo/src/util.ts` — CBOR-encodes the JavaScript object directly. CID computation is deterministic from the CBOR bytes |
-| **Local** | `CidForSafeRecord()` exists in two locations: `Prepare.cs:152` (converts `JsonElement` → DAG-CBOR via `CanonicalDagCbor.Encode()`, SHA256 hashes, creates CIDv1) and `Repo.cs:193` (re-encodes `CBORObject` → CBOR bytes). Both recompute the CID from record content for safety against hash mismatches |
-| **Impact** | ✅ Addressed. CID computation follows the same CBOR→SHA256→CIDv1 path as the reference |
-| **Priority** | High |
-
 ### 12.16 Blob Post-Transaction Inconsistency — Acknowledged
 
 | Aspect | Detail |
@@ -634,16 +534,6 @@ Comparison of the core repository data structure implementation (Merkle Search T
 | **Impact** | Corrupt or maliciously crafted MST structures may be accepted during import or normal operation, potentially causing resource exhaustion or incorrect tree behavior |
 | **Priority** | Low |
 
-### 12.19 Blob Garbage Collection — Implemented
-
-| Aspect | Detail |
-|---|---|
-| **Spec reference** | — (resource management) |
-| **Reference** | PDS runs garbage collection for temp blobs (after TTL expiry) and orphaned permanent blobs (no longer referenced by any record) |
-| **Local** | `BlobGarbageCollectionService.cs` at `src/atompds/Services/` — `BackgroundService` running on configurable schedule (hourly default). Temp blob GC (lines 73-98): deletes temp blobs older than 24 hours with no associated record references. Orphaned permanent blob GC (lines 100-124): finds permanent blobs with no `record_blob` references and deletes from both DB and blob store. Uses `SemaphoreSlim` to prevent concurrent runs |
-| **Impact** | ✅ Addressed. Both temp and orphaned blob GC are implemented |
-| **Priority** | Low |
-
 ### 12.20 `Commit.since` Handling — Verify Correctness
 
 | Aspect | Detail |
@@ -655,107 +545,3 @@ Comparison of the core repository data structure implementation (Merkle Search T
 | **Priority** | Medium |
 
 ---
-
-## 13. Function-Level Mapping Summary
-
-### 13.1 Core Repository Functions (`Repo` class)
-
-| Function | Reference (`packages/repo/src/repo.ts`) | Local (`Repo.cs`) | Status |
-|---|---|---|---|
-| `static create(storage, did, keypair, initialWrites?)` | Full implementation | `CreateAsync` | ✅ Equivalent |
-| `static formatInitCommit(storage, did, keypair, writes?)` | Full implementation | `FormatInitCommitAsync` | ✅ Equivalent |
-| `static createFromCommit(storage, commit)` | Full implementation | `CreateFromCommitAsync` | ✅ Equivalent |
-| `static load(storage, cid?)` | Full implementation | `LoadAsync` | ✅ Equivalent |
-| `formatCommit(toWrite, keypair)` | Collects covering proofs, populates `relevantBlocks` | `FormatCommitAsync` | ✅ Equivalent |
-| `applyCommit(commitData)` | Delegates to storage, reloads | `ApplyCommitAsync` | ✅ Equivalent |
-| `applyWrites(toWrite, keypair)` | Combines format + apply | `ApplyWritesAsync` | ✅ Equivalent |
-| `formatResignCommit(rev, keypair)` | Creates new signature, same `data` CID | `FormatResignCommitAsync` | ✅ Equivalent |
-| `resignCommit(rev, keypair)` | Format + apply resign | `ResignCommitAsync` | ✅ Equivalent |
-| `walkRecords(from?)` | Async generator for all records | **Missing** (use `LeavesAsync` on MST directly) | ❌ Missing at Repo level |
-
-### 13.2 MST Functions
-
-| Function | Reference (`mst/mst.ts`) | Local (`MST.cs`) | Status |
-|---|---|---|---|
-| `static create(storage, entries?, opts?)` | Full | `Create` | ✅ Equivalent |
-| `static fromData(storage, data, opts?)` | Full | `FromData` | ✅ Equivalent |
-| `static load(storage, cid, opts?)` | Lazy-load, entries=null | `Load` | ✅ Equivalent |
-| `add(key, value, knownZeros?)` | Full recursive add | `AddAsync` | ✅ Equivalent |
-| `get(key)` | Lookup, descend subtrees | `GetAsync` | ✅ Equivalent |
-| `update(key, value)` | Replace leaf value | `UpdateAsync` | ✅ Equivalent |
-| `delete(key)` | Recursive delete + trimTop | `DeleteAsync` | ✅ Equivalent |
-| `getPointer()` | Return CID, recalc if outdated | `GetPointerAsync` | ✅ Equivalent |
-| `serialize()` | Serialize to CBOR | `SerializeAsync` | ✅ Equivalent |
-| `getUnstoredBlocks()` | Collect unstored blocks | `GetUnstoredBlocksAsync` | ✅ Equivalent |
-| `getCoveringProof(key)` | Proof for key + siblings | `GetCoveringProofAsync` | ✅ Equivalent |
-| `carBlockStream()` | MST-aware CAR streaming | **Missing** | ❌ Missing |
-| `walkFrom(key)` | Async generator from key | `WalkFromAsync` | ✅ Equivalent |
-| `walkLeavesFrom(key)` | Yields leaves from key | `WalkLeavesFromAsync` | ✅ Equivalent |
-| `walkReachable()` | Graceful walk (skip errors) | `WalkReachableAsync` | ✅ Equivalent |
-| `reachableLeaves()` | Leaves from graceful walk | `ReachableLeavesAsync` | ✅ Equivalent |
-| `splitAround(key)` | Split at key → [left, right] | `SplitAroundAsync` | ✅ Equivalent |
-| `createChild()` | Empty child at layer-1 | `CreateChildAsync` | ✅ Equivalent |
-| `createParent()` | Parent at layer+1 | `CreateParentAsync` | ✅ Equivalent |
-| `trimTop()` | Remove empty top layers | `TrimTopAsync` | ✅ Equivalent |
-| `appendMerge(toMerge)` | Merge same-layer trees | `AppendMergeAsync` | ✅ Equivalent |
-| `list(count, after?, before?)` | Paginated leaf listing | `ListAsync` | ✅ Equivalent |
-| `listWithPrefix(prefix, count)` | Prefix-filtered listing | `ListWithPrefixAsync` | ✅ Equivalent |
-| `cidsForPath(key)` | CID path to record | `CidsForPathAsync` | ✅ Equivalent |
-| `getLayer()` | Get node layer | `GetLayerAsync` | ✅ Equivalent |
-| `allNodes()` | All nodes in tree | `AllNodesAsync` | ✅ Equivalent |
-| `leaves()` / `leafCount()` | All leaves / count | `LeavesAsync` / `LeafCountAsync` | ✅ Equivalent |
-| `allCids()` | All CIDs in tree | `AllCidsAsync` | ✅ Equivalent |
-
-### 13.3 Sync / Verification Functions
-
-| Function | Reference (`sync/consumer.ts`) | Local | Status |
-|---|---|---|---|
-| `verifyRepo(carBytes, did?, key?)` | Full CAR verification | `VerifyRepoAsync` (Consumer.cs:38) | ✅ Equivalent |
-| `verifyRepo(blocks, head, did?, key?)` | Block-map verification | `VerifyRepoAsync` (Consumer.cs:62) | ✅ Equivalent |
-| `verifyDiff(repo, blocks, root, did?, key?)` | Diff verification + inversion | `VerifyDiffAsync` (Consumer.cs:85) | ✅ Equivalent |
-| `verifyProofs(proofs, claims, did, key)` | Proof validation | `VerifyProofsAsync` (Consumer.cs:125) | ✅ Equivalent |
-| `verifyRecords(proofs, did, key)` | Record extraction from proofs | `VerifyRecordsAsync` (Consumer.cs:160) | ✅ Equivalent |
-| `verifyIncomingCarBlocks(car)` | CID-content integrity check | **Missing** | ❌ Missing |
-
-### 13.4 Storage Functions
-
-| Function | Reference | Local | Status |
-|---|---|---|---|
-| `RepoStorage` interface | `storage/types.ts` | `IRepoStorage` | ✅ Equivalent |
-| `MemoryBlockStore` | `storage/memory-blockstore.ts` | `MemoryBlockStore` | ✅ Equivalent |
-| `ReadableBlockstore` | `storage/readable-blockstore.ts` | **Missing** | ❌ Missing |
-| `SyncStorage` (two-tier) | `storage/sync-storage.ts` | **Missing** | ❌ Missing |
-| `BlobStore` interface | `storage/types.ts` | `IBlobStore` | ✅ Equivalent |
-| CID error types | `error.ts` (4 typed errors) | `Errors.cs` (4 typed classes) | ✅ Equivalent |
-
-### 13.5 PDS-Level Write Preparation
-
-| Function | Reference (`pds/src/repo/prepare.ts`) | Local (`Prepare.cs`) | Status |
-|---|---|---|---|
-| `prepareCreate()` | Schema validation, CID, blob refs | `PrepareCreate` | ✅ Equivalent |
-| `prepareUpdate()` | Same as create | `PrepareUpdate` | ✅ Equivalent |
-| `prepareDelete()` | Validation, swapCid | `PrepareDelete` | ✅ Equivalent |
-| Schema validation | Lexicon schema check | `ValidateRecord()` (Prepare.cs:82) | ✅ Equivalent (5 lexicons) |
-| Blob constraints enforcement | MIME/size enforcement | **Missing** (TODOs at 194, 307) | ❌ Missing |
-| Legacy blob refs | Supported | **Missing** (TODO at 246) | ❌ Missing |
-
-### 13.6 Actor Store Repo Functions
-
-| Function | Reference (`actor-store/repo/transactor.ts`) | Local (`RepoRepository.cs`) | Status |
-|---|---|---|---|
-| `createRepo(writes)` | Init commit + index + blobs | `CreateRepoAsync` | ✅ Equivalent |
-| `processWrites(writes, swapCommit?)` | Format + apply + index + blobs + 2MB check | `ProcessWritesAsync` | ✅ Equivalent |
-| `formatCommit(writes, swapCommit?)` | Load repo, validate swaps, format, dedup CIDs | `FormatCommitAsync` | ✅ Equivalent |
-| `indexWrites(writes, rev)` | Index records + backlinks | `IndexWritesAsync` | ✅ Equivalent |
-
-### Summary
-
-| Category | Total Functions | ✅ Equivalent | ⚠️ Partial | ❌ Missing |
-|---|---|---|---|---|
-| Core Repo class | 10 | 9 | 0 | 1 |
-| MST class | 30 | 29 | 0 | 1 |
-| Sync/Verification | 6 | 5 | 0 | 1 |
-| Storage | 5 | 4 | 0 | 1 |
-| Write Preparation | 6 | 3 | 0 | 3 |
-| Actor Store Repo | 4 | 4 | 0 | 0 |
-| **Total** | **61** | **54** | **0** | **7** |
