@@ -42,7 +42,7 @@ export default function RecordDetail() {
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <JsonTree value={data.value} />
+            <JsonTree value={data.value} did={did} />
           </div>
         )
       )}

@@ -42,9 +42,9 @@ export default function CollectionRecords() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-gray-500">
-              <th className="p-2 font-medium w-10">#</th>
-              <th className="p-2 font-medium">Rkey</th>
-              <th className="p-2 font-medium">CID</th>
+              <th className="p-2 font-medium w-0">#</th>
+              <th className="p-2 font-medium w-0">Rkey</th>
+              <th className="p-2 font-medium w-0">CID</th>
               <th className="p-2 font-medium">Value</th>
             </tr>
           </thead>
@@ -53,8 +53,8 @@ export default function CollectionRecords() {
               const rkey = rkeyFromUri(r.uri);
               return (
                 <tr key={r.uri} className="border-b border-gray-200">
-                  <td className="p-2 text-xs text-gray-400 align-top">{i + 1}</td>
-                  <td className="p-2 align-top">
+                  <td className="p-2 text-xs text-gray-400 align-top w-0 whitespace-nowrap">{i + 1}</td>
+                  <td className="p-2 align-top w-0 whitespace-nowrap">
                     <Link
                       to={`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}/${encodeURIComponent(rkey)}`}
                       className="font-mono text-xs text-blue-600 hover:text-blue-700"
@@ -62,11 +62,11 @@ export default function CollectionRecords() {
                       {rkey}
                     </Link>
                   </td>
-                  <td className="p-2 align-top">
-                    <span className="font-mono text-xs text-gray-400 break-all">{r.cid}</span>
+                  <td className="p-2 align-top w-0 whitespace-nowrap">
+                    <span className="font-mono text-xs text-gray-400">{r.cid.slice(0, 12)}…</span>
                   </td>
                   <td className="p-2">
-                    <JsonTree value={r.value} />
+                    <JsonTree value={r.value} did={did} />
                   </td>
                 </tr>
               );

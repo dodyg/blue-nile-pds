@@ -18,7 +18,18 @@ function isExpandable(value: unknown): value is Record<string, unknown> | unknow
   return value !== null && typeof value === 'object';
 }
 
-function JsonNode({ label, value, depth }: { label?: string; value: unknown; depth: number }) {
+function isImageBlob(value: unknown, did?: string): string | null {
+  if (!did || !value || typeof value !== 'object') return null;
+  const obj = value as Record<string, unknown>;
+  if (obj.$type === 'blob' && typeof (obj.ref as Record<string, unknown>)?.['$link'] === 'string' &&
+      typeof obj.mimeType === 'string' && (obj.mimeType as string).startsWith('image/')) {
+    const cid = (obj.ref as Record<string, unknown>)['$link'] as string;
+    return `/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`;
+  }
+  return null;
+}
+
+function JsonNode({ label, value, depth, did }: { label?: string; value: unknown; depth: number; did?: string }) {
   const [expanded, setExpanded] = useState(depth < 2);
 
   if (!isExpandable(value)) {
@@ -29,6 +40,8 @@ function JsonNode({ label, value, depth }: { label?: string; value: unknown; dep
       </div>
     );
   }
+
+  const imgSrc = isImageBlob(value, did);
 
   const entries = Array.isArray(value)
     ? value.map((v, i) => [String(i), v] as const)
@@ -51,8 +64,11 @@ function JsonNode({ label, value, depth }: { label?: string; value: unknown; dep
       {expanded && !isEmpty && (
         <div className="ml-4 pl-2 border-l border-gray-200 space-y-0.5">
           {entries.map(([k, v]) => (
-            <JsonNode key={k} label={k} value={v} depth={depth + 1} />
+            <JsonNode key={k} label={k} value={v} depth={depth + 1} did={did} />
           ))}
+          {imgSrc && (
+            <img src={imgSrc} alt="blob" className="mt-1 max-h-64 rounded border border-gray-200" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          )}
         </div>
       )}
       {expanded && isEmpty && (
@@ -65,8 +81,9 @@ function JsonNode({ label, value, depth }: { label?: string; value: unknown; dep
 interface Props {
   value: unknown;
   className?: string;
+  did?: string;
 }
 
-export default function JsonTree({ value, className = '' }: Props): ReactNode {
-  return <div className={`text-xs font-mono ${className}`}><JsonNode value={value} depth={0} /></div>;
+export default function JsonTree({ value, className = '', did }: Props): ReactNode {
+  return <div className={`text-xs font-mono ${className}`}><JsonNode value={value} depth={0} did={did} /></div>;
 }
