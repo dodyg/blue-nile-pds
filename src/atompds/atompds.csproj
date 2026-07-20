@@ -38,4 +38,38 @@
     <ItemGroup>
       <Folder Include="ExceptionHandler/" />
     </ItemGroup>
+
+    <PropertyGroup>
+        <!-- Define the root folder of your Vite application -->
+        <SpaRoot>../pdsadmin-web</SpaRoot>
+        <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+    </PropertyGroup>
+
+    <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' AND !Exists('$(SpaRoot)node_modules') ">
+        <!-- Ensure Node.js is installed on the development machine -->
+        <Exec Command="node --version" ContinueOnError="true">
+            <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />
+        </Exec>
+
+        <Error Condition="'$(ErrorCode)' != '0'" Text="Node.js is required to build this project. Please install it from https://nodejs.org." />
+        <Message Importance="high" Text="Restoring dependencies using 'npm install'. This may take a few minutes..." />
+        <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
+    </Target>
+
+    <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
+        <!-- As part of publishing, ensure local dependencies are fresh -->
+        <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
+        <!-- Trigger Vite production build -->
+        <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+
+        <!-- Include Vite's output files (usually in dist or wwwroot) into the .NET publish bundle -->
+        <ItemGroup>
+            <DistFiles Include="$(SpaRoot)dist\**; $(SpaRoot)dist.br\**" />
+            <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+            <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+            </ResolvedFileToPublish>
+        </ItemGroup>
+    </Target>
 </Project>
