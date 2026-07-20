@@ -90,6 +90,15 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - Keep serialization compatible with the CarpaNet-generated lexicon models used by the server and tooling.
 - When touching persistence, inspect related EF models, migrations, and repository code together.
 
+## Front-end stack
+
+- React 19 + TypeScript + Vite 8. SPA served at `/admin/` via ASP.NET Core static files middleware.
+- **TanStack Query v5** for all server state. `queryClient.ts` configures global defaults (30s stale, 1 retry), global `queryCache.onError` for 401 redirects, and `XrpcError` class. Mutations auto-invalidate related query keys on success.
+- **No direct `xrpcGet`/`xrpcPost` calls from components.** All API interaction goes through domain hooks (`useAccountInfo`, `useSearchAccounts`, `useSubjectStatus`, `useDashboardStats`, `useInviteCodes`, etc.) in `hooks/useAccounts.ts`, `hooks/useInvites.ts`, `hooks/useDashboard.ts`.
+- Add a new hook for any new endpoint. Follow the pattern: `useQuery`/`useInfiniteQuery` for reads, `useMutation` + `queryClient.invalidateQueries` for writes.
+- The `client.ts` `request()` function throws `XrpcError` with `{ status, nsid, error, message }`. Catch errors from hooks via the `error` property (not try/catch around the hook call).
+- `DidLink` component uses `useAccountInfo` hook (no module-level cache). TanStack Query deduplicates fetches by query key.
+
 ## Testing expectations
 
 - Add or update TUnit tests when changing protocol logic, storage logic, parsing, or concurrency-sensitive behavior.
