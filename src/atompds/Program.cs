@@ -65,12 +65,15 @@ public class Program
         }
 
         app.UseAuthMiddleware();
+        app.UseStaticFiles();
         app.UseNotFoundMiddleware();
 
         app.MapEndpoints(
             environment,
             app.Services.GetRequiredService<ServiceConfig>(),
             app.Services.GetRequiredService<IdentityConfig>());
+
+        app.MapFallbackToFile("admin/index.html");
 
         await app.RunAsync();
     }

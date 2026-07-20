@@ -50,8 +50,8 @@ public static class SubscribeReposEndpoints
                 {
                     logger.LogWarning("Future cursor requested: {Cursor} > current max {Current}", cursor, curr);
                     var header = CBORObject.NewMap().Add("t", "#info").Add("op", ErrorOperation).EncodeToBytes();
-                    var blob = CBORObject.NewMap().Add("atError", "FutureCursor").Add("message", "Requested cursor is in the future.").EncodeToBytes();
-                    byte[] buffer = [..header, ..blob];
+                    var blob = CBORObject.NewMap().Add("error", "FutureCursor").Add("message", "Requested cursor is in the future.").EncodeToBytes();
+                    byte[] buffer = [.. header, .. blob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     return;
                 }
@@ -59,9 +59,9 @@ public static class SubscribeReposEndpoints
                 if (next != null && next.SequencedAt < backfillTime)
                 {
                     logger.LogWarning("Outdated cursor: next seq {NextSeq} at {SequencedAt} is before cut-off {BackfillTime}", next.Seq, next.SequencedAt, backfillTime);
-                    var header = CBORObject.NewMap().Add("t", "#info").Add("op", ErrorOperation).EncodeToBytes();
-                    var blob = CBORObject.NewMap().Add("atError", "OutdatedCursor").Add("message", "Requested cursor exceeded limit. Possibly missing events.").EncodeToBytes();
-                    byte[] buffer = [..header, ..blob];
+                    var header = CBORObject.NewMap().Add("t", "#info").Add("op", FrameOperation).EncodeToBytes();
+                    var blob = CBORObject.NewMap().Add("name", "OutdatedCursor").Add("message", "Requested cursor exceeded limit. Possibly missing events.").EncodeToBytes();
+                    byte[] buffer = [.. header, .. blob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     var startEvt = await sequencer.EarliestAfterTimeAsync(backfillTime);
                     outboxCursor = startEvt?.Seq - 1;
@@ -84,7 +84,7 @@ public static class SubscribeReposEndpoints
                 {
                     var header = CBORObject.NewMap().Add("t", "#commit").Add("op", FrameOperation).EncodeToBytes(cborOpts);
                     var evtBlob = commit.Evt.ToCborObject().Add("seq", evt.Seq).Add("time", evt.Time.ToString("O"));
-                    byte[] buffer = [..header, ..evtBlob.EncodeToBytes(cborOpts)];
+                    byte[] buffer = [.. header, .. evtBlob.EncodeToBytes(cborOpts)];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     logger.LogDebug("Sent commit event seq {Seq} for {Repo}", evt.Seq, commit.Evt.Repo);
                 }
@@ -92,7 +92,7 @@ public static class SubscribeReposEndpoints
                 {
                     var header = CBORObject.NewMap().Add("t", "#handle").Add("op", FrameOperation).EncodeToBytes(cborOpts);
                     var evtBlob = handle.Evt.ToCborObject().Add("seq", evt.Seq).Add("time", evt.Time.ToString("O")).EncodeToBytes(cborOpts);
-                    byte[] buffer = [..header, ..evtBlob];
+                    byte[] buffer = [.. header, .. evtBlob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     logger.LogDebug("Sent handle event seq {Seq} for {Repo}", evt.Seq, handle.Evt.Did);
                 }
@@ -100,7 +100,7 @@ public static class SubscribeReposEndpoints
                 {
                     var header = CBORObject.NewMap().Add("t", "#account").Add("op", FrameOperation).EncodeToBytes(cborOpts);
                     var evtBlob = account.Evt.ToCborObject().Add("seq", evt.Seq).Add("time", evt.Time.ToString("O")).EncodeToBytes(cborOpts);
-                    byte[] buffer = [..header, ..evtBlob];
+                    byte[] buffer = [.. header, .. evtBlob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     logger.LogDebug("Sent account event seq {Seq} for {Repo}, active: {Active}", evt.Seq, account.Evt.Did, account.Evt.Active);
                 }
@@ -108,7 +108,7 @@ public static class SubscribeReposEndpoints
                 {
                     var header = CBORObject.NewMap().Add("t", "#tombstone").Add("op", FrameOperation).EncodeToBytes(cborOpts);
                     var evtBlob = tombstone.Evt.ToCborObject().Add("seq", evt.Seq).Add("time", evt.Time.ToString("O")).EncodeToBytes(cborOpts);
-                    byte[] buffer = [..header, ..evtBlob];
+                    byte[] buffer = [.. header, .. evtBlob];
                     await webSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
                     logger.LogDebug("Sent tombstone event seq {Seq} for {Repo}", evt.Seq, tombstone.Evt.Did);
                 }

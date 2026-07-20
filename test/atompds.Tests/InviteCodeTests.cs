@@ -30,14 +30,15 @@ public class InviteCodeTests
         var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: UniqueEmail());
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/xrpc/com.atproto.server.createInviteCodes");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessJwt);
+        request.Headers.Add("Authorization", AuthTestHelper.GetAdminBasicAuth());
         request.Content = new StringContent(
-            """{"codeCount": 3, "useCount": 1}""", System.Text.Encoding.UTF8, "application/json");
+            $"{{\"codeCount\": 3, \"useCount\": 1, \"forAccounts\": [\"{account.Did}\"]}}", System.Text.Encoding.UTF8, "application/json");
         var response = await Client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var json = await AuthTestHelper.ReadJsonAsync(response);
         var codes = json.GetProperty("codes").EnumerateArray().ToList();
-        await Assert.That(codes.Count).IsEqualTo(3);
+        var codeStrings = codes.SelectMany(c => c.GetProperty("codes").EnumerateArray().Select(e => e.GetString())).ToList();
+        await Assert.That(codeStrings.Count).IsEqualTo(3);
     }
 
     [Test]

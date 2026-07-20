@@ -1,5 +1,8 @@
 using AccountManager.Db;
 using atompds.Middleware;
+using CarpaNet;
+using ComAtproto.Admin;
+using ComAtproto.Server;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
 
@@ -23,24 +26,27 @@ public static class GetInviteCodesAdminEndpoints
         var (codes, nextCursor) = await inviteStore.GetInviteCodesAsync(sort, limit, cursor);
         var uses = await inviteStore.GetInviteCodeUsesAsync(codes.Select(code => code.Code));
 
-        return Results.Ok(new
+        return Results.Ok(new GetInviteCodesOutput
         {
-            cursor = nextCursor,
-            codes = codes.Select(code => new
+            Cursor = nextCursor,
+            Codes = codes.Select(code =>
             {
-                code = code.Code,
-                available = code.AvailableUses,
-                disabled = code.Disabled,
-                forAccount = code.ForAccount,
-                createdBy = code.CreatedBy,
-                createdAt = code.CreatedAt.ToString("o"),
-                uses = uses.GetValueOrDefault(code.Code, [])
-                    .Select(use => new
+                var codeUses = uses.GetValueOrDefault(code.Code, []);
+                return new DefsInviteCode
+                {
+                    Code = code.Code,
+                    Available = code.AvailableUses,
+                    Disabled = code.Disabled,
+                    ForAccount = code.ForAccount,
+                    CreatedBy = code.CreatedBy,
+                    CreatedAt = new DateTimeOffset(code.CreatedAt, TimeSpan.Zero),
+                    Uses = codeUses.Select(u => new DefsInviteCodeUse
                     {
-                        usedBy = use.UsedBy,
-                        usedAt = use.UsedAt.ToString("o")
-                    })
-            })
+                        UsedBy = new ATDid(u.UsedBy),
+                        UsedAt = new DateTimeOffset(u.UsedAt, TimeSpan.Zero)
+                    }).ToList()
+                };
+            }).ToList()
         });
     }
 }

@@ -1,6 +1,8 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
+using CarpaNet;
+using ComAtproto.Admin;
 using Xrpc;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
@@ -17,28 +19,25 @@ public static class SearchAccountsAdminEndpoints
     {
         var actualLimit = limit ?? 50;
         if (actualLimit < 1 || actualLimit > 100)
-        {
             throw new XRPCError(new InvalidRequestErrorDetail("limit must be between 1 and 100"));
-        }
 
         var (accounts, nextCursor) = await accountStore.SearchAccountsAsync(email, cursor, actualLimit);
 
-        var response = new
+        return Results.Ok(new SearchAccountsOutput
         {
-            accounts = accounts.Select(a => new
+            Accounts = accounts.Select(a => new DefsAccountView
             {
-                did = a.Did,
-                handle = a.Handle,
-                email = a.Email,
-                emailConfirmedAt = a.EmailConfirmedAt?.ToString("o"),
-                invitesDisabled = a.InvitesDisabled,
-                takedownRef = a.TakedownRef,
-                deactivatedAt = a.DeactivatedAt?.ToString("o"),
-                createdAt = a.CreatedAt.ToString("o")
-            }),
-            cursor = nextCursor
-        };
-
-        return Results.Ok(response);
+                Did = new ATDid(a.Did),
+                Handle = new ATHandle(a.Handle ?? string.Empty),
+                Email = a.Email,
+                EmailConfirmedAt = a.EmailConfirmedAt.HasValue
+                    ? new DateTimeOffset(a.EmailConfirmedAt.Value, TimeSpan.Zero) : null,
+                InvitesDisabled = a.InvitesDisabled,
+                IndexedAt = new DateTimeOffset(a.CreatedAt, TimeSpan.Zero),
+                DeactivatedAt = a.DeactivatedAt.HasValue
+                    ? new DateTimeOffset(a.DeactivatedAt.Value, TimeSpan.Zero) : null
+            }).ToList(),
+            Cursor = nextCursor
+        });
     }
 }

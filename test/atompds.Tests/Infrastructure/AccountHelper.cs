@@ -53,9 +53,9 @@ public static class AccountHelper
     {
         var request = new HttpRequestMessage(HttpMethod.Post,
             "/xrpc/com.atproto.server.createInviteCode");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", account.AccessJwt);
+        request.Headers.Add("Authorization", AuthTestHelper.GetAdminBasicAuth());
         request.Content = new StringContent(
-            """{"useCount": 1}""", Encoding.UTF8, "application/json");
+            $"{{\"useCount\": 1, \"forAccount\": \"{account.Did}\"}}", Encoding.UTF8, "application/json");
         var response = await client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var json = await AuthTestHelper.ReadJsonAsync(response);
@@ -66,13 +66,13 @@ public static class AccountHelper
     {
         var request = new HttpRequestMessage(HttpMethod.Post,
             "/xrpc/com.atproto.server.createInviteCodes");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", account.AccessJwt);
+        request.Headers.Add("Authorization", AuthTestHelper.GetAdminBasicAuth());
         request.Content = new StringContent(
-            $"{{\"codeCount\": {codeCount}, \"useCount\": {useCount}}}", Encoding.UTF8, "application/json");
+            $"{{\"codeCount\": {codeCount}, \"useCount\": {useCount}, \"forAccounts\": [\"{account.Did}\"]}}", Encoding.UTF8, "application/json");
         var response = await client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var json = await AuthTestHelper.ReadJsonAsync(response);
-        return json.GetProperty("codes").EnumerateArray().First().GetString()!;
+        return json.GetProperty("codes").EnumerateArray().First().GetProperty("codes").EnumerateArray().First().GetString()!;
     }
 }
 

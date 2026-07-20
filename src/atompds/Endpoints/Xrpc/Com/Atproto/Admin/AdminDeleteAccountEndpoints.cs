@@ -1,5 +1,7 @@
 using AccountManager;
 using atompds.Middleware;
+using CarpaNet;
+using ComAtproto.Admin;
 using Xrpc;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
@@ -12,19 +14,11 @@ public static class AdminDeleteAccountEndpoints
         return group;
     }
 
-    private static async Task<IResult> HandleAsync(AdminDeleteAccountInput request, AccountRepository accountRepository, ILoggerFactory loggerFactory)
+    private static async Task<IResult> HandleAsync(DeleteAccountInput request, AccountRepository accountRepository, ILoggerFactory loggerFactory)
     {
-        if (string.IsNullOrWhiteSpace(request.Did))
-            throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
-
         await accountRepository.DeleteAccountAsync(request.Did);
         var logger = loggerFactory.CreateLogger("AdminDeleteAccountEndpoints");
-        logger.LogWarning("Admin account deleted: {Did}", request.Did);
-        return Results.Ok();
+        logger.LogWarning("Admin account deleted: {Did}", (string)request.Did);
+        return Results.Ok(new { });
     }
-}
-
-public class AdminDeleteAccountInput
-{
-    public string? Did { get; set; }
 }

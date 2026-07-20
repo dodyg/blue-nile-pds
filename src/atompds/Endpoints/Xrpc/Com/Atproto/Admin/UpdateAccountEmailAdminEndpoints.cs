@@ -1,6 +1,6 @@
 using AccountManager;
-using AccountManager.Db;
 using atompds.Middleware;
+using ComAtproto.Admin;
 using Xrpc;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
@@ -13,18 +13,13 @@ public static class UpdateAccountEmailAdminEndpoints
         return group;
     }
 
-    private static async Task<IResult> HandleAsync(AdminUpdateEmailInput request, AccountRepository accountRepository)
+    private static async Task<IResult> HandleAsync(UpdateAccountEmailInput request, AccountRepository accountRepository)
     {
-        if (string.IsNullOrWhiteSpace(request.Did) || string.IsNullOrWhiteSpace(request.Email))
-            throw new XRPCError(new InvalidRequestErrorDetail("did and email are required"));
+        var account = (string)request.Account;
+        if (string.IsNullOrWhiteSpace(account) || string.IsNullOrWhiteSpace(request.Email))
+            throw new XRPCError(new InvalidRequestErrorDetail("account and email are required"));
 
-        await accountRepository.UpdateEmailAsync(request.Did, request.Email);
-        return Results.Ok();
+        await accountRepository.UpdateEmailAsync(account, request.Email);
+        return Results.Ok(new { });
     }
-}
-
-public class AdminUpdateEmailInput
-{
-    public string? Did { get; set; }
-    public string? Email { get; set; }
 }

@@ -40,5 +40,5 @@
   </Folder>
   <Project Path="src/atompds/atompds.csproj" />
   <Project Path="src/migration/migration.csproj" />
-  <Project Path="src/pdsadmin/pdsadmin.csproj" />
+  <Project Path="src/pdsadmin-cli/pdsadmin-cli.csproj" />
 </Solution>

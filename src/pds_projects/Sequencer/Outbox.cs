@@ -81,11 +81,23 @@ public class Outbox
         _eventSource.OnEvents += OnEvents;
 
         var liveCount = 0;
+        var cutoverCount = 0;
         try
         {
             _logger.LogInformation("Running cutover, backfillCursor: {Cursor}, LastSeen: {LastSeen}", backfillCursor, LastSeen);
-            await CutoverAsync(backfillCursor);
-            _logger.LogInformation("Cutover complete, _caughtUp={CaughtUp}, LastSeen={LastSeen}, CutoverBuffer count: {BufCount}", _caughtUp, LastSeen, CutoverBuffer.Count);
+            var cutoverEvents = await CollectCutoverAsync(backfillCursor);
+            _logger.LogInformation("Cutover complete, collected {Count} events, LastSeen={LastSeen}, CutoverBuffer count: {BufCount}", cutoverEvents.Count, LastSeen, CutoverBuffer.Count);
+
+            foreach (var evt in cutoverEvents)
+            {
+                if (evt.Seq > LastSeen)
+                {
+                    cutoverCount++;
+                    LastSeen = evt.Seq;
+                    yield return evt;
+                }
+            }
+            _logger.LogInformation("Cutover yielded {Count} events, LastSeen={LastSeen}", cutoverCount, LastSeen);
 
             _logger.LogInformation("Entering live event loop, LastSeen={LastSeen}", LastSeen);
             await foreach (var evt in OutBuffer.Reader.ReadAllAsync(token))
@@ -112,38 +124,40 @@ public class Outbox
         finally
         {
             _eventSource.OnEvents -= OnEvents;
-            _logger.LogInformation("Unsubscribed from OnEvents, total live events processed: {Count}", liveCount);
+            _logger.LogInformation("Unsubscribed from OnEvents, total live events: {Count}, total cutover events: {CutoverCount}", liveCount, cutoverCount);
         }
     }
 
-    private async Task CutoverAsync(int? backfillCursor)
+    private async Task<List<ISeqEvt>> CollectCutoverAsync(int? backfillCursor)
     {
-        if (backfillCursor != null)
+        if (backfillCursor == null)
         {
-            _logger.LogInformation("Cutover: querying events after LastSeen={LastSeen}", LastSeen);
-            var cutoverEvts = await _sequencer.GetRangeAsync(LastSeen > -1 ? LastSeen : backfillCursor.Value, null, null, null);
-            _logger.LogInformation("Cutover: found {Count} events from DB, draining CutoverBuffer ({BufCount} buffered)", cutoverEvts.Length, CutoverBuffer.Count);
-            foreach (var evt in cutoverEvts)
-            {
-                TryWriteOutput(evt);
-            }
-            lock (_cutoverLock)
-            {
-                _logger.LogInformation("Cutover: flushing {Count} buffered events", CutoverBuffer.Count);
-                foreach (var evt in CutoverBuffer)
-                {
-                    TryWriteOutput(evt);
-                }
-                _caughtUp = true;
-                CutoverBuffer.Clear();
-            }
-            _logger.LogInformation("Cutover complete, caught up to LastSeen={LastSeen}", LastSeen);
+            _logger.LogInformation("CollectCutover: no backfill cursor, setting caughtUp=true");
+            _caughtUp = true;
+            return [];
         }
-        else
+
+        var result = new List<ISeqEvt>();
+
+        var cursor = LastSeen > -1 ? LastSeen : backfillCursor.Value;
+        _logger.LogInformation("CollectCutover: querying events after LastSeen={LastSeen} (cursor={Cursor})", LastSeen, cursor);
+        var dbEvents = await _sequencer.GetRangeAsync(cursor, null, null, null);
+        _logger.LogInformation("CollectCutover: found {Count} events from DB, CutoverBuffer has {BufCount}", dbEvents.Length, CutoverBuffer.Count);
+        result.AddRange(dbEvents);
+
+        lock (_cutoverLock)
         {
-            _logger.LogInformation("Cutover: no backfill cursor, setting _caughtUp=true immediately");
+            _logger.LogInformation("CollectCutover: flushing {Count} buffered events from CutoverBuffer", CutoverBuffer.Count);
+            while (CutoverBuffer.TryDequeue(out var evt))
+            {
+                result.Add(evt);
+            }
             _caughtUp = true;
         }
+
+        result.Sort((a, b) => a.Seq.CompareTo(b.Seq));
+        _logger.LogInformation("CollectCutover: collected {Count} total events, LastSeen={LastSeen}", result.Count, LastSeen);
+        return result;
     }
 
     public async IAsyncEnumerable<ISeqEvt> GetBackfillAsync(int backfillCursor, [EnumeratorCancellation] CancellationToken token)
