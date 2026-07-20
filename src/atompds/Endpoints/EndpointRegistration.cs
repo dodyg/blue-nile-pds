@@ -46,7 +46,6 @@ public static class EndpointRegistration
         admin.MapUpdateAccountEmailAdminEndpoints();
         admin.MapUpdateAccountHandleAdminEndpoints();
         admin.MapUpdateAccountPasswordAdminEndpoints();
-        admin.MapSearchAccountsAdminEndpoints();
 
         var ozone = xrpc.MapGroup("").WithTags("Ozone");
         ozone.MapOzoneProxyEndpoints();

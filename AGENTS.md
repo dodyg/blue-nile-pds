@@ -11,14 +11,15 @@
 - `src/atompds/`: ASP.NET Core host, Minimal API endpoints, middleware, startup, config binding.
 - `src/pds_projects/`: PDS-specific services such as `AccountManager`, `ActorStore`, `BlobStore`, `Sequencer`, `Mailer`, and `Xrpc`.
 - `src/projects/`: lower-level libraries such as `CID`, `Common`, `Crypto`, `DidLib`, `Handle`, `Identity`, and `Repo`.
-- `src/pdsadmin/`: admin CLI.
+- `src/pdsadmin-cli/`: admin CLI.
+- `src/pdsadmin-web/`: admin web UI (React SPA).
 - `src/migration/`: batch migration utility for actor stores.
 - `test/`: TUnit test projects plus `SubscribeTester`.
 - `atompds.slnx`: root solution file. Use this for solution-wide build and test commands.
 
 ## Environment and prerequisites
 
-- SDK is pinned in `global.json` to `.NET 10.0.100-rc.1`.
+- SDK is pinned in `global.json` to `10.0.100` with `rollForward: latestMinor`.
 - Projects target `net10.0`.
 - `src/atompds/atompds.csproj` enables `LangVersion=preview`, nullable reference types, and invariant globalization.
 - Do not downgrade language or framework features unless the task explicitly requires it.
@@ -29,10 +30,12 @@ Run commands from the repository root unless a task clearly needs a project dire
 
 ```bash
 dotnet build atompds.slnx
-dotnet test atompds.slnx
+dotnet test --solution atompds.slnx
 dotnet run --project src/atompds/atompds.csproj
-dotnet run --project src/pdsadmin/pdsadmin.csproj
+dotnet run --project src/pdsadmin-cli/pdsadmin-cli.csproj
 ```
+
+`dotnet test atompds.slnx` (positional) does NOT work — must use `--solution` flag.
 
 Useful focused test commands:
 
@@ -40,7 +43,10 @@ Useful focused test commands:
 dotnet test test/CID.Tests/CID.Tests.csproj
 dotnet test test/Common.Tests/Common.Tests.csproj
 dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
+dotnet test test/atompds.Tests/atompds.Tests.csproj
 ```
+
+Build may hit MSB4166 node crashes on resource-constrained machines; add `-m:1` or `-m:2` if that occurs.
 
 For dependency hygiene:
 
@@ -55,7 +61,7 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - `**/atompds/appsettings.*.json` is gitignored; do not commit local secrets.
 - `PDS_JWT_SECRET` and `PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX` are required.
 - `ServerConfig` expands `~/` paths and creates missing data directories.
-- `pdsadmin` uses `src/pdsadmin/pdsenv.json`; avoid committing real credentials there.
+- `pdsadmin-cli` uses `src/pdsadmin-cli/pdsenv.json`; avoid committing real credentials there.
 
 ## Architecture notes
 
@@ -72,6 +78,7 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - JSON uses `System.Text.Json` with `ConfigureHttpJsonOptions` (same options as former `AddControllers().AddJsonOptions()`). CarpaNet-generated serializer contexts are used for ATProto models.
 - `AccountManagerDb` and `SequencerDb` migrations run automatically on app startup.
 - Actor repos are stored per DID via `ActorRepositoryProvider` in `src/pds_projects/ActorStore/`.
+- Firehose event pipeline: HTTP write handler → `SequencerRepository.SequenceEventAsync` → saves to `RepoSeqs` table → calls `ISequencerNotifier.NotifyNewEvent()` (wake signal) → `SequencerPollingService` polls DB, fires `OnEvents` → `Outbox` receives via `Channel<ISeqEvt>` → `SubscribeReposEndpoints` encodes as CBOR and sends via WebSocket.
 
 ## Coding conventions to follow
 
@@ -92,9 +99,12 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 
 ## Known hotspots and gotchas
 
-- This repo currently emits NuGet vulnerability warnings for some transitive packages; do not ignore new warnings without documenting why.
-- `src/pds_projects/Sequencer/Outbox.cs` is concurrency-sensitive. Be careful with cutover, buffering, and channel completion behavior.
+- **SQLite does not preserve `DateTimeKind`.** Values written as `DateTime.UtcNow` are read back as `DateTimeKind.Unspecified`. When compared against `DateTime.UtcNow` (Kind=Utc), .NET converts the Unspecified value from local time, shifting it by the timezone offset. This breaks cursor validation in `SubscribeReposEndpoints.cs` and will affect any `DateTime` comparison across a SQLite read boundary. Fix: add a value converter in `OnModelCreating` — `HasConversion(v => v.ToUniversalTime(), v => DateTime.SpecifyKind(v, DateTimeKind.Utc))`. Already applied to `SequencerDb.RepoSeqs.SequencedAt`.
+- `src/pds_projects/Sequencer/Outbox.cs` is concurrency-sensitive. Careful with cutover, buffering, and channel completion behavior. The live event loop uses `Channel<ISeqEvt>` with backfill/cutover race handled via `ConcurrentQueue` + lock.
+- `SequencerPollingService` lives in `src/atompds/Services/` (not in the `Sequencer` project) because it's a `BackgroundService` hosted in the web host. It's registered as singleton + `ISequencerEventSource` + hosted service in `ServerConfig.cs`. Do NOT look for it under `src/pds_projects/Sequencer/`.
+- `BackgroundJobQueue` and `BackgroundJobWorker` are registered in `Program.cs:RegisterPdsServices()`, NOT in `ServerConfig.RegisterServices()`. Look in both places when tracing DI.
 - `src/pds_projects/AccountManager/Db/AccountStore.cs` contains user-input date parsing in account deactivation flows; treat that path carefully.
+- This repo currently emits NuGet vulnerability warnings for some transitive packages; do not ignore new warnings without documenting why.
 - The README lists several intentional limitations and TODOs. Review it before making protocol or data-model changes.
 - The project is explicitly experimental; avoid broad refactors unless the task requires them.
 

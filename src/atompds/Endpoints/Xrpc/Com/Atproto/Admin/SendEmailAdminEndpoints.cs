@@ -2,6 +2,7 @@ using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
 using atompds.Services;
+using ComAtproto.Admin;
 using Xrpc;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
@@ -15,11 +16,11 @@ public static class SendEmailAdminEndpoints
     }
 
     private static async Task<IResult> HandleAsync(
-        AdminSendEmailInput request,
+        SendEmailInput request,
         AccountRepository accountRepository,
         BackgroundEmailDispatcher mailer)
     {
-        var recipientDid = request.RecipientDid ?? request.Did;
+        var recipientDid = (string)request.RecipientDid;
         if (string.IsNullOrWhiteSpace(recipientDid) || string.IsNullOrWhiteSpace(request.Content))
             throw new XRPCError(new InvalidRequestErrorDetail("recipientDid and content are required"));
 
@@ -35,14 +36,6 @@ public static class SendEmailAdminEndpoints
             request.Content,
             account.Email);
 
-        return Results.Ok(new { sent = true });
+        return Results.Ok(new SendEmailOutput { Sent = true });
     }
-}
-
-public class AdminSendEmailInput
-{
-    public string? Did { get; set; }
-    public string? RecipientDid { get; set; }
-    public string? Content { get; set; }
-    public string? Subject { get; set; }
 }

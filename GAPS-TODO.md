@@ -10,46 +10,6 @@ Work items to close the gaps in `GAPS.md`. Ordered by dependency and risk — im
 
 These are blocking correctness/security issues. Ship nothing to production until these are done.
 
----
-
-### T-01: Typed Repository Error Hierarchy
-**Gap:** 12.10  
-**Priority:** Must-have (prerequisite for T-02, T-03)  
-**File:** `src/projects/Repo/Errors.cs` (new)
-
-Create typed exceptions matching the canonical `packages/repo/src/error.ts`:
-
-```csharp
-public class RepoException : Exception { ... }
-public class MissingBlockException(Cid cid, string source) : RepoException { ... }
-public class MissingBlocksException(Cid[] cids, string source) : RepoException { ... }
-public class MissingCommitBlocksException(Cid commitCid, Cid[] missing) : RepoException { ... }
-public class UnexpectedObjectException(Cid cid, string expectedType, string actualType) : RepoException { ... }
-```
-
-Replace generic `throw new Exception(...)` in `MST.cs`, `Repo.cs`, `SqlRepoTransactor.cs`, and `Provider.cs` with the appropriate typed exception. This is a prerequisite for T-02.
-
----
-
-### T-02: Graceful MST Walk (`walkReachable` / `reachableLeaves`)
-**Gap:** 12.5  
-**Priority:** Must-have (prerequisite for T-05, T-06)  
-**File:** `src/projects/Repo/MST/MST.cs`
-
-Add two methods after implementing T-01:
-
-```csharp
-public async IAsyncEnumerable<INodeEntry> WalkReachableAsync()
-// Per subtree: catch MissingBlockException, log it, skip branch, continue
-
-public async IAsyncEnumerable<Leaf> ReachableLeavesAsync()
-// Wraps WalkReachableAsync(), filters to Leaf entries only
-```
-
-Mirror `MST.walkReachable()` from `packages/repo/src/mst/mst.ts` lines 420–449.
-
----
-
 ### T-03: CID Computation Correctness
 **Gap:** 12.15  
 **Priority:** Must-have  
@@ -62,47 +22,6 @@ The `CidForSafeRecord()` method (line 82) does `JsonElement → CBOR → CID`. V
 3. Fix the CBOR serialization to produce DAG-CBOR compliant bytes (map keys must be sorted by UTF-8 byte order, all strings in UTF-8, integers in shortest form).
 
 The fix likely requires using a deterministic DAG-CBOR encoder. The `PeterO.Cbor` library may not produce canonical DAG-CBOR by default — check and configure it, or replace with a deterministic encoder.
-
----
-
-### T-04: CAR Import Verification
-**Gap:** 12.8  
-**Priority:** Must-have  
-**File:** `src/atompds/Endpoints/Xrpc/Com/Atproto/Repo/ImportRepoEndpoints.cs`
-
-Before `SqlRepoTransactor.PutManyAsync()`, add structural verification:
-
-1. Parse the CAR header and validate roots (exactly 1 root = the commit CID).
-2. Verify each block's CID matches its content: `Cid.FromBytes(block) == claimedCid`.
-3. Verify the root commit CID is present in the block map.
-4. Load the MST from the blocks and verify it is structurally valid (all referenced CIDs present, sorted order).
-5. If the repo already has blocks, verify the incoming diff is a valid forward-only delta.
-6. Enforce `PDS_ACCEPTING_REPO_IMPORTS` (gate the endpoint) and `PDS_MAX_REPO_IMPORT_SIZE` (stream size limit).
-
-Add config vars to `ServerEnvironment.cs`:
-```csharp
-public bool PDS_ACCEPTING_REPO_IMPORTS { get; set; } = true;
-public long PDS_MAX_REPO_IMPORT_SIZE { get; set; } = 100 * 1024 * 1024; // 100MB
-```
-
----
-
-### T-05: Repo Write Size Limit
-**Gap:** 12.9  
-**Priority:** Must-have  
-**File:** `src/pds_projects/ActorStore/Repo/RepoRepository.cs`
-
-In `FormatCommitAsync()`, after collecting `newBlocks` + `relevantBlocks` (once T-07 is done), enforce a 2MB cap:
-
-```csharp
-var totalSize = commit.NewBlocks.ByteSize() + (commit.RelevantBlocks?.ByteSize() ?? 0);
-if (totalSize > 2 * 1024 * 1024)
-    throw new XRPCError(new InvalidRequestErrorDetail("Commit too large"));
-```
-
-For now (before T-07), apply the limit only to `NewBlocks`.
-
----
 
 ### T-06: Lexicon Record Validation
 **Gap:** 12.11  
@@ -127,28 +46,6 @@ These close protocol-level gaps that affect interop with the relay/indexer netwo
 
 ---
 
-### T-07: Covering Proofs & `RelevantBlocks`
-**Gap:** 12.1, 12.2  
-**Priority:** High  
-**Files:** `src/projects/Repo/MST/MST.cs`, `src/projects/Repo/Types.cs`, `src/projects/Repo/Repo.cs`
-
-**Step 1** — Add `RelevantBlocks` to `CommitData` in `Types.cs`:
-```csharp
-public record CommitData(Cid Cid, string Rev, string? Since, Cid? Prev,
-    BlockMap NewBlocks, CidSet RemovedCids, BlockMap RelevantBlocks);
-```
-
-**Step 2** — Add `GetCoveringProofAsync(string key)` to `MST.cs`, mirroring `getCoveringProof` from `packages/repo/src/mst/mst.ts` lines 277–315:
-- Walk from root to the leaf for `key`, collecting every MST node block encountered.
-- For the leaf's parent node, also collect the left sibling and right sibling node blocks.
-- Return a `BlockMap` of all collected node blocks.
-
-**Step 3** — In `Repo.FormatCommitAsync()`, after computing `diff`, call `GetCoveringProofAsync` for each write key and add results to a `relevantBlocks` map. Pass it as the new `RelevantBlocks` field in `CommitData`.
-
-**Step 4** — In `Sequencer.cs`, include `RelevantBlocks` when building `CommitEvt` so the firehose emits proof blocks.
-
----
-
 ### T-08: CAR Streamable Block Ordering
 **Gap:** 12.7  
 **Priority:** High  
@@ -163,26 +60,6 @@ public async IAsyncEnumerable<CarBlock> CarBlockStreamAsync()
 ```
 
 Update `GetRepoController` and the sync `getRepo` endpoint to use `CarBlockStreamAsync()` instead of the flat SQL-ordered `IterateCarBlocksAsync()`.
-
----
-
-### T-09: Sync Verification Module
-**Gap:** 12.6  
-**Priority:** High  
-**File:** `src/projects/Repo/Sync/Consumer.cs` (new)
-
-Implement the six verification functions from `packages/repo/src/sync/consumer.ts`:
-
-| Method | Description |
-|---|---|
-| `VerifyIncomingCarBlocksAsync(car)` | Check each block's CID matches its content |
-| `VerifyRepoAsync(carBytes, did?, key?)` | Full CAR: signature, DID, MST structure |
-| `VerifyRepoAsync(blocks, head, did?, key?)` | Block-map variant |
-| `VerifyDiffAsync(repo, blocks, root, did?, key?)` | Validate incremental diff + operation inversion |
-| `VerifyProofsAsync(proofs, claims, did, key)` | Validate individual Merkle proofs |
-| `VerifyRecordsAsync(proofs, did, key)` | Extract and verify records from proofs |
-
-This depends on T-07 (covering proofs) for `VerifyDiffAsync` and T-01 (typed errors) for `MissingBlockException`.
 
 ---
 
@@ -260,45 +137,9 @@ In `DeserializeNodeData()`, add after key format validation:
 
 ---
 
-### T-15: `searchAccounts` Admin Endpoint
-**Gap:** 1.2  
-**Priority:** Medium  
-**File:** `src/atompds/Endpoints/Xrpc/Com/Atproto/Admin/SearchAccountsAdminEndpoints.cs` (new)
-
-Implement `GET /xrpc/com.atproto.admin.searchAccounts`:
-- Parameters: `email` (optional), `cursor` (optional), `limit` (default 50, max 100).
-- Query: search `actor` + `account` join by email substring or handle substring.
-- Return: `{ accounts: AccountView[], cursor? }`.
-- Auth: admin token only.
-
-Add `SearchAccountsAsync()` to `AccountStore.cs`.
-
----
-
 ## Phase 3 — Service Routing
 
 Complete the proxy/routing layer to match canonical behavior.
-
----
-
-### T-16: Ozone / Moderation Service Proxying
-**Gap:** 2.1  
-**Priority:** High  
-**Files:** `src/atompds/Config/ServerEnvironment.cs`, `src/pds_projects/Config/`, `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs`
-
-**Step 1** — Add config:
-```csharp
-public string? PDS_MOD_SERVICE_URL { get; set; }
-public string? PDS_MOD_SERVICE_DID { get; set; }
-```
-
-Create `ModServiceConfig.cs` in `src/pds_projects/Config/`.
-
-**Step 2** — Add a new endpoint file `OzoneProxyEndpoints.cs` that registers routes for all `tools.ozone.*` NSIDs listed in GAPS.md §2.1. Route them to the mod service URL using service JWT auth (same pattern as `AppViewProxyEndpoints`).
-
-**Step 3** — Add `tools.ozone.*` to the catch-all allowlist in `CatchallProxyAsync` once the explicit routes are registered.
-
-**Step 4** — Implement `moderator` auth method in `AuthVerifier.cs` (see T-20).
 
 ---
 
@@ -557,19 +398,6 @@ Wire each into the appropriate service. For `PDS_INVITE_REQUIRED`, change the de
 
 ---
 
-### T-32: Blob Garbage Collection
-**Gap:** 12.19  
-**Priority:** Medium  
-**Files:** `src/pds_projects/ActorStore/Repo/BlobTransactor.cs`, `src/atompds/Services/` (new background service)
-
-Create `BlobGarbageCollectionService.cs` as a hosted background service:
-- Runs on a configurable schedule (e.g., hourly).
-- **Temp blob GC:** Delete temp blobs older than 24 hours that have no associated records.
-- **Orphaned permanent blob GC:** Find blobs where no `record_blob` row exists (no active references) and delete from both DB and blob store.
-- Use a distributed lock (Redis or SQLite advisory lock) to prevent concurrent GC runs.
-
----
-
 ### T-33: Separate Moderation Mailer
 **Gap:** 6.3  
 **Priority:** Low  
@@ -612,9 +440,9 @@ In `HandleManager` DNS resolution, if the primary DNS lookup fails, retry agains
 ### T-36: Recovery & Maintenance Scripts
 **Gap:** 6.2  
 **Priority:** Medium  
-**Files:** `src/pdsadmin/` or new project `src/pdstools/`
+**Files:** `src/pdsadmin-cli/` or new project `src/pdstools/`
 
-Implement the missing admin tools as subcommands of `pdsadmin` (or a new `pdstools` CLI):
+Implement the missing admin tools as subcommands of `pdsadmin-cli` (or a new `pdstools` CLI):
 
 | Command | Description |
 |---|---|
@@ -627,19 +455,6 @@ Implement the missing admin tools as subcommands of `pdsadmin` (or a new `pdstoo
 ---
 
 ## Phase 9 — Deployment
-
----
-
-### T-37: Docker & Compose Support
-**Gap:** 10.1  
-**Priority:** Medium  
-**Files:** `Dockerfile`, `compose.yaml`, `.env.example`
-
-Create:
-- `Dockerfile` with a multi-stage build (SDK → runtime, .NET 10 Alpine base).
-- `compose.yaml` with the PDS service + a Caddy reverse proxy for TLS termination.
-- `.env.example` with all required and optional environment variables documented.
-- Optional: `installer.sh` for interactive setup on a fresh Ubuntu/Debian VPS.
 
 ---
 
@@ -689,23 +504,19 @@ Add test files for the gaps in canonical coverage:
 ## Execution Order Summary
 
 ```
-Phase 1 (Security)   → T-01 → T-02 → T-03 → T-04 → T-05 → T-06
-Phase 2 (Protocol)   → T-07 → T-08 → T-09 → T-10 → T-11 → T-12 → T-13 → T-14 → T-15
-Phase 3 (Routing)    → T-16 → T-17 → T-18 → T-19
+Phase 1 (Security)   → T-03 → T-06
+Phase 2 (Protocol)   → T-08 → T-10 → T-11 → T-12 → T-13 → T-14
+Phase 3 (Routing)    → T-17 → T-18 → T-19
 Phase 4 (Auth)       → T-20 → T-21 → T-22
 Phase 5 (Database)   → T-23 → T-24
 Phase 6 (OAuth)      → T-25 → T-26 → T-27 → T-28
 Phase 7 (Rate Limit) → T-29 → T-30 → T-31
-Phase 8 (Infra)      → T-32 → T-33 → T-34 → T-35 → T-36
-Phase 9 (Deploy)     → T-37 → T-38
+Phase 8 (Infra)      → T-33 → T-34 → T-35 → T-36
+Phase 9 (Deploy)     → T-38
 Phase 10 (Tests)     → T-39 (run alongside each phase)
 ```
 
 **Hard dependencies:**
-- T-02 requires T-01 (typed errors)
-- T-07 requires T-01 (typed errors in diff computation)
-- T-09 requires T-07 (covering proofs for diff verification)
-- T-16 requires T-20 (moderator auth for Ozone endpoints)
 - T-25 requires T-23 (DB tables for OAuth persistence)
 - T-10 and T-36/rotate-keys depend on each other — T-10 first
 

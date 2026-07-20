@@ -52,7 +52,7 @@ async Task HandleMessageAsync(ISubscribeReposMessage message)
             continue;
         }
 
-        var getRecord = await atProtocol.ComAtprotoRepoGetRecordAsync(new GetRecordParameters
+        var getRecord = await atProtocol.ComAtprotoRepoGetRecordAsync(new ComAtproto.Repo.GetRecordParameters
         {
             Repo = orgId.Value,
             Collection = pathParts[0],

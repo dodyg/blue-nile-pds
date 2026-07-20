@@ -1,6 +1,7 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
+using ComAtproto.Server;
 using Xrpc;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
@@ -9,35 +10,26 @@ public static class CreateInviteCodeEndpoints
 {
     public static RouteGroupBuilder MapCreateInviteCodeEndpoints(this RouteGroupBuilder group)
     {
-        group.MapPost("com.atproto.server.createInviteCode", HandleAsync).WithMetadata(new AccessPrivilegedAttribute());
+        group.MapPost("com.atproto.server.createInviteCode", HandleAsync).WithMetadata(new AdminTokenAttribute());
         return group;
     }
 
     private static async Task<IResult> HandleAsync(
-        HttpContext context,
         CreateInviteCodeInput request,
-        AccountRepository accountRepository,
-        InviteStore inviteStore)
+        InviteStore inviteStore,
+        AccountRepository accountRepository)
     {
-        var auth = context.GetAuthOutput();
-        var did = auth.AccessCredentials.Did;
+        var useCount = request.UseCount > 0 ? request.UseCount : 1;
+        var forAccount = request.ForAccount is not null ? (string)request.ForAccount : throw new XRPCError(new InvalidRequestErrorDetail("forAccount is required"));
 
-        var account = await accountRepository.GetAccountAsync(did);
+        var account = await accountRepository.GetAccountAsync(forAccount, new AvailabilityFlags(IncludeTakenDown: true, IncludeDeactivated: true));
         if (account == null)
             throw new XRPCError(new InvalidRequestErrorDetail("Account not found"));
-
         if (account.InvitesDisabled == true)
             throw new XRPCError(new InvalidRequestErrorDetail("Invites are disabled for this account"));
 
-        var useCount = request.UseCount > 0 ? request.UseCount : 1;
-        var code = await inviteStore.CreateInviteCodeAsync(did, did, useCount);
+        var code = await inviteStore.CreateInviteCodeAsync(forAccount, forAccount, (int)useCount);
 
-        return Results.Ok(new { code });
+        return Results.Ok(new CreateInviteCodeOutput { Code = code });
     }
-}
-
-public class CreateInviteCodeInput
-{
-    public int UseCount { get; set; } = 1;
-    public string? ForAccount { get; set; }
 }

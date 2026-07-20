@@ -22,7 +22,7 @@ This document is a structured map of the `blue-nile-pds` codebase. Read this fir
 ```
 atompds.slnx
 ├── src/atompds/              ASP.NET Core host (web app entry point, Minimal API endpoints, middleware, services)
-├── src/pdsadmin/              Admin CLI tool (ConsoleAppFramework)
+├── src/pdsadmin-cli/            Admin CLI tool (ConsoleAppFramework)
 ├── src/migration/             Batch actor store migration utility (DurableTask)
 ├── src/pds_projects/          PDS-specific service libraries
 │   ├── AccountManager/        Account CRUD, auth tokens, invites, passwords
@@ -463,7 +463,7 @@ dotnet test test/atompds.Tests/atompds.Tests.csproj
 
 ---
 
-## 12. Admin CLI (`src/pdsadmin/`)
+## 12. Admin CLI (`src/pdsadmin-cli/`)
 
 Single-file app using `ConsoleAppFramework`. Two command classes:
 

@@ -1,6 +1,8 @@
 using AccountManager;
 using AccountManager.Db;
 using atompds.Middleware;
+using CarpaNet;
+using ComAtproto.Admin;
 
 namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
 
@@ -17,18 +19,20 @@ public static class GetAccountInfosEndpoints
         var didList = dids.Split(',', StringSplitOptions.RemoveEmptyEntries);
         var accounts = await accountRepository.GetAccountsAsync(didList, new AvailabilityFlags(true, true));
 
-        return Results.Ok(new
+        return Results.Ok(new GetAccountInfosOutput
         {
-            accounts = accounts.Values.Select(a => new
+            Infos = accounts.Values.Select(a => new DefsAccountView
             {
-                did = a.Did,
-                handle = a.Handle,
-                email = a.Email,
-                emailConfirmedAt = a.EmailConfirmedAt?.ToString("o"),
-                takedownRef = a.TakedownRef,
-                deactivatedAt = a.DeactivatedAt?.ToString("o"),
-                createdAt = a.CreatedAt.ToString("o")
-            })
+                Did = new ATDid(a.Did),
+                Handle = new ATHandle(a.Handle ?? string.Empty),
+                Email = a.Email,
+                EmailConfirmedAt = a.EmailConfirmedAt.HasValue
+                    ? new DateTimeOffset(a.EmailConfirmedAt.Value, TimeSpan.Zero) : null,
+                InvitesDisabled = a.InvitesDisabled,
+                IndexedAt = new DateTimeOffset(a.CreatedAt, TimeSpan.Zero),
+                DeactivatedAt = a.DeactivatedAt.HasValue
+                    ? new DateTimeOffset(a.DeactivatedAt.Value, TimeSpan.Zero) : null
+            }).ToList()
         });
     }
 }
