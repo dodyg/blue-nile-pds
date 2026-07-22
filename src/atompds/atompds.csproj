@@ -55,7 +55,7 @@
         <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
     </Target>
 
-    <Target Name="BuildFrontend" BeforeTargets="ComputeFilesToPublish">
+    <Target Name="BuildFrontend" BeforeTargets="BeforeBuild;Publish">
         <Message Importance="high" Text="Restoring npm dependencies..." />
         <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
 
