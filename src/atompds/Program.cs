@@ -15,7 +15,11 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        var builder = WebApplication.CreateSlimBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions
+        {
+            Args = args,
+            ContentRootPath = AppContext.BaseDirectory
+        });
 
         builder.Services.AddCors();
         builder.Services.AddHttpClient();
