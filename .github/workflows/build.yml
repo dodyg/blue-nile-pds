@@ -28,7 +28,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore atompds.slnx
+        run: dotnet restore atompds.slnx --configfile libs/CarpaNet/NuGet.Config
 
       - name: Build
         run: dotnet build atompds.slnx --no-restore
