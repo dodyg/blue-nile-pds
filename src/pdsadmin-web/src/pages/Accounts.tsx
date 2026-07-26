@@ -34,13 +34,13 @@ export default function Accounts() {
       {error && <p className="text-red-600 mb-4">{error.message}</p>}
       {isPending && accounts.length === 0 && <p className="text-gray-500 mb-4">Loading...</p>}
       {accounts.length === 0 && !isPending && <p className="text-gray-400 mb-4">No accounts found</p>}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-gray-500">
               <th className="p-3 font-medium">DID</th>
-              <th className="p-3 font-medium">Handle</th>
-              <th className="p-3 font-medium">Email</th>
+              <th className="p-3 font-medium">Handle / Email</th>
+              <th className="p-3 font-medium hidden md:table-cell">Email</th>
               <th className="p-3 font-medium">Status</th>
               <th className="p-3 font-medium" />
             </tr>
@@ -49,8 +49,11 @@ export default function Accounts() {
             {accounts.map(acc => (
               <tr key={acc.did} className="border-b border-gray-200 hover:bg-gray-50">
                 <td className="p-3 font-mono text-xs truncate max-w-[200px]">{acc.did}</td>
-                <td className="p-3">{acc.handle}</td>
-                <td className="p-3 text-gray-500">{acc.email || '—'}</td>
+                <td className="p-3">
+                  <div>{acc.handle}</div>
+                  <div className="text-gray-400 text-xs md:hidden">{acc.email || '—'}</div>
+                </td>
+                <td className="p-3 text-gray-500 hidden md:table-cell">{acc.email || '—'}</td>
                 <td className="p-3">
                   <div className="flex gap-1 flex-wrap">
                     {acc.invitesDisabled && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">invites off</span>}

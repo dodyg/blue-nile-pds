@@ -38,7 +38,7 @@ export default function CollectionRecords() {
       {isPending && records.length === 0 && <p className="text-gray-500">Loading...</p>}
       {records.length === 0 && !isPending && <p className="text-gray-400">No records found in this collection</p>}
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-gray-500">

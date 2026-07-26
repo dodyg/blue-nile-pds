@@ -34,7 +34,7 @@ export default function InviteCodes() {
       {error && <p className="text-red-600 mb-4">{error.message}</p>}
       {isPending && codes.length === 0 && <p className="text-gray-500 mb-4">Loading...</p>}
       {codes.length === 0 && !isPending && <p className="text-gray-400 mb-4">No invite codes found</p>}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left text-gray-500">
