@@ -82,6 +82,7 @@ public class BackupTests
     }
 
     [Test]
+    [NotInParallel]
     public async Task CreateBackup_Completes_AndDownloadContainsExpectedFiles()
     {
         var status = await CreateAndWaitForCompletionAsync();
@@ -135,6 +136,7 @@ public class BackupTests
     }
 
     [Test]
+    [NotInParallel]
     public async Task DeleteBackup_RemovesFileFromList()
     {
         var status = await CreateAndWaitForCompletionAsync();
@@ -160,6 +162,7 @@ public class BackupTests
     }
 
     [Test]
+    [NotInParallel]
     public async Task CreateBackup_WhileRunning_ReturnsBackupAlreadyRunning()
     {
         using var scope = Factory.Services.CreateScope();
