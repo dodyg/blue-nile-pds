@@ -13,3 +13,9 @@ export const inviteKeys = {
 export const dashboardKeys = {
   stats: ['dashboard', 'stats'] as const,
 };
+
+export const backupKeys = {
+  all: ['backups'] as const,
+  status: ['backups', 'status'] as const,
+  list: ['backups', 'list'] as const,
+};

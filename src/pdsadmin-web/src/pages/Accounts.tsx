@@ -25,19 +25,19 @@ export default function Accounts() {
           placeholder="Search by email..."
           value={query}
           onChange={e => setQuery(e.target.value)}
-          className="flex-1 px-3 py-2 rounded bg-white border border-gray-300 text-gray-900 focus:border-blue-500 focus:outline-none"
+          className="flex-1 px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
         />
-        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700">
+        <button type="submit" className="px-4 py-2 bg-primary text-surface rounded-md text-sm font-medium hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
           Search
         </button>
       </form>
-      {error && <p className="text-red-600 mb-4">{error.message}</p>}
-      {isPending && accounts.length === 0 && <p className="text-gray-500 mb-4">Loading...</p>}
-      {accounts.length === 0 && !isPending && <p className="text-gray-400 mb-4">No accounts found</p>}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
+      {error && <p className="text-danger mb-4">{error.message}</p>}
+      {isPending && accounts.length === 0 && <p className="text-secondary mb-4">Loading...</p>}
+      {accounts.length === 0 && !isPending && <p className="text-muted mb-4">No accounts found</p>}
+      <div className="bg-surface border border-subtle rounded-md overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-500">
+            <tr className="border-b border-subtle text-left text-secondary">
               <th className="p-3 font-medium">DID</th>
               <th className="p-3 font-medium">Handle / Email</th>
               <th className="p-3 font-medium hidden md:table-cell">Email</th>
@@ -47,23 +47,23 @@ export default function Accounts() {
           </thead>
           <tbody>
             {accounts.map(acc => (
-              <tr key={acc.did} className="border-b border-gray-200 hover:bg-gray-50">
+              <tr key={acc.did} className="border-b border-subtle hover:bg-row-hover">
                 <td className="p-3 font-mono text-xs truncate max-w-[200px]">{acc.did}</td>
                 <td className="p-3">
                   <div>{acc.handle}</div>
-                  <div className="text-gray-400 text-xs md:hidden">{acc.email || '—'}</div>
+                  <div className="text-muted text-xs md:hidden">{acc.email || '—'}</div>
                 </td>
-                <td className="p-3 text-gray-500 hidden md:table-cell">{acc.email || '—'}</td>
+                <td className="p-3 text-secondary hidden md:table-cell">{acc.email || '—'}</td>
                 <td className="p-3">
                   <div className="flex gap-1 flex-wrap">
-                    {acc.invitesDisabled && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">invites off</span>}
-                    {acc.deactivatedAt && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">deactivated</span>}
+                    {acc.invitesDisabled && <span className="px-2 py-0.5 bg-warning-bg text-warning-text rounded-sm text-xs">invites off</span>}
+                    {acc.deactivatedAt && <span className="px-2 py-0.5 bg-hover text-secondary rounded-sm text-xs">deactivated</span>}
                   </div>
                 </td>
                 <td className="p-3">
                   <button
                     onClick={() => navigate(`/accounts/${encodeURIComponent(acc.did)}`)}
-                    className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                    className="text-primary hover:text-primary-hover text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                   >
                     View
                   </button>
@@ -77,7 +77,7 @@ export default function Accounts() {
         <button
           onClick={() => fetchNextPage()}
           disabled={isFetchingNextPage}
-          className="mt-4 px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+          className="mt-4 px-4 py-2 bg-surface border border-input rounded-md text-sm hover:bg-row-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           {isFetchingNextPage ? 'Loading...' : 'Load more'}
         </button>

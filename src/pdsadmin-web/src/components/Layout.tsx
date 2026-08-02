@@ -7,6 +7,7 @@ const nav = [
   { to: '/accounts', label: 'Accounts' },
   { to: '/invites', label: 'Invites' },
   { to: '/subjects', label: 'Subjects' },
+  { to: '/backup', label: 'Backup' },
 ];
 
 export default function Layout() {

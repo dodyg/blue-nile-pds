@@ -26,22 +26,22 @@ export default function CollectionRecords() {
     <div>
       <button
         onClick={() => navigate(`/accounts/${encodeURIComponent(did ?? '')}`)}
-        className="text-blue-600 hover:text-blue-700 text-sm mb-2 font-medium"
+        className="text-primary hover:text-primary-hover text-sm mb-2 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
         ← Back to account
       </button>
       <h1 className="text-2xl font-bold mb-1">{collection}</h1>
-      <p className="text-sm text-gray-500 font-mono mb-4">{did}</p>
-      <p className="text-xs text-gray-400 mb-4">{records.length} records</p>
+      <p className="text-sm text-secondary font-mono mb-4">{did}</p>
+      <p className="text-xs text-muted mb-4">{records.length} records</p>
 
-      {error && <p className="text-red-600 mb-4">{error.message}</p>}
-      {isPending && records.length === 0 && <p className="text-gray-500">Loading...</p>}
-      {records.length === 0 && !isPending && <p className="text-gray-400">No records found in this collection</p>}
+      {error && <p className="text-danger mb-4">{error.message}</p>}
+      {isPending && records.length === 0 && <p className="text-secondary">Loading...</p>}
+      {records.length === 0 && !isPending && <p className="text-muted">No records found in this collection</p>}
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
+      <div className="bg-surface border border-subtle rounded-md overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-500">
+            <tr className="border-b border-subtle text-left text-secondary">
               <th className="p-2 font-medium w-0">#</th>
               <th className="p-2 font-medium w-0">Rkey</th>
               <th className="p-2 font-medium w-0">CID</th>
@@ -52,18 +52,18 @@ export default function CollectionRecords() {
             {records.map((r, i) => {
               const rkey = rkeyFromUri(r.uri);
               return (
-                <tr key={r.uri} className="border-b border-gray-200">
-                  <td className="p-2 text-xs text-gray-400 align-top w-0 whitespace-nowrap">{i + 1}</td>
+                <tr key={r.uri} className="border-b border-subtle">
+                  <td className="p-2 text-xs text-muted align-top w-0 whitespace-nowrap">{i + 1}</td>
                   <td className="p-2 align-top w-0 whitespace-nowrap">
                     <Link
                       to={`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}/${encodeURIComponent(rkey)}`}
-                      className="font-mono text-xs text-blue-600 hover:text-blue-700"
+                      className="font-mono text-xs text-primary hover:text-primary-hover"
                     >
                       {rkey}
                     </Link>
                   </td>
                   <td className="p-2 align-top w-0 whitespace-nowrap">
-                    <span className="font-mono text-xs text-gray-400">{r.cid.slice(0, 12)}…</span>
+                    <span className="font-mono text-xs text-muted">{r.cid.slice(0, 12)}…</span>
                   </td>
                   <td className="p-2">
                     <JsonTree value={r.value} did={did} />

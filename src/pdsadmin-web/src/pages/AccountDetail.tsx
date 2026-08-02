@@ -41,9 +41,9 @@ export default function AccountDetail() {
   const takedownRef = subjectStatus?.takedown?.ref ?? null;
   const isTakenDown = !!takedownRef;
 
-  if (isPending) return <div className="text-gray-500">Loading...</div>;
-  if (infoError) return <div className="text-red-600">{infoError.message}</div>;
-  if (!info) return <div className="text-gray-500">Account not found</div>;
+  if (isPending) return <div className="text-secondary">Loading...</div>;
+  if (infoError) return <div className="text-danger">{infoError.message}</div>;
+  if (!info) return <div className="text-secondary">Account not found</div>;
 
   const inviteCount = info.invites?.length ?? 0;
   const inviteUseCount = info.invites?.reduce((s, c) => s + c.uses.length, 0) ?? 0;
@@ -52,13 +52,13 @@ export default function AccountDetail() {
     <div>
       <button
         onClick={() => navigate('/accounts')}
-        className="text-blue-600 hover:text-blue-700 text-sm mb-4 font-medium"
+        className="text-primary hover:text-primary-hover text-sm mb-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
         ← Back to accounts
       </button>
       <h1 className="text-2xl font-bold mb-4">{info.handle}</h1>
 
-      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-5 space-y-3 mb-6">
+      <div className="bg-surface border border-subtle shadow-card rounded-md p-5 space-y-3 mb-6">
         <Field label="DID" mono>{info.did}</Field>
         <Field label="Handle">{info.handle}</Field>
         <Field label="Email">{info.email || '—'}</Field>
@@ -80,11 +80,11 @@ export default function AccountDetail() {
       </div>
 
       {inviteCount > 0 && info.invites && (
-        <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-5 mb-6">
+        <div className="bg-surface border border-subtle shadow-card rounded-md p-5 mb-6">
           <h2 className="text-lg font-semibold mb-3">Account Invite Codes</h2>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-gray-500">
+              <tr className="border-b border-subtle text-left text-secondary">
                 <th className="p-2 font-medium">Code</th>
                 <th className="p-2 font-medium">Available</th>
                 <th className="p-2 font-medium">Disabled</th>
@@ -93,11 +93,11 @@ export default function AccountDetail() {
             </thead>
             <tbody>
               {info.invites.map(ic => (
-                <tr key={ic.code} className="border-b border-gray-200">
+                <tr key={ic.code} className="border-b border-subtle">
                   <td className="p-2 font-mono text-xs">
                     <button
                       onClick={() => setExpandedCode(expandedCode === ic.code ? null : ic.code)}
-                      className="mr-1.5 text-gray-400 hover:text-gray-600 text-xs"
+                      className="mr-1.5 text-muted hover:text-secondary text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                     >
                       {expandedCode === ic.code ? '▼' : '▶'}
                     </button>
@@ -114,14 +114,14 @@ export default function AccountDetail() {
       )}
 
       {repoInfo && repoInfo.collections.length > 0 && (
-        <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-5 mb-6">
+        <div className="bg-surface border border-subtle shadow-card rounded-md p-5 mb-6">
           <h2 className="text-lg font-semibold mb-3">Repo Collections</h2>
           <div className="flex flex-wrap gap-2">
             {repoInfo.collections.sort().map(col => (
               <button
                 key={col}
                 onClick={() => navigate(`/accounts/${encodeURIComponent(info.did)}/collections/${encodeURIComponent(col)}`)}
-                className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-xs font-mono hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                className="px-3 py-1.5 bg-page border border-subtle rounded-sm text-xs font-mono hover:bg-accent-soft hover:border-accent-ring transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
               >
                 {col}
               </button>
@@ -130,7 +130,7 @@ export default function AccountDetail() {
         </div>
       )}
 
-      {message && <p className="text-green-600 mb-4">{message}</p>}
+      {message && <p className="text-success mb-4">{message}</p>}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {isTakenDown ? (
@@ -139,13 +139,13 @@ export default function AccountDetail() {
               title: 'Remove takedown',
               message: `Remove takedown for ${info.handle}?`,
               confirmLabel: 'Remove takedown',
-              confirmClass: 'bg-gray-600 hover:bg-gray-700',
+              confirmClass: 'bg-neutral hover:bg-ghost',
               action: () => updateSubjectStatus.mutate(
                 { subject: { did: info.did }, takedown: { applied: false } },
                 { onSuccess: () => setMessage('Takedown removed') },
               ),
             })}
-            className="w-full px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-200"
+            className="w-full px-4 py-2 bg-hover text-ghost border border-input rounded-md text-sm hover:bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
           >
             Remove takedown
           </button>
@@ -155,13 +155,13 @@ export default function AccountDetail() {
               title: 'Apply takedown',
               message: `Apply takedown for ${info.handle}? This hides the account from public views.`,
               confirmLabel: 'Apply takedown',
-              confirmClass: 'bg-red-600 hover:bg-red-700',
+              confirmClass: 'bg-danger hover:bg-danger-hover',
               action: () => updateSubjectStatus.mutate(
                 { subject: { did: info.did }, takedown: { applied: true } },
                 { onSuccess: () => setMessage('Takedown applied') },
               ),
             })}
-            className="w-full px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+            className="w-full px-4 py-2 bg-danger text-surface rounded-md text-sm hover:bg-danger-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
           >
             Apply takedown
           </button>
@@ -171,43 +171,43 @@ export default function AccountDetail() {
             title: 'Delete account',
             message: `Permanently delete account ${info.handle} (${info.did})? This action cannot be undone.`,
             confirmLabel: 'Delete permanently',
-            confirmClass: 'bg-red-700 hover:bg-red-800',
+            confirmClass: 'bg-danger-hover hover:bg-danger-deep',
             action: () => deleteAccount.mutate(info.did, { onSuccess: () => setMessage('Account deleted') }),
           })}
-          className="w-full px-4 py-2 bg-red-700 text-white rounded text-sm hover:bg-red-800"
+          className="w-full px-4 py-2 bg-danger-hover text-surface rounded-md text-sm hover:bg-danger-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           Delete account
         </button>
         {info.invitesDisabled ? (
           <button
             onClick={() => enableInvites.mutate(info.did, { onSuccess: () => setMessage('Invites enabled') })}
-            className="w-full px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+            className="w-full px-4 py-2 bg-success text-surface rounded-md text-sm hover:bg-success-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
           >
             Enable invites
           </button>
         ) : (
           <button
             onClick={() => disableInvites.mutate(info.did, { onSuccess: () => setMessage('Invites disabled') })}
-            className="w-full px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-200"
+            className="w-full px-4 py-2 bg-hover text-ghost border border-input rounded-md text-sm hover:bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
           >
             Disable invites
           </button>
         )}
         <button
           onClick={() => setModal({ action: 'resetPassword', title: 'Reset password', label: 'New password', inputType: 'password' })}
-          className="w-full px-4 py-2 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600"
+          className="w-full px-4 py-2 bg-warning text-surface rounded-md text-sm hover:bg-warning-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           Reset password
         </button>
         <button
           onClick={() => setModal({ action: 'updateEmail', title: 'Update email', label: 'Email', initialValue: info.email })}
-          className="w-full px-4 py-2 bg-indigo-500 text-white rounded text-sm hover:bg-indigo-600"
+          className="w-full px-4 py-2 bg-accent text-surface rounded-md text-sm hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           Update email
         </button>
         <button
           onClick={() => setModal({ action: 'updateHandle', title: 'Update handle', label: 'Handle', initialValue: info.handle })}
-          className="w-full px-4 py-2 bg-indigo-500 text-white rounded text-sm hover:bg-indigo-600"
+          className="w-full px-4 py-2 bg-accent text-surface rounded-md text-sm hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           Update handle
         </button>
@@ -263,8 +263,8 @@ export default function AccountDetail() {
 function Field({ label, mono, children }: { label: string; mono?: boolean; children: ReactNode }) {
   return (
     <div>
-      <span className="text-gray-500 text-sm">{label}</span>
-      <div className={`mt-0.5 text-gray-900 ${mono ? 'font-mono text-xs break-all' : ''}`}>{children}</div>
+      <span className="text-secondary text-sm">{label}</span>
+      <div className={`mt-0.5 text-ink ${mono ? 'font-mono text-xs break-all' : ''}`}>{children}</div>
     </div>
   );
 }

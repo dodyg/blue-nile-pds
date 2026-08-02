@@ -63,29 +63,29 @@ export default function CreateInviteCodes() {
     <div>
       <button
         onClick={() => navigate('/invites')}
-        className="text-blue-600 hover:text-blue-700 text-sm mb-4 font-medium"
+        className="text-primary hover:text-primary-hover text-sm mb-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
         ← Back to invite codes
       </button>
 
       <h1 className="text-2xl font-bold mb-5">Create Invite Codes</h1>
 
-      {error && <p className="text-red-600 mb-4">{error.message}</p>}
+      {error && <p className="text-danger mb-4">{error.message}</p>}
 
       {result ? (
-        <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-5">
-          <p className="text-green-700 font-semibold mb-4">
+        <div className="bg-surface border border-subtle shadow-card rounded-md p-5">
+          <p className="text-success-deep font-semibold mb-4">
             {result.codes.length === 1
               ? 'Invite code created successfully'
               : `${result.codes.length} invite codes created`}
           </p>
           <div className="space-y-2 mb-5">
             {result.codes.map((code, i) => (
-              <div key={i} className="flex items-center gap-2 font-mono text-sm bg-gray-50 border border-gray-200 rounded px-3 py-2">
+              <div key={i} className="flex items-center gap-2 font-mono text-sm bg-page border border-subtle rounded-md px-3 py-2">
                 <span className="flex-1 break-all">{code}</span>
                 <button
                   onClick={() => copyCode(code)}
-                  className="text-xs px-2 py-1 rounded bg-white border border-gray-300 hover:bg-gray-100 shrink-0"
+                  className="text-xs px-2 py-1 rounded-md bg-surface border border-input hover:bg-hover shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                 >
                   {copied === code ? 'Copied!' : 'Copy'}
                 </button>
@@ -95,26 +95,26 @@ export default function CreateInviteCodes() {
           <div className="flex gap-3">
             <button
               onClick={handleCreateAnother}
-              className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+              className="px-4 py-2 bg-primary text-surface rounded-md text-sm hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
             >
               Create another batch
             </button>
             <button
               onClick={() => navigate('/invites')}
-              className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded text-sm hover:bg-gray-50"
+              className="px-4 py-2 bg-surface text-ghost border border-input rounded-md text-sm hover:bg-row-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
             >
               View all invite codes
             </button>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 shadow-sm rounded-lg p-5 space-y-5 max-w-lg">
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+        <form onSubmit={handleSubmit} className="bg-surface border border-subtle shadow-card rounded-md p-5 space-y-5 max-w-lg">
+          <div className="flex gap-1 bg-hover rounded-md p-1 w-fit">
             <button
               type="button"
               onClick={() => setMode('single')}
-              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                mode === 'single' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
+                mode === 'single' ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ghost'
               }`}
             >
               Single code
@@ -122,8 +122,8 @@ export default function CreateInviteCodes() {
             <button
               type="button"
               onClick={() => setMode('bulk')}
-              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                mode === 'bulk' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
+                mode === 'bulk' ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ghost'
               }`}
             >
               Bulk codes
@@ -131,46 +131,46 @@ export default function CreateInviteCodes() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-500 mb-1">Uses per code</label>
+            <label className="block text-sm text-secondary mb-1">Uses per code</label>
             <input
               type="number"
               min={1}
               value={useCount}
               onChange={e => setUseCount(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full px-3 py-2 rounded bg-white border border-gray-300 text-gray-900 focus:border-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
             />
           </div>
 
           {mode === 'bulk' && (
             <div>
-              <label className="block text-sm text-gray-500 mb-1">Number of codes to generate</label>
+              <label className="block text-sm text-secondary mb-1">Number of codes to generate</label>
               <input
                 type="number"
                 min={1}
                 value={codeCount}
                 onChange={e => setCodeCount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full px-3 py-2 rounded bg-white border border-gray-300 text-gray-900 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-gray-500 mb-1">
-              For account <span className="text-red-400">*</span>
+            <label className="block text-sm text-secondary mb-1">
+              For account <span className="text-danger">*</span>
             </label>
             <input
               type="text"
               placeholder="did:plc:..."
               value={forAccount}
               onChange={e => setForAccount(e.target.value)}
-              className="w-full px-3 py-2 rounded bg-white border border-gray-300 text-gray-900 focus:border-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
             />
           </div>
 
           <button
             type="submit"
             disabled={isPending}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="w-full px-4 py-2 bg-primary text-surface rounded-md text-sm font-medium hover:bg-primary-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
           >
             {isPending ? 'Generating...' : mode === 'single' ? 'Generate code' : `Generate ${codeCount} codes`}
           </button>
