@@ -9,7 +9,7 @@ import { Card, CardHeader } from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { Table, Th, Tr, Td } from '../components/Table';
 import { useAccountInfo, useSubjectStatus, useUpdateSubjectStatus, useDeleteAccount, useEnableInvites, useDisableInvites, useUpdateAccountPassword, useUpdateAccountEmail, useUpdateAccountHandle } from '../hooks/useAccounts';
-import { useDescribeRepo } from '../hooks/useRepo';
+import { useDescribeRepo, useDownloadAccountRepo } from '../hooks/useRepo';
 
 export default function AccountDetail() {
   const { did } = useParams<{ did: string }>();
@@ -42,6 +42,7 @@ export default function AccountDetail() {
   const updatePassword = useUpdateAccountPassword();
   const updateEmail = useUpdateAccountEmail();
   const updateHandle = useUpdateAccountHandle();
+  const downloadRepo = useDownloadAccountRepo();
 
   const takedownRef = subjectStatus?.takedown?.ref ?? null;
   const isTakenDown = !!takedownRef;
@@ -68,8 +69,22 @@ export default function AccountDetail() {
         eyebrow="accounts · passenger record"
         title={info.handle}
         description={info.did}
-        actions={info.invitesDisabled ? <Badge tone="warning">invites off</Badge> : <Badge tone="success">invites on</Badge>}
+        actions={(
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => downloadRepo.mutate(info.did, { onSuccess: () => setMessage('Repo downloaded as CAR file') })}
+              disabled={downloadRepo.isPending}
+            >
+              {downloadRepo.isPending ? 'Downloading…' : 'Download data'}
+            </Button>
+            {info.invitesDisabled ? <Badge tone="warning">invites off</Badge> : <Badge tone="success">invites on</Badge>}
+          </>
+        )}
       />
+
+      {downloadRepo.error && <p className="mb-4 text-sm text-danger">{downloadRepo.error.message}</p>}
 
       <Card className="mb-6 p-5">
         <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">

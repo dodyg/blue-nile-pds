@@ -48,10 +48,12 @@ system preference.
 
 ## Brand Commitments
 
-The admin UI is a split-flap departure board: charcoal flip-chips with amber
-phosphor, ruled paper data surfaces, tracked small-caps board headers, and
-monospace for every identifier. Amber is the sole accent (blue is retired);
-dark and light themes are both supported. Existing name: "PDS Admin".
+The admin UI is a split-flap departure board: board flip-cells with AT Protocol
+blue ink — pale blue cells in light mode, navy cells with blue phosphor in dark
+mode — ruled paper data surfaces, tracked small-caps board headers, and
+monospace for every identifier. The palette follows the official AT Protocol
+brand — Primary Blue #0560FF accent on Bluesky's cool neutrals — and dark and
+light themes are both supported. Existing name: "PDS Admin".
 
 ## Evidence on Hand
 

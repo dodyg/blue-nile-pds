@@ -1,5 +1,5 @@
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { xrpcGet } from '../api/client';
+import { useQuery, useInfiniteQuery, useMutation } from '@tanstack/react-query';
+import { xrpcGet, downloadXrpcFile } from '../api/client';
 import type { DescribeRepoResponse, ListRecordsResponse, GetRecordResponse } from '../types/admin';
 
 export const repoKeys = {
@@ -36,5 +36,12 @@ export function useGetRecord(did: string, collection: string, rkey: string) {
     queryKey: repoKeys.record(did, collection, rkey),
     queryFn: () => xrpcGet<GetRecordResponse>('com.atproto.repo.getRecord', { repo: did, collection, rkey }),
     enabled: !!did && !!collection && !!rkey,
+  });
+}
+
+export function useDownloadAccountRepo() {
+  return useMutation({
+    mutationFn: (did: string) =>
+      downloadXrpcFile('com.atproto.sync.getRepo', { did }, `${did}.car`),
   });
 }

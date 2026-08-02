@@ -110,6 +110,37 @@ export async function downloadAdminFile(path: string, params: Record<string, str
   URL.revokeObjectURL(url);
 }
 
+export async function downloadXrpcFile(nsid: string, params: Record<string, string>, fileName: string): Promise<void> {
+  const password = getAdminPassword();
+  const headers: Record<string, string> = {};
+  if (password) {
+    headers['Authorization'] = 'Basic ' + btoa('admin:' + password);
+  }
+
+  const qs = '?' + new URLSearchParams(params).toString();
+  const res = await fetch(`/xrpc/${nsid}${qs}`, { headers });
+
+  if (!res.ok) {
+    let detail: { error?: string; message?: string } = {};
+    try {
+      detail = await res.json();
+    } catch {
+      // ignore parse errors
+    }
+    throw new XrpcError(res.status, nsid, detail.error, detail.message || res.statusText);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export async function validatePassword(password: string): Promise<boolean> {
   try {
     const headers = { Authorization: 'Basic ' + btoa('admin:' + password) };
