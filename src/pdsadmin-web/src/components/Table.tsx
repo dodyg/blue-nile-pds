@@ -24,6 +24,10 @@ export function Tr({ className = '', children }: { className?: string; children?
   return <tr className={`border-b border-subtle transition-colors last:border-0 hover:bg-row-hover ${className}`}>{children}</tr>;
 }
 
-export function Td({ className = '', children }: { className?: string; children?: ReactNode }) {
-  return <td className={`p-2 align-top ${className}`}>{children}</td>;
+export function Td({ className = '', children, title, colSpan }: { className?: string; children?: ReactNode; title?: string; colSpan?: number }) {
+  return (
+    <td colSpan={colSpan} title={title} className={`p-2 align-top ${className}`}>
+      {children}
+    </td>
+  );
 }
