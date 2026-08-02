@@ -2,6 +2,10 @@ import { useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DidLink from '../components/DidLink';
 import { useInviteCodes, useDisableInviteCode } from '../hooks/useInvites';
+import PageHeader from '../components/PageHeader';
+import Button from '../components/Button';
+import { TableBoard, Table, Th, Tr, Td } from '../components/Table';
+import EmptyState from '../components/EmptyState';
 
 export default function InviteCodes() {
   const navigate = useNavigate();
@@ -21,107 +25,108 @@ export default function InviteCodes() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Invite Codes</h1>
-        <button
-          onClick={() => navigate('/invites/create')}
-          className="px-4 py-2 bg-primary text-surface rounded-md text-sm font-medium hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-        >
-          Create invite codes
-        </button>
-      </div>
-      {message && <p className="text-success mb-4">{message}</p>}
-      {error && <p className="text-danger mb-4">{error.message}</p>}
-      {isPending && codes.length === 0 && <p className="text-secondary mb-4">Loading...</p>}
-      {codes.length === 0 && !isPending && <p className="text-muted mb-4">No invite codes found</p>}
-      <div className="bg-surface border border-subtle rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-subtle text-left text-secondary">
-              <th className="p-3 font-medium">Code</th>
-              <th className="p-3 font-medium">Available</th>
-              <th className="p-3 font-medium">Disabled</th>
-              <th className="p-3 font-medium">Uses</th>
-              <th className="p-3 font-medium">For Account</th>
-              <th className="p-3 font-medium">Created By</th>
-              <th className="p-3 font-medium">Created At</th>
-              <th className="p-3 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            {codes.map(c => (
-              <Fragment key={c.code}>
-                <tr className="border-b border-subtle">
-                  <td className="p-3 font-mono text-xs">
-                    <button
-                      onClick={() => setExpandedCode(expandedCode === c.code ? null : c.code)}
-                      className="mr-2 text-muted hover:text-secondary text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-                    >
-                      {expandedCode === c.code ? '▼' : '▶'}
-                    </button>
-                    {c.code}
-                  </td>
-                  <td className="p-3">{c.available}</td>
-                  <td className="p-3">{c.disabled ? 'Yes' : 'No'}</td>
-                  <td className="p-3">{c.uses?.length || 0}</td>
-                  <td className="p-3 font-mono text-xs truncate max-w-[150px]" title={c.forAccount}>
-                    {c.forAccount ? <DidLink did={c.forAccount} /> : '—'}
-                  </td>
-                  <td className="p-3 font-mono text-xs truncate max-w-[150px]" title={c.createdBy}>
-                    {c.createdBy ? <DidLink did={c.createdBy} /> : '—'}
-                  </td>
-                  <td className="p-3 text-xs">{c.createdAt ? new Date(c.createdAt).toLocaleString() : '—'}</td>
-                  <td className="p-3">
-                    {!c.disabled && (
+      <PageHeader
+        eyebrow="invites · register"
+        title="Invite Codes"
+        description="Issue and manage invite codes."
+        actions={
+          <Button variant="primary" onClick={() => navigate('/invites/create')}>
+            Create invite codes
+          </Button>
+        }
+      />
+
+      {message && <p className="mb-4 text-sm text-success-deep dark:text-success">{message}</p>}
+      {error && <p className="mb-4 text-sm text-danger">{error.message}</p>}
+      {isPending && codes.length === 0 && <p className="mb-4 text-sm text-secondary">Loading...</p>}
+
+      {codes.length === 0 && !isPending ? (
+        <EmptyState
+          title="No invite codes"
+          description="No invite codes have been issued yet."
+          action={<Button variant="primary" onClick={() => navigate('/invites/create')}>Create invite codes</Button>}
+        />
+      ) : (
+        <TableBoard>
+          <Table>
+            <thead>
+              <Tr>
+                <Th>Code</Th>
+                <Th>Available</Th>
+                <Th>Disabled</Th>
+                <Th>Uses</Th>
+                <Th>For Account</Th>
+                <Th>Created By</Th>
+                <Th>Created At</Th>
+                <Th />
+              </Tr>
+            </thead>
+            <tbody>
+              {codes.map(c => (
+                <Fragment key={c.code}>
+                  <Tr>
+                    <Td className="font-mono text-xs">
                       <button
-                        onClick={() => disableCode(c.code)}
-                        className="text-danger hover:text-danger-hover text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                        onClick={() => setExpandedCode(expandedCode === c.code ? null : c.code)}
+                        className="mr-2 text-xs text-muted hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                       >
-                        Disable
+                        {expandedCode === c.code ? '▾' : '▸'}
                       </button>
-                    )}
-                  </td>
-                </tr>
-                {expandedCode === c.code && c.uses && c.uses.length > 0 && (
-                  <tr className="bg-page">
-                    <td colSpan={8} className="p-3">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="text-left text-secondary border-b border-subtle">
-                            <th className="pb-1 pr-4 font-medium">Used By</th>
-                            <th className="pb-1 font-medium">Used At</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {c.uses.map((u, i) => (
-                            <tr key={i} className="border-b border-hover">
-                              <td className="py-1.5 pr-4 font-mono">
-                                <DidLink did={u.usedBy} />
-                              </td>
-                              <td className="py-1.5">{new Date(u.usedAt).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            ))}
-            {codes.length === 0 && !isPending && (
-              <tr><td colSpan={8} className="p-6 text-center text-muted">No invite codes found</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                      {c.code}
+                    </Td>
+                    <Td>{c.available}</Td>
+                    <Td>{c.disabled ? 'Yes' : 'No'}</Td>
+                    <Td>{c.uses?.length || 0}</Td>
+                    <Td className="max-w-[150px] truncate font-mono text-xs" title={c.forAccount}>
+                      {c.forAccount ? <DidLink did={c.forAccount} /> : '—'}
+                    </Td>
+                    <Td className="max-w-[150px] truncate font-mono text-xs" title={c.createdBy}>
+                      {c.createdBy ? <DidLink did={c.createdBy} /> : '—'}
+                    </Td>
+                    <Td className="text-xs">{c.createdAt ? new Date(c.createdAt).toLocaleString() : '—'}</Td>
+                    <Td>
+                      {!c.disabled && (
+                        <Button variant="ghost" size="sm" onClick={() => disableCode(c.code)} className="text-danger hover:text-danger-deep">
+                          Disable
+                        </Button>
+                      )}
+                    </Td>
+                  </Tr>
+                  {expandedCode === c.code && c.uses && c.uses.length > 0 && (
+                    <Tr className="bg-page hover:bg-page">
+                      <Td colSpan={8} className="p-3">
+                        <Table>
+                          <thead>
+                            <Tr className="hover:bg-transparent">
+                              <Th className="pb-1 pr-4">Used By</Th>
+                              <Th className="pb-1">Used At</Th>
+                            </Tr>
+                          </thead>
+                          <tbody>
+                            {c.uses.map((u, i) => (
+                              <Tr key={i} className="border-b border-hover hover:bg-page">
+                                <Td className="py-1.5 pr-4 font-mono text-xs">
+                                  <DidLink did={u.usedBy} />
+                                </Td>
+                                <Td className="py-1.5 text-xs">{new Date(u.usedAt).toLocaleString()}</Td>
+                              </Tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </Td>
+                    </Tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </Table>
+        </TableBoard>
+      )}
+
       {hasNextPage && (
-        <button
-          onClick={() => fetchNextPage()}
-          disabled={isFetchingNextPage}
-          className="mt-4 px-4 py-2 bg-surface border border-input rounded-md text-sm hover:bg-row-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-        >
+        <Button variant="secondary" className="mt-4" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
           {isFetchingNextPage ? 'Loading...' : 'Load more'}
-        </button>
+        </Button>
       )}
     </div>
   );

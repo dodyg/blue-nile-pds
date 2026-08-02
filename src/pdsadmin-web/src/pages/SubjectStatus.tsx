@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import DidLink from '../components/DidLink';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Button from '../components/Button';
+import Badge from '../components/Badge';
+import { Card } from '../components/Card';
+import PageHeader from '../components/PageHeader';
+import { Input } from '../components/Input';
 import { useSubjectStatus } from '../hooks/useAccounts';
 import { useUpdateSubjectStatus } from '../hooks/useAccounts';
 
@@ -41,69 +46,80 @@ export default function SubjectStatus() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Subject Status</h1>
-      <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-        <input
-          type="text"
-          placeholder="DID..."
-          value={did}
-          onChange={e => setDid(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
-        />
-        <button type="submit" className="px-4 py-2 bg-primary text-surface rounded-md text-sm font-medium hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
-          Search
-        </button>
+      <PageHeader
+        eyebrow="moderation · subject"
+        title="Subject Status"
+        description="Look up and change the moderation state of any subject."
+      />
+
+      <form onSubmit={handleSearch} className="mb-4 flex max-w-xl gap-2">
+        <div className="flex-1">
+          <Input
+            type="text"
+            placeholder="DID..."
+            value={did}
+            onChange={e => setDid(e.target.value)}
+          />
+        </div>
+        <Button variant="primary" type="submit">Search</Button>
       </form>
-      {message && <p className="text-success mb-4">{message}</p>}
-      {error && <p className="text-danger mb-4">{error.message}</p>}
-      {isPending && searchDid && <p className="text-secondary">Loading...</p>}
+
+      {message && <p className="mb-4 text-sm text-success-deep dark:text-success">{message}</p>}
+      {error && <p className="mb-4 text-sm text-danger">{error.message}</p>}
+      {isPending && searchDid && <p className="text-sm text-secondary">Loading...</p>}
+
       {status && (
-        <div className="bg-surface border border-subtle shadow-card rounded-md p-5 space-y-3 mb-4">
+        <Card className="mb-4 max-w-xl space-y-3 p-5">
           <div>
-            <span className="text-secondary text-sm">Subject DID</span>
-            <div className="font-mono text-xs mt-0.5 text-ink">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Subject DID</span>
+            <div className="mt-0.5 font-mono text-xs text-ink">
               {status.subject.did ? <DidLink did={status.subject.did} /> : status.subject.uri}
             </div>
           </div>
-          <div>
-            <span className="text-secondary text-sm">Takedown</span>
-            <div className="mt-0.5 text-ink">{status.takedown?.applied ? `Applied (ref: ${status.takedown.ref ?? 'default'})` : 'None'}</div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Takedown</span>
+            {status.takedown?.applied ? <Badge tone="danger">applied</Badge> : <Badge tone="success">none</Badge>}
           </div>
-          <div>
-            <span className="text-secondary text-sm">Deactivated</span>
-            <div className="mt-0.5 text-ink">{status.deactivated?.applied ? 'Yes' : 'No'}</div>
+          {status.takedown?.applied && (
+            <div className="text-xs text-secondary">
+              Ref: <span className="font-mono">{status.takedown.ref ?? 'default'}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Deactivated</span>
+            {status.deactivated?.applied ? <Badge tone="warning">yes</Badge> : <Badge tone="success">no</Badge>}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-1">
             {!status.takedown?.applied && (
-              <button
+              <Button
+                variant="danger"
                 onClick={() => setConfirm({
                   title: 'Apply takedown',
                   message: `Apply takedown for ${searchDid}? This hides the subject from public views.`,
                   confirmLabel: 'Apply takedown',
-                  confirmClass: 'bg-danger hover:bg-danger-hover',
+                  confirmClass: 'bg-danger text-white dark:bg-danger-deep hover:opacity-90',
                   action: handleTakedown,
                 })}
-                className="px-4 py-2 bg-danger text-surface rounded-md text-sm hover:bg-danger-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
               >
                 Apply takedown
-              </button>
+              </Button>
             )}
             {status.takedown?.applied && (
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => setConfirm({
                   title: 'Remove takedown',
                   message: `Remove takedown for ${searchDid}?`,
                   confirmLabel: 'Remove takedown',
-                  confirmClass: 'bg-neutral hover:bg-ghost',
+                  confirmClass: 'bg-neutral text-white hover:opacity-90',
                   action: handleUntakedown,
                 })}
-                className="px-4 py-2 bg-hover text-ghost border border-input rounded-md text-sm hover:bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
               >
                 Remove takedown
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        </Card>
       )}
       {confirm && (
         <ConfirmDialog

@@ -32,7 +32,9 @@ Runs alongside the PDS host; served at /admin/ via the host's static files
 middleware. Talks to the same-origin com.atproto.admin.* XRPC endpoints. Auth is
 a single admin password (stored in localStorage after validation). Desktop-first
 but usable on mobile/small screens (drawer sidebar, scrollable tables, stacked
-cells).
+cells). Supports both light (daylight station) and dark (night concourse)
+themes via a class-based toggle persisted in localStorage, defaulting to the
+system preference.
 
 ## Capabilities and Constraints
 
@@ -46,8 +48,10 @@ cells).
 
 ## Brand Commitments
 
-No binding visual identity. Keep the admin UI minimal and technical. Existing
-name: "PDS Admin".
+The admin UI is a split-flap departure board: charcoal flip-chips with amber
+phosphor, ruled paper data surfaces, tracked small-caps board headers, and
+monospace for every identifier. Amber is the sole accent (blue is retired);
+dark and light themes are both supported. Existing name: "PDS Admin".
 
 ## Evidence on Hand
 

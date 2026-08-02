@@ -5,6 +5,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import './index.css'
 import App from './App.tsx'
 import { createQueryClient } from './api/queryClient'
+import { applyTheme, initialTheme } from './stores/theme'
+
+applyTheme(initialTheme())
 
 const queryClient = createQueryClient()
 

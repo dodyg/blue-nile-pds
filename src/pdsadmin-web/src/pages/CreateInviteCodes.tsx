@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateInviteCode, useCreateInviteCodes } from '../hooks/useInvites';
+import PageHeader from '../components/PageHeader';
+import Button from '../components/Button';
+import { Input } from '../components/Input';
+import { Card } from '../components/Card';
 
 type Mode = 'single' | 'bulk';
 
@@ -59,121 +63,98 @@ export default function CreateInviteCodes() {
     setResult(null);
   }
 
+  const modeTab = (tab: Mode, label: string) => (
+    <button
+      type="button"
+      onClick={() => setMode(tab)}
+      className={`rounded-sm px-4 py-1.5 font-mono text-xs font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
+        mode === tab ? 'bg-board text-board-text shadow-chip' : 'text-muted hover:text-ghost'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div>
-      <button
-        onClick={() => navigate('/invites')}
-        className="text-primary hover:text-primary-hover text-sm mb-4 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-      >
+      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate('/invites')}>
         ← Back to invite codes
-      </button>
+      </Button>
 
-      <h1 className="text-2xl font-bold mb-5">Create Invite Codes</h1>
+      <PageHeader
+        eyebrow="invites · issuance"
+        title="Create Invite Codes"
+        description="Issue one or more invite codes for an account."
+      />
 
-      {error && <p className="text-danger mb-4">{error.message}</p>}
+      {error && <p className="mb-4 text-sm text-danger">{error.message}</p>}
 
       {result ? (
-        <div className="bg-surface border border-subtle shadow-card rounded-md p-5">
-          <p className="text-success-deep font-semibold mb-4">
+        <Card className="max-w-lg p-5">
+          <p className="mb-4 font-display text-sm font-semibold tracking-[0.08em] text-success-deep dark:text-success">
             {result.codes.length === 1
               ? 'Invite code created successfully'
               : `${result.codes.length} invite codes created`}
           </p>
-          <div className="space-y-2 mb-5">
+          <div className="mb-5 space-y-2">
             {result.codes.map((code, i) => (
-              <div key={i} className="flex items-center gap-2 font-mono text-sm bg-page border border-subtle rounded-md px-3 py-2">
-                <span className="flex-1 break-all">{code}</span>
-                <button
-                  onClick={() => copyCode(code)}
-                  className="text-xs px-2 py-1 rounded-md bg-surface border border-input hover:bg-hover shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-                >
+              <div key={i} className="flex items-center gap-2 rounded-sm border border-subtle bg-page px-3 py-2 font-mono text-xs">
+                <span className="flex-1 break-all text-ink">{code}</span>
+                <Button variant="secondary" size="sm" onClick={() => copyCode(code)}>
                   {copied === code ? 'Copied!' : 'Copy'}
-                </button>
+                </Button>
               </div>
             ))}
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={handleCreateAnother}
-              className="px-4 py-2 bg-primary text-surface rounded-md text-sm hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-            >
-              Create another batch
-            </button>
-            <button
-              onClick={() => navigate('/invites')}
-              className="px-4 py-2 bg-surface text-ghost border border-input rounded-md text-sm hover:bg-row-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-            >
-              View all invite codes
-            </button>
+            <Button variant="primary" onClick={handleCreateAnother}>Create another batch</Button>
+            <Button variant="secondary" onClick={() => navigate('/invites')}>View all invite codes</Button>
           </div>
-        </div>
+        </Card>
       ) : (
-        <form onSubmit={handleSubmit} className="bg-surface border border-subtle shadow-card rounded-md p-5 space-y-5 max-w-lg">
-          <div className="flex gap-1 bg-hover rounded-md p-1 w-fit">
-            <button
-              type="button"
-              onClick={() => setMode('single')}
-              className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
-                mode === 'single' ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ghost'
-              }`}
-            >
-              Single code
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('bulk')}
-              className={`px-4 py-1.5 rounded-sm text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
-                mode === 'bulk' ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ghost'
-              }`}
-            >
-              Bulk codes
-            </button>
+        <form onSubmit={handleSubmit} className="max-w-lg space-y-5 rounded-md border border-subtle bg-surface p-5 shadow-card">
+          <div className="flex w-fit gap-1 rounded-sm border border-subtle bg-hover p-1">
+            {modeTab('single', 'Single code')}
+            {modeTab('bulk', 'Bulk codes')}
           </div>
 
           <div>
-            <label className="block text-sm text-secondary mb-1">Uses per code</label>
-            <input
+            <label className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">Uses per code</label>
+            <Input
               type="number"
               min={1}
               value={useCount}
               onChange={e => setUseCount(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
             />
           </div>
 
           {mode === 'bulk' && (
             <div>
-              <label className="block text-sm text-secondary mb-1">Number of codes to generate</label>
-              <input
+              <label className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">Number of codes to generate</label>
+              <Input
                 type="number"
                 min={1}
                 value={codeCount}
                 onChange={e => setCodeCount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-secondary mb-1">
+            <label className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">
               For account <span className="text-danger">*</span>
             </label>
-            <input
+            <Input
               type="text"
               placeholder="did:plc:..."
               value={forAccount}
               onChange={e => setForAccount(e.target.value)}
-              className="w-full px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full px-4 py-2 bg-primary text-surface rounded-md text-sm font-medium hover:bg-primary-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-          >
+          <Button type="submit" variant="primary" disabled={isPending} className="w-full">
             {isPending ? 'Generating...' : mode === 'single' ? 'Generate code' : `Generate ${codeCount} codes`}
-          </button>
+          </Button>
         </form>
       )}
     </div>

@@ -1,45 +1,201 @@
 @import "tailwindcss";
 
-@theme {
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+
+  --page: #efe9da;
+  --surface: #f8f4e8;
+  --surface-raised: #fdfaf1;
+  --subtle: #ddd5c0;
+  --input: #c8bfa6;
+  --hover: #e9e2cd;
+  --row-hover: #f3eedd;
+  --overlay: rgb(24 20 12 / 0.45);
+
+  --ink: #211d15;
+  --secondary: #6d6550;
+  --muted: #948c76;
+  --ghost: #4a4434;
+  --neutral: #544d3b;
+
+  --board: #2e2921;
+  --board-hover: #3a342b;
+  --board-text: #fbbf24;
+  --board-text-dim: #b98a1c;
+
+  --primary: #b45309;
+  --primary-hover: #92400e;
+  --focus-ring: #d97706;
+  --accent: #d97706;
+  --accent-hover: #b45309;
+  --accent-soft: #fdf0ce;
+  --accent-ring: #f59e0b;
+
+  --warning: #d97706;
+  --warning-hover: #b45309;
+  --warning-bg: #fdf0ce;
+  --warning-text: #92400e;
+  --success: #4d7c0f;
+  --success-deep: #3f6212;
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --danger-deep: #7f1d1d;
+
+  --data-string: #4d7c0f;
+  --data-number: #a16207;
+  --data-boolean: #6d28d9;
+  --data-null: #948c76;
+
+  --card-shadow: 0 1px 2px rgb(30 24 12 / 0.06), 0 2px 8px rgb(30 24 12 / 0.05);
+  --chip-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 1px 3px rgb(0 0 0 / 0.35);
+  --modal-shadow: 0 4px 12px rgb(0 0 0 / 0.12), 0 24px 48px -12px rgb(0 0 0 / 0.28);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --page: #151209;
+  --surface: #1c1810;
+  --surface-raised: #221d14;
+  --subtle: #2f291b;
+  --input: #453c28;
+  --hover: #262012;
+  --row-hover: #211c11;
+  --overlay: rgb(0 0 0 / 0.6);
+
+  --ink: #ece4cd;
+  --secondary: #a99f83;
+  --muted: #7c7359;
+  --ghost: #c2b897;
+  --neutral: #8f866c;
+
+  --board: #0d0b07;
+  --board-hover: #16120a;
+  --board-text: #fbbf24;
+  --board-text-dim: #8a6d1f;
+
+  --primary: #fbbf24;
+  --primary-hover: #f59e0b;
+  --focus-ring: #fbbf24;
+  --accent: #f59e0b;
+  --accent-hover: #fbbf24;
+  --accent-soft: rgb(245 158 11 / 0.16);
+  --accent-ring: #fbbf24;
+
+  --warning: #f59e0b;
+  --warning-hover: #fbbf24;
+  --warning-bg: rgb(245 158 11 / 0.16);
+  --warning-text: #fbbf24;
+  --success: #a3e635;
+  --success-deep: #84cc16;
+  --danger: #f87171;
+  --danger-hover: #fca5a5;
+  --danger-deep: #dc2626;
+
+  --data-string: #a3e635;
+  --data-number: #fbbf24;
+  --data-boolean: #c084fc;
+  --data-null: #7c7359;
+
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 2px 8px rgb(0 0 0 / 0.3);
+  --chip-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 3px rgb(0 0 0 / 0.6);
+  --modal-shadow: 0 4px 12px rgb(0 0 0 / 0.5), 0 24px 48px -12px rgb(0 0 0 / 0.7);
+}
+
+@theme inline {
   --font-sans: ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-display: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-focus-ring: #3b82f6;
-  --color-accent: #6366f1;
-  --color-accent-hover: #4f46e5;
-  --color-accent-soft: #eff6ff;
-  --color-accent-ring: #93c5fd;
-  --color-warning: #eab308;
-  --color-warning-hover: #ca8a04;
-  --color-warning-bg: #fef9c3;
-  --color-warning-text: #854d0e;
-  --color-success: #16a34a;
-  --color-success-deep: #15803d;
-  --color-danger: #dc2626;
-  --color-danger-hover: #b91c1c;
-  --color-danger-deep: #991b1b;
-  --color-page: #f9fafb;
-  --color-surface: #ffffff;
-  --color-subtle: #e5e7eb;
-  --color-input: #d1d5db;
-  --color-hover: #f3f4f6;
-  --color-row-hover: #f9fafb;
-  --color-overlay: rgb(0 0 0 / 0.4);
-  --color-ink: #111827;
-  --color-secondary: #6b7280;
-  --color-muted: #9ca3af;
-  --color-ghost: #374151;
-  --color-neutral: #4b5563;
-  --color-data-string: #15803d;
-  --color-data-number: #2563eb;
-  --color-data-boolean: #9333ea;
-  --color-data-null: #9ca3af;
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-subtle: var(--subtle);
+  --color-input: var(--input);
+  --color-hover: var(--hover);
+  --color-row-hover: var(--row-hover);
+  --color-overlay: var(--overlay);
+
+  --color-ink: var(--ink);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-ghost: var(--ghost);
+  --color-neutral: var(--neutral);
+
+  --color-board: var(--board);
+  --color-board-hover: var(--board-hover);
+  --color-board-text: var(--board-text);
+  --color-board-text-dim: var(--board-text-dim);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-focus-ring: var(--focus-ring);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ring: var(--accent-ring);
+
+  --color-warning: var(--warning);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-text: var(--warning-text);
+  --color-success: var(--success);
+  --color-success-deep: var(--success-deep);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-deep: var(--danger-deep);
+
+  --color-data-string: var(--data-string);
+  --color-data-number: var(--data-number);
+  --color-data-boolean: var(--data-boolean);
+  --color-data-null: var(--data-null);
 
   --radius-sm: 4px;
   --radius-md: 8px;
 
-  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-card: var(--card-shadow);
+  --shadow-chip: var(--chip-shadow);
+  --shadow-modal: var(--modal-shadow);
+
+  --animate-flap: flap 500ms cubic-bezier(0.5, 0, 0.5, 1) 1;
+
+  @keyframes flap {
+    0% {
+      transform: rotateX(0deg);
+      filter: brightness(1);
+    }
+    45% {
+      transform: rotateX(-84deg);
+      filter: brightness(1.7);
+    }
+    55% {
+      transform: rotateX(-96deg);
+      filter: brightness(0.85);
+    }
+    100% {
+      transform: rotateX(0deg);
+      filter: brightness(1);
+    }
+  }
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--page);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-flap {
+      animation: none;
+    }
+  }
 }

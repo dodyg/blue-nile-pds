@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSearchAccounts } from '../hooks/useAccounts';
+import PageHeader from '../components/PageHeader';
+import Button from '../components/Button';
+import { Input } from '../components/Input';
+import Badge from '../components/Badge';
+import { TableBoard, Table, Th, Tr, Td } from '../components/Table';
+import EmptyState from '../components/EmptyState';
 
 export default function Accounts() {
   const navigate = useNavigate();
@@ -18,69 +24,86 @@ export default function Accounts() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Accounts</h1>
-      <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-        <input
-          type="text"
-          placeholder="Search by email..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-md bg-surface border border-input text-ink focus:border-focus-ring focus:outline-none"
+      <PageHeader
+        eyebrow="accounts · manifest"
+        title="Accounts"
+        description="Search registered accounts by email."
+        actions={
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="w-64">
+              <Input
+                type="text"
+                placeholder="Search by email..."
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="primary" type="submit">Search</Button>
+          </form>
+        }
+      />
+
+      {error && <p className="mb-4 text-sm text-danger">{error.message}</p>}
+      {isPending && accounts.length === 0 && <p className="mb-4 text-sm text-secondary">Loading...</p>}
+
+      {accounts.length === 0 && !isPending ? (
+        <EmptyState
+          title="No accounts found"
+          description="Try a different email search, or clear the query to list all."
         />
-        <button type="submit" className="px-4 py-2 bg-primary text-surface rounded-md text-sm font-medium hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
-          Search
-        </button>
-      </form>
-      {error && <p className="text-danger mb-4">{error.message}</p>}
-      {isPending && accounts.length === 0 && <p className="text-secondary mb-4">Loading...</p>}
-      {accounts.length === 0 && !isPending && <p className="text-muted mb-4">No accounts found</p>}
-      <div className="bg-surface border border-subtle rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-subtle text-left text-secondary">
-              <th className="p-3 font-medium">DID</th>
-              <th className="p-3 font-medium">Handle / Email</th>
-              <th className="p-3 font-medium hidden md:table-cell">Email</th>
-              <th className="p-3 font-medium">Status</th>
-              <th className="p-3 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            {accounts.map(acc => (
-              <tr key={acc.did} className="border-b border-subtle hover:bg-row-hover">
-                <td className="p-3 font-mono text-xs truncate max-w-[200px]">{acc.did}</td>
-                <td className="p-3">
-                  <div>{acc.handle}</div>
-                  <div className="text-muted text-xs md:hidden">{acc.email || '—'}</div>
-                </td>
-                <td className="p-3 text-secondary hidden md:table-cell">{acc.email || '—'}</td>
-                <td className="p-3">
-                  <div className="flex gap-1 flex-wrap">
-                    {acc.invitesDisabled && <span className="px-2 py-0.5 bg-warning-bg text-warning-text rounded-sm text-xs">invites off</span>}
-                    {acc.deactivatedAt && <span className="px-2 py-0.5 bg-hover text-secondary rounded-sm text-xs">deactivated</span>}
-                  </div>
-                </td>
-                <td className="p-3">
-                  <button
-                    onClick={() => navigate(`/accounts/${encodeURIComponent(acc.did)}`)}
-                    className="text-primary hover:text-primary-hover text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-                  >
-                    View
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      ) : (
+        <TableBoard>
+          <Table>
+            <thead>
+              <Tr>
+                <Th>DID</Th>
+                <Th>Handle / Email</Th>
+                <Th className="hidden md:table-cell">Email</Th>
+                <Th>Status</Th>
+                <Th />
+              </Tr>
+            </thead>
+            <tbody>
+              {accounts.map(acc => (
+                <Tr key={acc.did}>
+                  <Td className="max-w-[200px] truncate font-mono text-xs">{acc.did}</Td>
+                  <Td>
+                    <div className="font-medium text-ink">{acc.handle}</div>
+                    <div className="text-xs text-muted md:hidden">{acc.email || '—'}</div>
+                  </Td>
+                  <Td className="hidden text-secondary md:table-cell">{acc.email || '—'}</Td>
+                  <Td>
+                    <div className="flex flex-wrap gap-1">
+                      {acc.invitesDisabled && <Badge tone="warning">invites off</Badge>}
+                      {acc.deactivatedAt && <Badge tone="neutral">deactivated</Badge>}
+                      {!acc.invitesDisabled && !acc.deactivatedAt && <Badge tone="success">active</Badge>}
+                    </div>
+                  </Td>
+                  <Td className="whitespace-nowrap">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/accounts/${encodeURIComponent(acc.did)}`)}
+                    >
+                      View
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        </TableBoard>
+      )}
+
       {hasNextPage && (
-        <button
+        <Button
+          variant="secondary"
+          className="mt-4"
           onClick={() => fetchNextPage()}
           disabled={isFetchingNextPage}
-          className="mt-4 px-4 py-2 bg-surface border border-input rounded-md text-sm hover:bg-row-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           {isFetchingNextPage ? 'Loading...' : 'Load more'}
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -6,74 +6,86 @@
     "colorMeta": {
       "primary": {
         "role": "primary",
-        "displayName": "Operational Blue",
-        "canonical": "#2563eb",
-        "tonalRamp": ["oklch(0.15 0.215 263)", "oklch(0.26 0.195 263)", "oklch(0.37 0.175 263)", "oklch(0.48 0.155 263)", "oklch(0.59 0.135 263)", "oklch(0.70 0.114 263)", "oklch(0.81 0.094 263)", "oklch(0.92 0.074 263)"]
+        "displayName": "Departure Amber",
+        "canonical": "#b45309",
+        "tonalRamp": ["oklch(0.15 0.05 75)", "oklch(0.25 0.09 75)", "oklch(0.35 0.12 75)", "oklch(0.45 0.14 75)", "oklch(0.55 0.155 75)", "oklch(0.65 0.16 75)", "oklch(0.75 0.15 75)", "oklch(0.85 0.12 75)"]
       },
-      "primary-hover": { "role": "primary", "displayName": "Operational Blue (hover)", "canonical": "#1d4ed8", "tonalRamp": [] },
-      "focus-ring": { "role": "primary", "displayName": "Focus Blue", "canonical": "#3b82f6", "tonalRamp": [] },
-      "accent": { "role": "secondary", "displayName": "Edit Indigo", "canonical": "#6366f1", "tonalRamp": [] },
-      "accent-hover": { "role": "secondary", "displayName": "Edit Indigo (hover)", "canonical": "#4f46e5", "tonalRamp": [] },
-      "accent-soft": { "role": "secondary", "displayName": "Edit Indigo (soft wash)", "canonical": "#eff6ff", "tonalRamp": [] },
-      "accent-ring": { "role": "secondary", "displayName": "Edit Indigo (ring)", "canonical": "#93c5fd", "tonalRamp": [] },
+      "primary-hover": { "role": "primary", "displayName": "Departure Amber (hover)", "canonical": "#92400e", "tonalRamp": [] },
+      "focus-ring": { "role": "primary", "displayName": "Signal Amber (focus)", "canonical": "#d97706", "tonalRamp": [] },
+      "accent": { "role": "secondary", "displayName": "Signal Amber", "canonical": "#d97706", "tonalRamp": [] },
+      "accent-hover": { "role": "secondary", "displayName": "Signal Amber (hover)", "canonical": "#b45309", "tonalRamp": [] },
+      "accent-soft": { "role": "secondary", "displayName": "Amber Wash", "canonical": "#fdf0ce", "tonalRamp": [] },
+      "accent-ring": { "role": "secondary", "displayName": "Amber Ring", "canonical": "#f59e0b", "tonalRamp": [] },
       "warning": {
         "role": "secondary",
-        "displayName": "Reset Yellow",
-        "canonical": "#eab308",
-        "tonalRamp": ["oklch(0.15 0.162 86)", "oklch(0.26 0.147 86)", "oklch(0.37 0.131 86)", "oklch(0.48 0.116 86)", "oklch(0.59 0.101 86)", "oklch(0.70 0.086 86)", "oklch(0.81 0.071 86)", "oklch(0.92 0.056 86)"]
+        "displayName": "Late-Train Yellow",
+        "canonical": "#d97706",
+        "tonalRamp": ["oklch(0.15 0.06 85)", "oklch(0.25 0.10 85)", "oklch(0.35 0.13 85)", "oklch(0.45 0.15 85)", "oklch(0.55 0.16 85)", "oklch(0.65 0.16 85)", "oklch(0.75 0.15 85)", "oklch(0.85 0.12 85)"]
       },
-      "warning-hover": { "role": "secondary", "displayName": "Reset Yellow (hover)", "canonical": "#ca8a04", "tonalRamp": [] },
+      "warning-hover": { "role": "secondary", "displayName": "Late-Train Yellow (hover)", "canonical": "#b45309", "tonalRamp": [] },
+      "warning-bg": { "role": "tertiary", "displayName": "Yellow Wash", "canonical": "#fdf0ce", "tonalRamp": [] },
+      "warning-text": { "role": "tertiary", "displayName": "Yellow Ink", "canonical": "#92400e", "tonalRamp": [] },
       "success": {
         "role": "tertiary",
-        "displayName": "Success Green",
-        "canonical": "#16a34a",
-        "tonalRamp": ["oklch(0.15 0.170 149)", "oklch(0.26 0.154 149)", "oklch(0.37 0.138 149)", "oklch(0.48 0.122 149)", "oklch(0.59 0.106 149)", "oklch(0.70 0.090 149)", "oklch(0.81 0.074 149)", "oklch(0.92 0.058 149)"]
+        "displayName": "Platform Green",
+        "canonical": "#4d7c0f",
+        "tonalRamp": ["oklch(0.15 0.07 125)", "oklch(0.25 0.11 125)", "oklch(0.35 0.14 125)", "oklch(0.45 0.16 125)", "oklch(0.55 0.17 125)", "oklch(0.65 0.16 125)", "oklch(0.75 0.14 125)", "oklch(0.85 0.11 125)"]
       },
-      "success-deep": { "role": "tertiary", "displayName": "Success Green (deep)", "canonical": "#15803d", "tonalRamp": [] },
+      "success-deep": { "role": "tertiary", "displayName": "Platform Green (deep)", "canonical": "#3f6212", "tonalRamp": [] },
       "danger": {
         "role": "tertiary",
-        "displayName": "Danger Red",
-        "canonical": "#dc2626",
-        "tonalRamp": ["oklch(0.15 0.215 27)", "oklch(0.26 0.195 27)", "oklch(0.37 0.175 27)", "oklch(0.48 0.155 27)", "oklch(0.59 0.134 27)", "oklch(0.70 0.114 27)", "oklch(0.81 0.094 27)", "oklch(0.92 0.074 27)"]
+        "displayName": "Cancelled Red",
+        "canonical": "#b91c1c",
+        "tonalRamp": ["oklch(0.15 0.08 25)", "oklch(0.25 0.12 25)", "oklch(0.35 0.15 25)", "oklch(0.45 0.17 25)", "oklch(0.55 0.17 25)", "oklch(0.65 0.16 25)", "oklch(0.75 0.13 25)", "oklch(0.85 0.09 25)"]
       },
-      "danger-hover": { "role": "tertiary", "displayName": "Danger Red (hover)", "canonical": "#b91c1c", "tonalRamp": [] },
-      "danger-deep": { "role": "tertiary", "displayName": "Danger Red (deep)", "canonical": "#991b1b", "tonalRamp": [] },
-      "warning-bg": { "role": "tertiary", "displayName": "Warning Wash", "canonical": "#fef9c3", "tonalRamp": [] },
-      "warning-text": { "role": "tertiary", "displayName": "Warning Ink", "canonical": "#854d0e", "tonalRamp": [] },
-      "page": { "role": "neutral", "displayName": "Page Gray", "canonical": "#f9fafb", "tonalRamp": [] },
-      "surface": { "role": "neutral", "displayName": "Panel White", "canonical": "#ffffff", "tonalRamp": [] },
-      "hover": { "role": "neutral", "displayName": "Surface Gray", "canonical": "#f3f4f6", "tonalRamp": [] },
-      "row-hover": { "role": "neutral", "displayName": "Row Hover", "canonical": "#f9fafb", "tonalRamp": [] },
-      "subtle": { "role": "neutral", "displayName": "Hairline Gray", "canonical": "#e5e7eb", "tonalRamp": [] },
-      "input": { "role": "neutral", "displayName": "Field Gray", "canonical": "#d1d5db", "tonalRamp": [] },
-      "muted": { "role": "neutral", "displayName": "Muted Gray", "canonical": "#9ca3af", "tonalRamp": [] },
-      "secondary": { "role": "neutral", "displayName": "Label Gray", "canonical": "#6b7280", "tonalRamp": [] },
-      "ghost": { "role": "neutral", "displayName": "Ghost Gray", "canonical": "#374151", "tonalRamp": [] },
-      "neutral": { "role": "neutral", "displayName": "Neutral Gray", "canonical": "#4b5563", "tonalRamp": [] },
-      "ink": { "role": "neutral", "displayName": "Ink Gray", "canonical": "#111827", "tonalRamp": [] },
-      "overlay": { "role": "neutral", "displayName": "Backdrop", "canonical": "rgba(0, 0, 0, 0.4)", "tonalRamp": [] },
-      "data-string": { "role": "neutral", "displayName": "JSON String", "canonical": "#15803d", "tonalRamp": [] },
-      "data-number": { "role": "neutral", "displayName": "JSON Number", "canonical": "#2563eb", "tonalRamp": [] },
-      "data-boolean": { "role": "neutral", "displayName": "JSON Boolean", "canonical": "#9333ea", "tonalRamp": [] },
-      "data-null": { "role": "neutral", "displayName": "JSON Null", "canonical": "#9ca3af", "tonalRamp": [] }
+      "danger-hover": { "role": "tertiary", "displayName": "Cancelled Red (hover)", "canonical": "#991b1b", "tonalRamp": [] },
+      "danger-deep": { "role": "tertiary", "displayName": "Cancelled Red (deep)", "canonical": "#7f1d1d", "tonalRamp": [] },
+      "page": { "role": "neutral", "displayName": "Concourse Bone", "canonical": "#efe9da", "tonalRamp": [] },
+      "surface": { "role": "neutral", "displayName": "Timetable Paper", "canonical": "#f8f4e8", "tonalRamp": [] },
+      "surface-raised": { "role": "neutral", "displayName": "Paper Raised", "canonical": "#fdfaf1", "tonalRamp": [] },
+      "hover": { "role": "neutral", "displayName": "Platform Shadow", "canonical": "#e9e2cd", "tonalRamp": [] },
+      "row-hover": { "role": "neutral", "displayName": "Row Hover", "canonical": "#f3eedd", "tonalRamp": [] },
+      "subtle": { "role": "neutral", "displayName": "Hairline", "canonical": "#ddd5c0", "tonalRamp": [] },
+      "input": { "role": "neutral", "displayName": "Field Stroke", "canonical": "#c8bfa6", "tonalRamp": [] },
+      "muted": { "role": "neutral", "displayName": "Muted Bronze", "canonical": "#948c76", "tonalRamp": [] },
+      "secondary": { "role": "neutral", "displayName": "Label Bronze", "canonical": "#6d6550", "tonalRamp": [] },
+      "ghost": { "role": "neutral", "displayName": "Ghost Bronze", "canonical": "#4a4434", "tonalRamp": [] },
+      "neutral": { "role": "neutral", "displayName": "Neutral Bronze", "canonical": "#544d3b", "tonalRamp": [] },
+      "ink": { "role": "neutral", "displayName": "Ink Bronze", "canonical": "#211d15", "tonalRamp": [] },
+      "overlay": { "role": "neutral", "displayName": "Backdrop", "canonical": "rgba(24, 20, 12, 0.45)", "tonalRamp": [] },
+      "board": { "role": "neutral", "displayName": "Flip Chip Charcoal", "canonical": "#2e2921", "tonalRamp": [] },
+      "board-hover": { "role": "neutral", "displayName": "Flip Chip Charcoal (hover)", "canonical": "#3a342b", "tonalRamp": [] },
+      "board-text": {
+        "role": "primary",
+        "displayName": "Phosphor Amber",
+        "canonical": "#fbbf24",
+        "tonalRamp": ["oklch(0.15 0.04 78)", "oklch(0.25 0.08 78)", "oklch(0.35 0.11 78)", "oklch(0.45 0.13 78)", "oklch(0.55 0.15 78)", "oklch(0.65 0.16 78)", "oklch(0.75 0.15 78)", "oklch(0.85 0.13 78)"]
+      },
+      "board-text-dim": { "role": "neutral", "displayName": "Phosphor Amber (dim)", "canonical": "#b98a1c", "tonalRamp": [] },
+      "data-string": { "role": "neutral", "displayName": "JSON String", "canonical": "#4d7c0f", "tonalRamp": [] },
+      "data-number": { "role": "neutral", "displayName": "JSON Number", "canonical": "#a16207", "tonalRamp": [] },
+      "data-boolean": { "role": "neutral", "displayName": "JSON Boolean", "canonical": "#6d28d9", "tonalRamp": [] },
+      "data-null": { "role": "neutral", "displayName": "JSON Null", "canonical": "#948c76", "tonalRamp": [] }
     },
     "typographyMeta": {
-      "headline": { "displayName": "Headline", "purpose": "Page titles only (24px, bold)." },
-      "title": { "displayName": "Title", "purpose": "Section and card headers (18px, semibold)." },
+      "display": { "displayName": "Board Display", "purpose": "Page titles only (24px mono, 700, -0.02em)." },
+      "title": { "displayName": "Board Title", "purpose": "Card headers and stat values (14px mono, 700, +0.08em)." },
+      "label": { "displayName": "Board Label", "purpose": "Eyebrows, table headers, field labels, badges (10px mono, 600, uppercase, +0.16–0.24em)." },
       "body": { "displayName": "Body", "purpose": "Table cells, button labels, form text (14px)." },
-      "label": { "displayName": "Label", "purpose": "Field labels and card field captions (14px, gray)." },
       "mono": { "displayName": "Mono", "purpose": "Identifiers, JSON tree, raw payloads, timestamps (12px)." }
     },
     "shadows": [
-      { "name": "card-lift", "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)", "purpose": "Whisper of depth on dashboard stat cards and form cards; always paired with a hairline border." },
-      { "name": "modal-layer", "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)", "purpose": "Modals and confirm dialogs floating above the 40% black backdrop." }
+      { "name": "chip-bevel", "value": "inset 0 1px 0 rgb(255 255 255 / 0.1), 0 1px 3px rgb(0 0 0 / 0.35)", "purpose": "The tactile depth of a physical flip-cell; every charcoal chip carries it." },
+      { "name": "card-lift", "value": "0 1px 2px rgb(30 24 12 / 0.06), 0 2px 8px rgb(30 24 12 / 0.05)", "purpose": "Whisper of depth on stat and form cards; always paired with a hairline border." },
+      { "name": "modal-layer", "value": "0 4px 12px rgb(0 0 0 / 0.12), 0 24px 48px -12px rgb(0 0 0 / 0.28)", "purpose": "Modals and confirm dialogs floating above the overlay backdrop." }
     ],
     "motion": [
+      { "name": "flip", "value": "flap 500ms cubic-bezier(0.5, 0, 0.5, 1) 1", "purpose": "The single mechanical shutter-drop on value change; keyframes rotateX + brightness strobe. Disabled under prefers-reduced-motion." },
       { "name": "transition-colors", "value": "color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out", "purpose": "State transitions on buttons, nav links, inputs, chips." },
       { "name": "drawer-slide", "value": "transform 0.2s ease-in-out", "purpose": "Mobile sidebar off-canvas slide." }
     ],
     "breakpoints": [
-      { "name": "md", "value": "768px", "purpose": "Sidebar static vs off-canvas drawer, single-column vs 3-col stat grid, cell stacking." }
+      { "name": "md", "value": "768px", "purpose": "Sidebar static vs off-canvas drawer, single-column vs multi-col stat grids, table cell behavior." }
     ]
   },
   "components": [
@@ -81,121 +93,122 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The single primary action per view. Flat blue fill, white text.",
+      "description": "The single primary action per view, lit like a destination cell: charcoal chip, amber phosphor.",
       "html": "<button class=\"ds-btn-primary\">Search</button>",
-      "css": ".ds-btn-primary { background: #2563eb; color: #ffffff; font: 500 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: none; border-radius: 8px; transition: background-color 0.15s ease-in-out; } .ds-btn-primary:hover { background: #1d4ed8; } .ds-btn-primary:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; }"
+      "css": ".ds-btn-primary { background: #2e2921; color: #fbbf24; font: 600 14px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.02em; padding: 8px 16px; border: 1px solid rgba(0,0,0,0.15); border-radius: 4px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.35); transition: background-color 0.15s ease-in-out; } .ds-btn-primary:hover { background: #3a342b; } .ds-btn-primary:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; }"
     },
     {
-      "name": "Outline Button",
+      "name": "Secondary Button",
       "kind": "button",
-      "refersTo": "button-outline",
-      "description": "Secondary action: white fill, hairline border, ink text.",
-      "html": "<button class=\"ds-btn-outline\">View all invite codes</button>",
-      "css": ".ds-btn-outline { background: #ffffff; color: #111827; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 8px; transition: background-color 0.15s ease-in-out; } .ds-btn-outline:hover { background: #f9fafb; } .ds-btn-outline:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
+      "refersTo": "button-secondary",
+      "description": "Paper surface, hairline stroke, bronze ink. Quiet counterpart to the primary chip.",
+      "html": "<button class=\"ds-btn-secondary\">View all invite codes</button>",
+      "css": ".ds-btn-secondary { background: #f8f4e8; color: #4a4434; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: 1px solid #c8bfa6; border-radius: 4px; transition: background-color 0.15s ease-in-out; } .ds-btn-secondary:hover { background: #e9e2cd; } .ds-btn-secondary:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; }"
     },
     {
       "name": "Destructive Button",
       "kind": "button",
       "refersTo": "button-danger",
-      "description": "Irreversible or harmful actions only. Red is never used for primary.",
+      "description": "Irreversible or harmful actions only. Red is never used for the primary action.",
       "html": "<button class=\"ds-btn-danger\">Delete account</button>",
-      "css": ".ds-btn-danger { background: #dc2626; color: #ffffff; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: none; border-radius: 8px; transition: background-color 0.15s ease-in-out; } .ds-btn-danger:hover { background: #b91c1c; } .ds-btn-danger:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
+      "css": ".ds-btn-danger { background: #b91c1c; color: #ffffff; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: none; border-radius: 4px; transition: background-color 0.15s ease-in-out; } .ds-btn-danger:hover { background: #991b1b; } .ds-btn-danger:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; }"
     },
     {
       "name": "Text Input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Search and form fields. Border shift to blue is the entire focus treatment.",
+      "description": "Search and form fields. Amber stroke shift plus a soft ring is the entire focus treatment.",
       "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search by email...\" />",
-      "css": ".ds-input { background: #ffffff; color: #111827; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; width: 100%; transition: border-color 0.15s ease-in-out; } .ds-input::placeholder { color: #9ca3af; } .ds-input:focus { outline: none; border-color: #3b82f6; }"
+      "css": ".ds-input { background: #f8f4e8; color: #211d15; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; padding: 8px 12px; border: 1px solid #c8bfa6; border-radius: 4px; width: 100%; transition: border-color 0.15s ease-in-out; } .ds-input::placeholder { color: #948c76; } .ds-input:focus { outline: none; border-color: #d97706; box-shadow: 0 0 0 2px rgba(217,119,6,0.3); }"
     },
     {
       "name": "Nav Link",
       "kind": "nav",
       "refersTo": "nav-link-active",
-      "description": "Sidebar rail item. Active is flat blue; idle is gray with a gray hover fill.",
-      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" href=\"#\">Accounts</a><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">Invites</a><a class=\"ds-nav-link\" href=\"#\">Subjects</a></nav>",
-      "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; padding: 8px; } .ds-nav-link { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 4px; color: #4b5563; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; text-decoration: none; transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out; } .ds-nav-link:hover { background: #f3f4f6; } .ds-nav-link-active { background: #2563eb; color: #ffffff; } .ds-nav-link:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
+      "description": "Sidebar rail item. Active is a lit charcoal chip; idle is bronze with a warm hover fill.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" href=\"#\">01 Dashboard</a><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">02 Accounts</a><a class=\"ds-nav-link\" href=\"#\">03 Invites</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; padding: 8px; } .ds-nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 4px; color: #6d6550; font: 500 14px/1 ui-sans-serif, system-ui, sans-serif; text-decoration: none; transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out; } .ds-nav-link-index { font: 400 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; } .ds-nav-link:hover { background: #e9e2cd; color: #211d15; } .ds-nav-link-active { background: #2e2921; color: #fbbf24; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.35); } .ds-nav-link:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; }"
     },
     {
-      "name": "Status Card",
+      "name": "Board Stat",
       "kind": "card",
-      "refersTo": "card",
-      "description": "Stat and form surfaces. Flat white, hairline border, optional whisper shadow.",
-      "html": "<div class=\"ds-card\"><div class=\"ds-card-label\">Total Accounts</div><div class=\"ds-card-value\">128</div></div>",
-      "css": ".ds-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); } .ds-card-label { color: #6b7280; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; margin-bottom: 4px; } .ds-card-value { color: #111827; font: 700 30px/1.2 ui-sans-serif, system-ui, sans-serif; }"
+      "refersTo": "board-stat",
+      "description": "Charcoal flip module for live numbers: dim caption, big phosphor value, one mechanical flip on change.",
+      "html": "<div class=\"ds-stat\"><div class=\"ds-stat-label\">Total Accounts</div><div class=\"ds-stat-value\">128</div></div>",
+      "css": ".ds-stat { background: #2e2921; border: 1px solid rgba(0,0,0,0.15); border-radius: 8px; padding: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.35); } .ds-stat-label { color: #b98a1c; font: 600 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.18em; text-transform: uppercase; } .ds-stat-value { margin-top: 4px; color: #fbbf24; font: 700 24px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "FlipChip",
+      "kind": "chip",
+      "refersTo": "chip-board",
+      "description": "The shared charcoal chip: counts, status CIDs, mode toggles. Reads like a lit departure cell.",
+      "html": "<span class=\"ds-chip\">CID: bafyrei…</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; background: #2e2921; color: #fbbf24; border: 1px solid rgba(0,0,0,0.15); border-radius: 4px; padding: 4px 10px; font: 400 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.35); white-space: nowrap; }"
     },
     {
       "name": "Table",
       "kind": "custom",
       "refersTo": "table",
-      "description": "The primary instrument. Header gray, hairline row rules, gray-50 hover.",
+      "description": "The paper ledger. Raised header band with tracked-caps mono headers, hairline row rules, warm hover.",
       "html": "<div class=\"ds-table-wrap\"><table class=\"ds-table\"><thead><tr><th class=\"ds-th\">DID</th><th class=\"ds-th\">Handle</th><th class=\"ds-th\">Status</th></tr></thead><tbody><tr class=\"ds-tr\"><td class=\"ds-td ds-td-mono\">did:plc:abc123…</td><td class=\"ds-td\">alice.example</td><td class=\"ds-td\"><span class=\"ds-badge\">invites off</span></td></tr><tr class=\"ds-tr\"><td class=\"ds-td ds-td-mono\">did:plc:def456…</td><td class=\"ds-td\">bob.example</td><td class=\"ds-td\">—</td></tr></tbody></table></div>",
-      "css": ".ds-table-wrap { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow-x: auto; } .ds-table { width: 100%; border-collapse: collapse; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; color: #111827; } .ds-th { text-align: left; padding: 12px; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb; } .ds-tr { border-bottom: 1px solid #e5e7eb; } .ds-tr:hover { background: #f9fafb; } .ds-td { padding: 12px; } .ds-td-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; } .ds-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; line-height: 1.5; background: #fef9c3; color: #854d0e; }"
+      "css": ".ds-table-wrap { background: #f8f4e8; border: 1px solid #ddd5c0; border-radius: 8px; overflow-x: auto; box-shadow: 0 1px 2px rgba(30,24,12,0.06), 0 2px 8px rgba(30,24,12,0.05); } .ds-table { width: 100%; border-collapse: collapse; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; color: #211d15; } .ds-th { text-align: left; padding: 8px; background: #fdfaf1; font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.16em; text-transform: uppercase; color: #948c76; border-bottom: 1px solid #ddd5c0; white-space: nowrap; } .ds-tr { border-bottom: 1px solid #ddd5c0; } .ds-tr:last-child { border-bottom: none; } .ds-tr:hover { background: #f3eedd; } .ds-td { padding: 8px; } .ds-td-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; } .ds-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font: 600 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.12em; text-transform: uppercase; background: #fdf0ce; color: #92400e; }"
     },
     {
       "name": "Warning Badge",
       "kind": "chip",
       "refersTo": "chip-warning",
-      "description": "Inline account flags: yellow wash, amber ink, rounded-sm.",
+      "description": "Inline account flags: yellow wash, amber ink, tracked-caps mono, rounded-sm.",
       "html": "<span class=\"ds-badge\">invites off</span>",
-      "css": ".ds-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font: 400 12px/1.5 ui-sans-serif, system-ui, sans-serif; background: #fef9c3; color: #854d0e; }"
-    },
-    {
-      "name": "Segmented Control",
-      "kind": "chip",
-      "refersTo": "segmented",
-      "description": "Mode toggle (single/bulk). Gray track, white raised active segment.",
-      "html": "<div class=\"ds-seg\"><button class=\"ds-seg-btn ds-seg-btn-active\">Single code</button><button class=\"ds-seg-btn\">Bulk codes</button></div>",
-      "css": ".ds-seg { display: inline-flex; gap: 4px; background: #f3f4f6; border-radius: 8px; padding: 4px; width: fit-content; } .ds-seg-btn { padding: 6px 16px; border: none; border-radius: 8px; background: transparent; color: #6b7280; font: 500 14px/1 ui-sans-serif, system-ui, sans-serif; transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; cursor: pointer; } .ds-seg-btn:hover { color: #374151; } .ds-seg-btn-active { background: #ffffff; color: #111827; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); } .ds-seg-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
-    },
-    {
-      "name": "Modal / Confirm Dialog",
-      "kind": "custom",
-      "refersTo": "modal",
-      "description": "Floating layer above a 40% black backdrop. The only place shadows do heavy lifting.",
-      "html": "<div class=\"ds-backdrop\"><div class=\"ds-modal\"><h2 class=\"ds-modal-title\">Apply takedown</h2><p class=\"ds-modal-message\">Apply takedown for did:plc:abc123? This hides the subject from public views.</p><div class=\"ds-modal-actions\"><button class=\"ds-btn-ghost\">Cancel</button><button class=\"ds-btn-danger\">Apply takedown</button></div></div></div>",
-      "css": ".ds-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; padding: 16px; } .ds-modal { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); padding: 24px; width: 100%; max-width: 384px; } .ds-modal-title { margin: 0 0 8px; color: #111827; font: 600 18px/1.2 ui-sans-serif, system-ui, sans-serif; } .ds-modal-message { margin: 0 0 20px; color: #4b5563; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; } .ds-modal-actions { display: flex; gap: 12px; justify-content: flex-end; } .ds-btn-ghost { background: #f3f4f6; color: #374151; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 8px; transition: background-color 0.15s ease-in-out; cursor: pointer; } .ds-btn-ghost:hover { background: #e5e7eb; } .ds-btn-ghost:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
+      "css": ".ds-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font: 600 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.12em; text-transform: uppercase; background: #fdf0ce; color: #92400e; white-space: nowrap; }"
     },
     {
       "name": "JsonTree",
       "kind": "custom",
       "refersTo": "json-tree",
-      "description": "Semantic JSON inspector. Keys gray, values type-colored, expandable with caret.",
-      "html": "<div class=\"ds-json\"><div class=\"ds-json-row\"><span class=\"ds-json-caret\">▼</span><span class=\"ds-json-key\">record</span><span class=\"ds-json-count\">(2)</span></div><div class=\"ds-json-child\"><div class=\"ds-json-row\"><span class=\"ds-json-key\">text</span><span class=\"ds-json-string\">\"Hello world\"</span></div><div class=\"ds-json-row\"><span class=\"ds-json-key\">createdAt</span><span class=\"ds-json-string\">\"2026-01-01T00:00:00Z\"</span></div></div></div>",
-      "css": ".ds-json { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.4; } .ds-json-row { display: flex; gap: 6px; align-items: baseline; } .ds-json-row + .ds-json-row { margin-top: 2px; } .ds-json-caret { width: 12px; flex-shrink: 0; color: #9ca3af; font-size: 10px; } .ds-json-key { color: #4b5563; } .ds-json-count { color: #9ca3af; font-size: 10px; } .ds-json-string { color: #15803d; word-break: break-all; } .ds-json-child { margin-left: 12px; padding-left: 8px; border-left: 1px solid #e5e7eb; }"
+      "description": "Semantic JSON inspector. Bronze keys, type-colored values, expandable with a caret.",
+      "html": "<div class=\"ds-json\"><div class=\"ds-json-row\"><span class=\"ds-json-caret\">▾</span><span class=\"ds-json-key\">record</span><span class=\"ds-json-count\">(2)</span></div><div class=\"ds-json-child\"><div class=\"ds-json-row\"><span class=\"ds-json-key\">text</span><span class=\"ds-json-string\">\"Hello world\"</span></div><div class=\"ds-json-row\"><span class=\"ds-json-key\">createdAt</span><span class=\"ds-json-string\">\"2026-01-01T00:00:00Z\"</span></div></div></div>",
+      "css": ".ds-json { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.4; } .ds-json-row { display: flex; gap: 6px; align-items: baseline; } .ds-json-row + .ds-json-row { margin-top: 2px; } .ds-json-caret { width: 12px; flex-shrink: 0; color: #948c76; font-size: 10px; } .ds-json-key { color: #6d6550; } .ds-json-count { color: #948c76; font-size: 10px; } .ds-json-string { color: #4d7c0f; word-break: break-all; } .ds-json-number { color: #a16207; } .ds-json-boolean { color: #6d28d9; } .ds-json-null { color: #948c76; } .ds-json-child { margin-left: 12px; padding-left: 8px; border-left: 1px solid #ddd5c0; }"
+    },
+    {
+      "name": "Modal / Confirm Dialog",
+      "kind": "custom",
+      "refersTo": "modal",
+      "description": "Floating paper above the backdrop. The only place the deep shadow does heavy lifting.",
+      "html": "<div class=\"ds-backdrop\"><div class=\"ds-modal\"><h2 class=\"ds-modal-title\">Apply takedown</h2><p class=\"ds-modal-message\">Apply takedown for did:plc:abc123? This hides the subject from public views.</p><div class=\"ds-modal-actions\"><button class=\"ds-btn-secondary\">Cancel</button><button class=\"ds-btn-danger\">Apply takedown</button></div></div></div>",
+      "css": ".ds-backdrop { position: fixed; inset: 0; background: rgba(24,20,12,0.45); display: flex; align-items: center; justify-content: center; padding: 16px; } .ds-modal { background: #f8f4e8; border: 1px solid #ddd5c0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 24px 48px -12px rgba(0,0,0,0.28); padding: 24px; width: 100%; max-width: 384px; } .ds-modal-title { margin: 0 0 8px; color: #211d15; font: 700 14px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.08em; } .ds-modal-message { margin: 0 0 20px; color: #6d6550; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; } .ds-modal-actions { display: flex; gap: 12px; justify-content: flex-end; } .ds-btn-secondary { background: #f8f4e8; color: #4a4434; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: 1px solid #c8bfa6; border-radius: 4px; transition: background-color 0.15s ease-in-out; cursor: pointer; } .ds-btn-secondary:hover { background: #e9e2cd; } .ds-btn-secondary:focus-visible, .ds-btn-danger:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; } .ds-btn-danger { background: #b91c1c; color: #ffffff; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: none; border-radius: 4px; transition: background-color 0.15s ease-in-out; cursor: pointer; } .ds-btn-danger:hover { background: #991b1b; }"
     }
   ],
   "narrative": {
-    "northStar": "The Control Room",
-    "overview": "A quiet operations console for a self-hosted PDS. Every element exists to be read or acted on; nothing exists to be admired. The system is deliberately flat, dense, and data-forward: white surfaces separated by hairline rules, one blue action per context, and monospace wherever the operator must copy an identifier verbatim.\n\nThe aesthetic philosophy is restraint-as-respect: the operator is usually pasting DIDs, reading CID prefixes, or deciding whether to act on an account. Typography is small and legible (12–14px body, 24px page titles), spacing is tight but never cramped, and color is reserved for meaning — blue for the single primary action, red for destructive, green for confirmation, yellow for warnings. There is no gradient, no ambient illustration, no decorative flourish. This is not an absence of design; it is a design that disappears so the data can be inspected.",
+    "northStar": "The Split-Flap Departure Board",
+    "overview": "The admin console is a departure board at a busy station. Charcoal flip-chips carry the live values, amber phosphor glows behind every active state, and dense data — accounts, invite codes, JSON payloads — sits on ruled timetable paper where it can be read and copied without ceremony. Each page is a \"board\": a tracked-caps destination header, a set of flip-chips for the numbers that matter, and a paper table for everything else.\n\nThe system reads in both registers on purpose. Light mode is the daylight station — warm bone paper, bronze ink, amber signage. Dark mode is the night concourse — near-black warm charcoal, dimmed amber phosphor, the same rules at lower light. Identity stays in the data: DIDs, CIDs, codes, and handles always render in monospace, and the board treats every identifier like a flight number — something to be read exactly and never misread.",
     "keyCharacteristics": [
-      "Flat white surfaces divided by gray-200 hairline borders, never shadows",
-      "A single blue-600 primary action per context; red is destructive, never blue",
-      "Monospace + text-xs for every identifier: DIDs, CIDs, codes, rkeys",
-      "Small dense text (12–14px), tight 4px–24px spacing rhythm",
-      "Semantic JSON colors so record payloads are scannable at a glance"
+      "Charcoal flip-chips (board) carry live values and active states; warm paper (surface) carries dense data",
+      "One amber phosphor accent (primary/board-text); status green/red/yellow only for meaning, blue is retired",
+      "Monospace + text-xs for every identifier: DIDs, CIDs, codes, rkeys, handles",
+      "Tracked small-caps mono headers on boards and tables only; body text stays plain",
+      "Mechanical flip motion on value change — one orchestrated move, disabled under prefers-reduced-motion"
     ],
     "rules": [
-      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat with hairline borders at rest. Shadows appear only as a response to state — card lift (shadow-card), modal layering (shadow-modal).", "section": "colors" },
-      { "name": "The One-Action Blue Rule", "body": "blue-600 marks exactly one primary action per view. Destructive, warning, and editing actions use their semantic color, never blue.", "section": "colors" },
+      { "name": "The Phosphor Rule", "body": "Amber is the sole accent. Everything structural is bone or charcoal; green, red, and yellow appear only to carry meaning, never decoration. Blue is retired.", "section": "colors" },
       { "name": "The Mono-For-Identity Rule", "body": "Anything the operator must copy verbatim — DIDs, CIDs, invite codes, record keys, handles — renders in monospace at text-xs. The font itself says \"this is data.\"", "section": "colors" },
-      { "name": "The Flat-Type Rule", "body": "No letter-spacing, no uppercase, no custom weights beyond 400/600/700. Size and color carry all emphasis.", "section": "typography" },
-      { "name": "The No-Ambient-Shadow Rule", "body": "Resting content never casts a shadow. If a surface sits on the page, it earns its separation with a hairline border; shadows are reserved for floating layers.", "section": "elevation" }
+      { "name": "The Departure-Board Header Rule", "body": "Tracked small-caps mono belongs to board headers only — eyebrows, table headers, field labels, badges. Body and paragraph text are never uppercase and never letter-spaced.", "section": "typography" },
+      { "name": "The Paper-Rule", "body": "Resting content never casts an ambient shadow. Paper surfaces earn separation with a hairline border; charcoal chips carry the tactile bevel; only floating layers get the deep shadow.", "section": "elevation" },
+      { "name": "The No-Ambient-Motion Rule", "body": "Exactly one mechanical flip on value change; nothing else animates on its own. prefers-reduced-motion disables it.", "section": "elevation" }
     ],
     "dos": [
-      "Do keep every data surface flat and hairline-bordered; add shadow only for state or floating layers.",
-      "Do render identifiers (DIDs, CIDs, codes, rkeys, handles) in text-xs monospace with truncation and a tooltip.",
-      "Do use exactly one blue-600 primary action per view; color every other action semantically.",
-      "Do let wide tables scroll horizontally (overflow-x-auto) instead of wrapping cells on small screens.",
-      "Do use the semantic JSON colors so record payloads stay scannable at a glance."
+      "Do let every identifier (DIDs, CIDs, codes, rkeys, handles) render in text-xs monospace, truncated with a tooltip where wide.",
+      "Do reserve charcoal flip-chips + amber phosphor for live values and the active state; put dense data on ruled paper.",
+      "Do use tracked small-caps mono only for board headers — eyebrows, table headers, field labels, badges.",
+      "Do keep one amber primary action per view; color every other action semantically (green/red/yellow).",
+      "Do run the JSON colors so record payloads stay scannable; keep wide tables scrolling horizontally instead of wrapping."
     ],
     "donts": [
-      "Don't add decorative color, gradients, illustrations, or ambient shadows to resting surfaces.",
-      "Don't use blue for destructive actions — destructive is always red.",
-      "Don't introduce display type, uppercase, letter-spacing, or weights outside 400/600/700.",
-      "Don't let a view carry two competing primary actions.",
-      "Don't render JSON or identifiers in proportional type."
+      "Don't reintroduce blue anywhere — the accent is amber.",
+      "Don't use amber for destructive actions — destructive is always red.",
+      "Don't uppercase or letter-space body text; that register belongs to board headers only.",
+      "Don't scatter multiple animations — one mechanical flip on value change, and honor prefers-reduced-motion.",
+      "Don't render JSON or identifiers in proportional type.",
+      "Don't add gradients, illustrations, or ambient shadows to resting surfaces."
     ]
   }
 }

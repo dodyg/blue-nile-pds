@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import ConfirmDialog from '../components/ConfirmDialog';
+import Button from '../components/Button';
+import Badge from '../components/Badge';
+import PageHeader from '../components/PageHeader';
+import { TableBoard, Table, Th, Tr, Td } from '../components/Table';
+import EmptyState from '../components/EmptyState';
 import { backupKeys } from '../api/queryKeys';
 import { useBackupList, useBackupStatus, useCreateBackup, useDeleteBackup, useDownloadBackup } from '../hooks/useBackup';
 
@@ -63,78 +68,79 @@ export default function Backup() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Backups</h1>
-        <button
-          onClick={handleCreate}
-          disabled={isBusy}
-          className="px-4 py-2 bg-primary text-surface rounded-md text-sm font-medium hover:bg-primary-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-        >
-          {isBusy ? 'Backing up...' : 'Create backup'}
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="operations · archive"
+        title="Backups"
+        description="Snapshots of the account stores, kept in the backup directory."
+        actions={
+          <Button variant="primary" onClick={handleCreate} disabled={isBusy}>
+            {isBusy ? 'Backing up...' : 'Create backup'}
+          </Button>
+        }
+      />
 
-      {message && <p className="text-success mb-4">{message}</p>}
+      {message && <p className="mb-4 text-sm text-success-deep dark:text-success">{message}</p>}
       {(statusQuery.error || listQuery.error) && (
-        <p className="text-danger mb-4">{(statusQuery.error || listQuery.error)?.message}</p>
+        <p className="mb-4 text-sm text-danger">{(statusQuery.error || listQuery.error)?.message}</p>
       )}
 
       {status === 'running' && (
-        <div className="bg-surface border border-subtle shadow-card rounded-md p-5 mb-4 flex items-center gap-3">
-          <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-          <span className="text-neutral">A backup is in progress... This page refreshes automatically.</span>
+        <div className="mb-4 flex items-center gap-3 rounded-md border border-subtle bg-surface p-5 shadow-card">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden="true" />
+          <span className="font-mono text-xs uppercase tracking-[0.12em] text-neutral">Backup in progress · page refreshes automatically</span>
         </div>
       )}
 
       {status === 'failed' && (
-        <div className="bg-danger border border-subtle shadow-card rounded-md p-5 mb-4 text-surface">
-          <span className="font-medium">Last backup failed: </span>
-          {statusQuery.data?.error ?? 'Unknown error'}
+        <div className="mb-4 flex items-center gap-2 rounded-md border border-danger/40 bg-danger/10 p-5">
+          <Badge tone="danger">failed</Badge>
+          <span className="text-sm text-danger-deep dark:text-danger">{statusQuery.data?.error ?? 'Unknown error'}</span>
         </div>
       )}
 
-      <div className="bg-surface border border-subtle rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-subtle text-left text-secondary">
-              <th className="p-3 font-medium">File</th>
-              <th className="p-3 font-medium">Created</th>
-              <th className="p-3 font-medium">Size</th>
-              <th className="p-3 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            {backups.map(b => (
-              <tr key={b.fileName} className="border-b border-subtle">
-                <td className="p-3 font-mono text-xs">{b.fileName}</td>
-                <td className="p-3 text-xs">{new Date(b.createdAt).toLocaleString()}</td>
-                <td className="p-3 text-xs">{formatBytes(b.sizeBytes)}</td>
-                <td className="p-3 whitespace-nowrap text-right">
-                  <button
-                    onClick={() => handleDownload(b.fileName)}
-                    disabled={downloadMutation.isPending}
-                    className="text-primary hover:text-primary-hover text-xs font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-                  >
-                    Download
-                  </button>
-                  <button
-                    onClick={() => setConfirm({ fileName: b.fileName })}
-                    disabled={deleteMutation.isPending}
-                    className="ml-3 text-danger hover:text-danger-hover text-xs font-medium disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {backups.length === 0 && (
-              <tr>
-                <td colSpan={4} className="p-6 text-center text-muted">No backups yet</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {backups.length === 0 && !statusQuery.isPending ? (
+        <EmptyState
+          title="No backups yet"
+          description="Create your first backup to snapshot the account stores."
+          action={<Button variant="primary" onClick={handleCreate} disabled={isBusy}>{isBusy ? 'Backing up...' : 'Create backup'}</Button>}
+        />
+      ) : (
+        <TableBoard>
+          <Table>
+            <thead>
+              <Tr>
+                <Th>File</Th>
+                <Th>Created</Th>
+                <Th>Size</Th>
+                <Th />
+              </Tr>
+            </thead>
+            <tbody>
+              {backups.map(b => (
+                <Tr key={b.fileName}>
+                  <Td className="font-mono text-xs">{b.fileName}</Td>
+                  <Td className="text-xs">{new Date(b.createdAt).toLocaleString()}</Td>
+                  <Td className="text-xs">{formatBytes(b.sizeBytes)}</Td>
+                  <Td className="whitespace-nowrap text-right">
+                    <Button variant="ghost" size="sm" onClick={() => handleDownload(b.fileName)} disabled={downloadMutation.isPending}>
+                      Download
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 text-danger hover:text-danger-deep"
+                      onClick={() => setConfirm({ fileName: b.fileName })}
+                      disabled={deleteMutation.isPending}
+                    >
+                      Delete
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        </TableBoard>
+      )}
 
       {confirm && (
         <ConfirmDialog
@@ -142,7 +148,7 @@ export default function Backup() {
           title="Delete backup"
           message={`Delete ${confirm.fileName}? This cannot be undone.`}
           confirmLabel="Delete"
-          confirmClass="bg-danger hover:bg-danger-hover"
+          confirmClass="bg-danger text-white dark:bg-danger-deep hover:opacity-90"
           onConfirm={handleDelete}
           onCancel={() => setConfirm(null)}
         />
