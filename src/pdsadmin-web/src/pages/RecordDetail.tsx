@@ -14,7 +14,7 @@ export default function RecordDetail() {
     <div>
       <button
         onClick={() => navigate(`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}`)}
-        className="text-blue-600 hover:text-blue-700 text-sm mb-2 font-medium"
+        className="text-primary hover:text-primary-hover text-sm mb-2 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
         ← Back to collection
       </button>
@@ -22,26 +22,26 @@ export default function RecordDetail() {
         <h1 className="text-2xl font-bold break-all">{rkey}</h1>
         <button
           onClick={() => setRaw(!raw)}
-          className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+          className="px-3 py-1 text-xs font-medium rounded-md bg-surface border border-input hover:bg-row-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           {raw ? 'Tree' : 'Raw'}
         </button>
       </div>
-      <p className="text-sm text-gray-500 font-mono mb-1">{did} / {collection}</p>
-      {data?.cid && <p className="text-xs text-gray-400 font-mono mb-4">CID: {data.cid}</p>}
+      <p className="text-sm text-secondary font-mono mb-1">{did} / {collection}</p>
+      {data?.cid && <p className="text-xs text-muted font-mono mb-4">CID: {data.cid}</p>}
 
-      {error && <p className="text-red-600 mb-4">{error.message}</p>}
-      {isPending && <p className="text-gray-500">Loading...</p>}
+      {error && <p className="text-danger mb-4">{error.message}</p>}
+      {isPending && <p className="text-secondary">Loading...</p>}
 
       {data && (
         raw ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-4 overflow-auto">
+          <div className="bg-surface border border-subtle rounded-md p-4 overflow-auto">
             <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">
               {JSON.stringify(data.value, null, 2)}
             </pre>
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="bg-surface border border-subtle rounded-md p-4">
             <JsonTree value={data.value} did={did} />
           </div>
         )

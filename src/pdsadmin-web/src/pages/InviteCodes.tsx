@@ -25,19 +25,19 @@ export default function InviteCodes() {
         <h1 className="text-2xl font-bold">Invite Codes</h1>
         <button
           onClick={() => navigate('/invites/create')}
-          className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700"
+          className="px-4 py-2 bg-primary text-surface rounded-md text-sm font-medium hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           Create invite codes
         </button>
       </div>
-      {message && <p className="text-green-600 mb-4">{message}</p>}
-      {error && <p className="text-red-600 mb-4">{error.message}</p>}
-      {isPending && codes.length === 0 && <p className="text-gray-500 mb-4">Loading...</p>}
-      {codes.length === 0 && !isPending && <p className="text-gray-400 mb-4">No invite codes found</p>}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
+      {message && <p className="text-success mb-4">{message}</p>}
+      {error && <p className="text-danger mb-4">{error.message}</p>}
+      {isPending && codes.length === 0 && <p className="text-secondary mb-4">Loading...</p>}
+      {codes.length === 0 && !isPending && <p className="text-muted mb-4">No invite codes found</p>}
+      <div className="bg-surface border border-subtle rounded-md overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-500">
+            <tr className="border-b border-subtle text-left text-secondary">
               <th className="p-3 font-medium">Code</th>
               <th className="p-3 font-medium">Available</th>
               <th className="p-3 font-medium">Disabled</th>
@@ -51,11 +51,11 @@ export default function InviteCodes() {
           <tbody>
             {codes.map(c => (
               <Fragment key={c.code}>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-subtle">
                   <td className="p-3 font-mono text-xs">
                     <button
                       onClick={() => setExpandedCode(expandedCode === c.code ? null : c.code)}
-                      className="mr-2 text-gray-400 hover:text-gray-600 text-xs"
+                      className="mr-2 text-muted hover:text-secondary text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                     >
                       {expandedCode === c.code ? '▼' : '▶'}
                     </button>
@@ -75,7 +75,7 @@ export default function InviteCodes() {
                     {!c.disabled && (
                       <button
                         onClick={() => disableCode(c.code)}
-                        className="text-red-600 hover:text-red-700 text-xs font-medium"
+                        className="text-danger hover:text-danger-hover text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                       >
                         Disable
                       </button>
@@ -83,18 +83,18 @@ export default function InviteCodes() {
                   </td>
                 </tr>
                 {expandedCode === c.code && c.uses && c.uses.length > 0 && (
-                  <tr className="bg-gray-50">
+                  <tr className="bg-page">
                     <td colSpan={8} className="p-3">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="text-left text-gray-500 border-b border-gray-200">
+                          <tr className="text-left text-secondary border-b border-subtle">
                             <th className="pb-1 pr-4 font-medium">Used By</th>
                             <th className="pb-1 font-medium">Used At</th>
                           </tr>
                         </thead>
                         <tbody>
                           {c.uses.map((u, i) => (
-                            <tr key={i} className="border-b border-gray-100">
+                            <tr key={i} className="border-b border-hover">
                               <td className="py-1.5 pr-4 font-mono">
                                 <DidLink did={u.usedBy} />
                               </td>
@@ -109,7 +109,7 @@ export default function InviteCodes() {
               </Fragment>
             ))}
             {codes.length === 0 && !isPending && (
-              <tr><td colSpan={8} className="p-6 text-center text-gray-400">No invite codes found</td></tr>
+              <tr><td colSpan={8} className="p-6 text-center text-muted">No invite codes found</td></tr>
             )}
           </tbody>
         </table>
@@ -118,7 +118,7 @@ export default function InviteCodes() {
         <button
           onClick={() => fetchNextPage()}
           disabled={isFetchingNextPage}
-          className="mt-4 px-4 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+          className="mt-4 px-4 py-2 bg-surface border border-input rounded-md text-sm hover:bg-row-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           {isFetchingNextPage ? 'Loading...' : 'Load more'}
         </button>

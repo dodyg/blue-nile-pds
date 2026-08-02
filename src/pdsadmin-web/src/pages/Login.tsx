@@ -29,22 +29,22 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md border border-gray-200 w-80">
-        <h1 className="text-xl font-bold text-gray-900 mb-6 text-center">PDS Admin</h1>
+    <div className="min-h-screen flex items-center justify-center bg-page">
+      <form onSubmit={handleSubmit} className="bg-surface p-8 rounded-md shadow-card border border-subtle w-80">
+        <h1 className="text-xl font-bold text-ink mb-6 text-center">PDS Admin</h1>
         <input
           type="password"
           placeholder="Admin password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          className="w-full px-3 py-2 rounded bg-gray-50 text-gray-900 border border-gray-300 focus:border-blue-500 focus:outline-none mb-4"
+          className="w-full px-3 py-2 rounded-md bg-surface text-ink border border-input focus:border-focus-ring focus:outline-none mb-4"
           autoFocus
         />
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+        {error && <p className="text-danger text-sm mb-4">{error}</p>}
         <button
           type="submit"
           disabled={loading || !password}
-          className="w-full py-2 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+          className="w-full py-2 rounded-md bg-primary text-surface font-medium hover:bg-primary-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
           {loading ? 'Verifying...' : 'Sign in'}
         </button>

@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-focus-ring: #3b82f6;
+  --color-accent: #6366f1;
+  --color-accent-hover: #4f46e5;
+  --color-accent-soft: #eff6ff;
+  --color-accent-ring: #93c5fd;
+  --color-warning: #eab308;
+  --color-warning-hover: #ca8a04;
+  --color-warning-bg: #fef9c3;
+  --color-warning-text: #854d0e;
+  --color-success: #16a34a;
+  --color-success-deep: #15803d;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-deep: #991b1b;
+  --color-page: #f9fafb;
+  --color-surface: #ffffff;
+  --color-subtle: #e5e7eb;
+  --color-input: #d1d5db;
+  --color-hover: #f3f4f6;
+  --color-row-hover: #f9fafb;
+  --color-overlay: rgb(0 0 0 / 0.4);
+  --color-ink: #111827;
+  --color-secondary: #6b7280;
+  --color-muted: #9ca3af;
+  --color-ghost: #374151;
+  --color-neutral: #4b5563;
+  --color-data-string: #15803d;
+  --color-data-number: #2563eb;
+  --color-data-boolean: #9333ea;
+  --color-data-null: #9ca3af;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}

@@ -32,8 +32,8 @@ export default function Layout() {
             end={item.to === '/'}
             onClick={onClick}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors ${
-                isActive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+              `flex items-center gap-3 px-3 py-2 rounded-sm text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
+                isActive ? 'bg-primary text-surface' : 'text-secondary hover:bg-hover'
               }`
             }
           >
@@ -45,25 +45,25 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50 text-gray-900">
+    <div className="min-h-screen flex bg-page text-ink">
       <aside
         className={`
-          fixed inset-y-0 left-0 z-40 w-56 bg-white border-r border-gray-200
-          flex flex-col transform transition-transform duration-200 ease-in-out shadow-sm
+          fixed inset-y-0 left-0 z-40 w-56 bg-surface border-r border-subtle
+          flex flex-col transform transition-transform duration-200 ease-in-out shadow-card
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
           md:static md:translate-x-0 md:shadow-none
         `}
       >
-        <div className="px-4 py-5 text-lg font-bold border-b border-gray-200">
+        <div className="px-4 py-5 text-lg font-bold border-b border-subtle">
           PDS Admin
         </div>
         <nav className="flex-1 p-2 space-y-1">
           <NavLinks onClick={closeMobileMenu} />
         </nav>
-        <div className="p-3 border-t border-gray-200">
+        <div className="p-3 border-t border-subtle">
           <button
             onClick={() => { handleLogout(); closeMobileMenu(); }}
-            className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:text-gray-900 rounded hover:bg-gray-100 transition-colors"
+            className="w-full text-left px-3 py-2 text-sm text-muted hover:text-ink rounded-sm hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
           >
             Logout
           </button>
@@ -72,7 +72,7 @@ export default function Layout() {
 
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          className="fixed inset-0 z-30 bg-overlay md:hidden"
           onClick={closeMobileMenu}
         />
       )}
@@ -81,7 +81,7 @@ export default function Layout() {
         <div className="flex items-center gap-3 mb-4 md:hidden">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="p-2 -ml-2 text-gray-600 hover:text-gray-900 rounded hover:bg-gray-100"
+            className="p-2 -ml-2 text-secondary hover:text-ink rounded-sm hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
             aria-label="Open menu"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
