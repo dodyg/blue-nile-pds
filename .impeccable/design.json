@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-02T00:00:00Z",
+  "title": "Design System: PDS Admin",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "AT Protocol Blue",
+        "canonical": "#1d4ed8",
+        "tonalRamp": ["oklch(0.15 0.05 264)", "oklch(0.25 0.09 264)", "oklch(0.35 0.13 264)", "oklch(0.45 0.17 264)", "oklch(0.55 0.20 264)", "oklch(0.65 0.20 264)", "oklch(0.75 0.17 264)", "oklch(0.85 0.13 264)"]
+      },
+      "primary-hover": { "role": "primary", "displayName": "AT Protocol Blue (hover)", "canonical": "#1e40af", "tonalRamp": [] },
+      "focus-ring": { "role": "primary", "displayName": "Signal Blue (focus)", "canonical": "#3b82f6", "tonalRamp": [] },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Brand Blue",
+        "canonical": "#0560ff",
+        "tonalRamp": ["oklch(0.15 0.05 262)", "oklch(0.25 0.09 262)", "oklch(0.35 0.14 262)", "oklch(0.45 0.18 262)", "oklch(0.55 0.21 262)", "oklch(0.65 0.21 262)", "oklch(0.75 0.18 262)", "oklch(0.85 0.13 262)"]
+      },
+      "accent-hover": { "role": "secondary", "displayName": "Brand Blue (hover)", "canonical": "#0547c9", "tonalRamp": [] },
+      "accent-soft": { "role": "secondary", "displayName": "Blue Wash", "canonical": "#dbeafe", "tonalRamp": [] },
+      "accent-ring": { "role": "secondary", "displayName": "Blue Ring", "canonical": "#93c5fd", "tonalRamp": [] },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Late-Train Yellow",
+        "canonical": "#eab308",
+        "tonalRamp": ["oklch(0.15 0.05 85)", "oklch(0.25 0.09 85)", "oklch(0.35 0.12 85)", "oklch(0.45 0.14 85)", "oklch(0.55 0.15 85)", "oklch(0.65 0.16 85)", "oklch(0.75 0.16 85)", "oklch(0.85 0.13 85)"]
+      },
+      "warning-hover": { "role": "secondary", "displayName": "Late-Train Yellow (hover)", "canonical": "#ca8a04", "tonalRamp": [] },
+      "warning-bg": { "role": "tertiary", "displayName": "Yellow Wash", "canonical": "#fef9c3", "tonalRamp": [] },
+      "warning-text": { "role": "tertiary", "displayName": "Yellow Ink", "canonical": "#854d0e", "tonalRamp": [] },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Platform Green",
+        "canonical": "#16a34a",
+        "tonalRamp": ["oklch(0.15 0.05 150)", "oklch(0.25 0.09 150)", "oklch(0.35 0.12 150)", "oklch(0.45 0.15 150)", "oklch(0.55 0.17 150)", "oklch(0.65 0.17 150)", "oklch(0.75 0.15 150)", "oklch(0.85 0.12 150)"]
+      },
+      "success-deep": { "role": "tertiary", "displayName": "Platform Green (deep)", "canonical": "#15803d", "tonalRamp": [] },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Cancelled Red",
+        "canonical": "#dc2626",
+        "tonalRamp": ["oklch(0.15 0.05 27)", "oklch(0.25 0.10 27)", "oklch(0.35 0.13 27)", "oklch(0.45 0.16 27)", "oklch(0.55 0.18 27)", "oklch(0.65 0.18 27)", "oklch(0.75 0.15 27)", "oklch(0.85 0.11 27)"]
+      },
+      "danger-hover": { "role": "tertiary", "displayName": "Cancelled Red (hover)", "canonical": "#b91c1c", "tonalRamp": [] },
+      "danger-deep": { "role": "tertiary", "displayName": "Cancelled Red (deep)", "canonical": "#991b1b", "tonalRamp": [] },
+      "page": { "role": "neutral", "displayName": "Concourse Cloud", "canonical": "#f9fafb", "tonalRamp": [] },
+      "surface": { "role": "neutral", "displayName": "Timetable Paper", "canonical": "#ffffff", "tonalRamp": [] },
+      "surface-raised": { "role": "neutral", "displayName": "Paper Raised", "canonical": "#fafafa", "tonalRamp": [] },
+      "hover": { "role": "neutral", "displayName": "Platform Gray", "canonical": "#f3f4f6", "tonalRamp": [] },
+      "row-hover": { "role": "neutral", "displayName": "Row Hover", "canonical": "#f9fafb", "tonalRamp": [] },
+      "subtle": { "role": "neutral", "displayName": "Hairline", "canonical": "#e5e7eb", "tonalRamp": [] },
+      "input": { "role": "neutral", "displayName": "Field Stroke", "canonical": "#d1d5db", "tonalRamp": [] },
+      "muted": { "role": "neutral", "displayName": "Muted Slate", "canonical": "#9ca3af", "tonalRamp": [] },
+      "secondary": { "role": "neutral", "displayName": "Label Slate", "canonical": "#6b7280", "tonalRamp": [] },
+      "ghost": { "role": "neutral", "displayName": "Ghost Slate", "canonical": "#374151", "tonalRamp": [] },
+      "neutral": { "role": "neutral", "displayName": "Neutral Slate", "canonical": "#4b5563", "tonalRamp": [] },
+      "ink": { "role": "neutral", "displayName": "Ink Navy", "canonical": "#232e3e", "tonalRamp": [] },
+      "overlay": { "role": "neutral", "displayName": "Backdrop", "canonical": "rgba(15, 23, 42, 0.4)", "tonalRamp": [] },
+      "board": { "role": "neutral", "displayName": "Daylight Board Cell", "canonical": "#eaf1ff", "tonalRamp": [] },
+      "board-hover": { "role": "neutral", "displayName": "Daylight Board Cell (hover)", "canonical": "#dde9ff", "tonalRamp": [] },
+      "board-text": {
+        "role": "primary",
+        "displayName": "Board Ink Blue",
+        "canonical": "#1d4ed8",
+        "tonalRamp": ["oklch(0.15 0.05 264)", "oklch(0.25 0.09 264)", "oklch(0.35 0.13 264)", "oklch(0.45 0.17 264)", "oklch(0.55 0.20 264)", "oklch(0.65 0.20 264)", "oklch(0.75 0.17 264)", "oklch(0.85 0.13 264)"]
+      },
+      "board-text-dim": { "role": "neutral", "displayName": "Board Ink Blue (dim)", "canonical": "#45679b", "tonalRamp": [] },
+      "data-string": { "role": "neutral", "displayName": "JSON String", "canonical": "#15803d", "tonalRamp": [] },
+      "data-number": { "role": "neutral", "displayName": "JSON Number", "canonical": "#2563eb", "tonalRamp": [] },
+      "data-boolean": { "role": "neutral", "displayName": "JSON Boolean", "canonical": "#7c3aed", "tonalRamp": [] },
+      "data-null": { "role": "neutral", "displayName": "JSON Null", "canonical": "#9ca3af", "tonalRamp": [] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Board Display", "purpose": "Page titles only (24px mono, 700, -0.02em)." },
+      "title": { "displayName": "Board Title", "purpose": "Card headers and stat values (14px mono, 700, +0.08em)." },
+      "label": { "displayName": "Board Label", "purpose": "Eyebrows, table headers, field labels, badges (10px mono, 600, uppercase, +0.16–0.24em)." },
+      "body": { "displayName": "Body", "purpose": "Table cells, button labels, form text (14px)." },
+      "mono": { "displayName": "Mono", "purpose": "Identifiers, JSON tree, raw payloads, timestamps (12px)." }
+    },
+    "shadows": [
+      { "name": "chip-bevel", "value": "inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 2px rgb(15 23 42 / 0.08)", "purpose": "The tactile depth of a physical flip-cell; every board chip carries it (soft and cool on pale daylight cells, deeper in dark mode)." },
+      { "name": "card-lift", "value": "0 1px 2px rgb(15 23 42 / 0.06), 0 2px 8px rgb(15 23 42 / 0.05)", "purpose": "Whisper of depth on stat and form cards; always paired with a hairline border." },
+      { "name": "modal-layer", "value": "0 4px 12px rgb(0 0 0 / 0.12), 0 24px 48px -12px rgb(0 0 0 / 0.28)", "purpose": "Modals and confirm dialogs floating above the overlay backdrop." }
+    ],
+    "motion": [
+      { "name": "flip", "value": "flap 500ms cubic-bezier(0.5, 0, 0.5, 1) 1", "purpose": "The single mechanical shutter-drop on value change; keyframes rotateX + brightness strobe. Disabled under prefers-reduced-motion." },
+      { "name": "transition-colors", "value": "color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out", "purpose": "State transitions on buttons, nav links, inputs, chips." },
+      { "name": "drawer-slide", "value": "transform 0.2s ease-in-out", "purpose": "Mobile sidebar off-canvas slide." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px", "purpose": "Sidebar static vs off-canvas drawer, single-column vs multi-col stat grids, table cell behavior." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action per view, lit like a destination cell: pale blue board cell with deep blue ink (navy with blue phosphor in dark mode).",
+      "html": "<button class=\"ds-btn-primary\">Search</button>",
+      "css": ".ds-btn-primary { background: #eaf1ff; color: #1d4ed8; font: 600 14px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.02em; padding: 8px 16px; border: 1px solid rgba(0,0,0,0.15); border-radius: 4px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(15,23,42,0.08); transition: background-color 0.15s ease-in-out; } .ds-btn-primary:hover { background: #dde9ff; } .ds-btn-primary:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "White paper, hairline stroke, slate ink. Quiet counterpart to the primary chip.",
+      "html": "<button class=\"ds-btn-secondary\">View all invite codes</button>",
+      "css": ".ds-btn-secondary { background: #ffffff; color: #374151; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 4px; transition: background-color 0.15s ease-in-out; } .ds-btn-secondary:hover { background: #f3f4f6; } .ds-btn-secondary:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Irreversible or harmful actions only. Red is never used for the primary action.",
+      "html": "<button class=\"ds-btn-danger\">Delete account</button>",
+      "css": ".ds-btn-danger { background: #dc2626; color: #ffffff; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: none; border-radius: 4px; transition: background-color 0.15s ease-in-out; } .ds-btn-danger:hover { background: #b91c1c; } .ds-btn-danger:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Search and form fields. Blue stroke shift plus a soft ring is the entire focus treatment.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search by email...\" />",
+      "css": ".ds-input { background: #ffffff; color: #232e3e; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; width: 100%; transition: border-color 0.15s ease-in-out; } .ds-input::placeholder { color: #9ca3af; } .ds-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-link-active",
+      "description": "Sidebar rail item. Active is a lit board cell; idle is slate with a cool hover fill.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" href=\"#\">01 Dashboard</a><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">02 Accounts</a><a class=\"ds-nav-link\" href=\"#\">03 Invites</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; padding: 8px; } .ds-nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 4px; color: #6b7280; font: 500 14px/1 ui-sans-serif, system-ui, sans-serif; text-decoration: none; transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out; } .ds-nav-link-index { font: 400 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; } .ds-nav-link:hover { background: #f3f4f6; color: #232e3e; } .ds-nav-link-active { background: #eaf1ff; color: #1d4ed8; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(15,23,42,0.08); } .ds-nav-link:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Board Stat",
+      "kind": "card",
+      "refersTo": "board-stat",
+      "description": "Board flip module for live numbers: dim caption, big blue-ink value, one mechanical flip on change.",
+      "html": "<div class=\"ds-stat\"><div class=\"ds-stat-label\">Total Accounts</div><div class=\"ds-stat-value\">128</div></div>",
+      "css": ".ds-stat { background: #eaf1ff; border: 1px solid rgba(0,0,0,0.15); border-radius: 8px; padding: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(15,23,42,0.08); } .ds-stat-label { color: #45679b; font: 600 10px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.18em; text-transform: uppercase; } .ds-stat-value { margin-top: 4px; color: #1d4ed8; font: 700 24px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "FlipChip",
+      "kind": "chip",
+      "refersTo": "chip-board",
+      "description": "The shared board chip: counts, status CIDs, mode toggles. Reads like a lit departure cell.",
+      "html": "<span class=\"ds-chip\">CID: bafyrei…</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; background: #eaf1ff; color: #1d4ed8; border: 1px solid rgba(0,0,0,0.15); border-radius: 4px; padding: 4px 10px; font: 400 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(15,23,42,0.08); white-space: nowrap; }"
+    },
+    {
+      "name": "Table",
+      "kind": "custom",
+      "refersTo": "table",
+      "description": "The paper ledger. Raised header band with tracked-caps mono headers, hairline row rules, cool hover.",
+      "html": "<div class=\"ds-table-wrap\"><table class=\"ds-table\"><thead><tr><th class=\"ds-th\">DID</th><th class=\"ds-th\">Handle</th><th class=\"ds-th\">Status</th></tr></thead><tbody><tr class=\"ds-tr\"><td class=\"ds-td ds-td-mono\">did:plc:abc123…</td><td class=\"ds-td\">alice.example</td><td class=\"ds-td\"><span class=\"ds-badge\">invites off</span></td></tr><tr class=\"ds-tr\"><td class=\"ds-td ds-td-mono\">did:plc:def456…</td><td class=\"ds-td\">bob.example</td><td class=\"ds-td\">—</td></tr></tbody></table></div>",
+      "css": ".ds-table-wrap { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow-x: auto; box-shadow: 0 1px 2px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.05); } .ds-table { width: 100%; border-collapse: collapse; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; color: #232e3e; } .ds-th { text-align: left; padding: 8px; background: #fafafa; font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.16em; text-transform: uppercase; color: #9ca3af; border-bottom: 1px solid #e5e7eb; white-space: nowrap; } .ds-tr { border-bottom: 1px solid #e5e7eb; } .ds-tr:last-child { border-bottom: none; } .ds-tr:hover { background: #f9fafb; } .ds-td { padding: 8px; } .ds-td-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; } .ds-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font: 600 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.12em; text-transform: uppercase; background: #fef9c3; color: #854d0e; }"
+    },
+    {
+      "name": "Warning Badge",
+      "kind": "chip",
+      "refersTo": "chip-warning",
+      "description": "Inline account flags: yellow wash, yellow ink, tracked-caps mono, rounded-sm.",
+      "html": "<span class=\"ds-badge\">invites off</span>",
+      "css": ".ds-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font: 600 10px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.12em; text-transform: uppercase; background: #fef9c3; color: #854d0e; white-space: nowrap; }"
+    },
+    {
+      "name": "JsonTree",
+      "kind": "custom",
+      "refersTo": "json-tree",
+      "description": "Semantic JSON inspector. Slate keys, type-colored values, expandable with a caret.",
+      "html": "<div class=\"ds-json\"><div class=\"ds-json-row\"><span class=\"ds-json-caret\">▾</span><span class=\"ds-json-key\">record</span><span class=\"ds-json-count\">(2)</span></div><div class=\"ds-json-child\"><div class=\"ds-json-row\"><span class=\"ds-json-key\">text</span><span class=\"ds-json-string\">\"Hello world\"</span></div><div class=\"ds-json-row\"><span class=\"ds-json-key\">createdAt</span><span class=\"ds-json-string\">\"2026-01-01T00:00:00Z\"</span></div></div></div>",
+      "css": ".ds-json { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.4; } .ds-json-row { display: flex; gap: 6px; align-items: baseline; } .ds-json-row + .ds-json-row { margin-top: 2px; } .ds-json-caret { width: 12px; flex-shrink: 0; color: #9ca3af; font-size: 10px; } .ds-json-key { color: #6b7280; } .ds-json-count { color: #9ca3af; font-size: 10px; } .ds-json-string { color: #15803d; word-break: break-all; } .ds-json-number { color: #2563eb; } .ds-json-boolean { color: #7c3aed; } .ds-json-null { color: #9ca3af; } .ds-json-child { margin-left: 12px; padding-left: 8px; border-left: 1px solid #e5e7eb; }"
+    },
+    {
+      "name": "Modal / Confirm Dialog",
+      "kind": "custom",
+      "refersTo": "modal",
+      "description": "Floating paper above the backdrop. The only place the deep shadow does heavy lifting.",
+      "html": "<div class=\"ds-backdrop\"><div class=\"ds-modal\"><h2 class=\"ds-modal-title\">Apply takedown</h2><p class=\"ds-modal-message\">Apply takedown for did:plc:abc123? This hides the subject from public views.</p><div class=\"ds-modal-actions\"><button class=\"ds-btn-secondary\">Cancel</button><button class=\"ds-btn-danger\">Apply takedown</button></div></div></div>",
+      "css": ".ds-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.4); display: flex; align-items: center; justify-content: center; padding: 16px; } .ds-modal { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 24px 48px -12px rgba(0,0,0,0.28); padding: 24px; width: 100%; max-width: 384px; } .ds-modal-title { margin: 0 0 8px; color: #232e3e; font: 700 14px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.08em; } .ds-modal-message { margin: 0 0 20px; color: #6b7280; font: 400 14px/1.5 ui-sans-serif, system-ui, sans-serif; } .ds-modal-actions { display: flex; gap: 12px; justify-content: flex-end; } .ds-btn-secondary { background: #ffffff; color: #374151; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 4px; transition: background-color 0.15s ease-in-out; cursor: pointer; } .ds-btn-secondary:hover { background: #f3f4f6; } .ds-btn-secondary:focus-visible, .ds-btn-danger:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; } .ds-btn-danger { background: #dc2626; color: #ffffff; font: 400 14px/1 ui-sans-serif, system-ui, sans-serif; padding: 8px 16px; border: none; border-radius: 4px; transition: background-color 0.15s ease-in-out; cursor: pointer; } .ds-btn-danger:hover { background: #b91c1c; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Split-Flap Departure Board",
+    "overview": "The admin console is a departure board at a busy station. Board flip-cells carry the live values, AT Protocol blue ink glows behind every active state, and dense data — accounts, invite codes, JSON payloads — sits on ruled timetable paper where it can be read and copied without ceremony. Each page is a \"board\": a tracked-caps destination header, a set of flip-chips for the numbers that matter, and a paper table for everything else.\n\nThe palette is the official AT Protocol brand: Primary Blue #0560FF as the accent, Bluesky's cool neutrals (Neutral50 #F9FAFB paper, Neutral900 #232E3E ink), and navy-toned dark surfaces at night. The system reads in both registers on purpose. Light mode is the daylight station — cool white paper, pale blue board cells with deep blue ink, blue signage. Dark mode is the night concourse — near-black navy board cells with bright blue phosphor, the same rules at lower light. Identity stays in the data: DIDs, CIDs, codes, and handles always render in monospace, and the board treats every identifier like a flight number — something to be read exactly and never misread.",
+    "keyCharacteristics": [
+      "Board flip-cells (board) carry live values and active states — pale blue with deep blue ink in light mode, navy with blue phosphor in dark mode; cool white paper (surface) carries dense data",
+      "One AT Protocol blue accent (primary/board-text); status green/red/yellow only for meaning",
+      "Monospace + text-xs for every identifier: DIDs, CIDs, codes, rkeys, handles",
+      "Tracked small-caps mono headers on boards and tables only; body text stays plain",
+      "Mechanical flip motion on value change — one orchestrated move, disabled under prefers-reduced-motion"
+    ],
+    "rules": [
+      { "name": "The Sky-Signal Rule", "body": "AT Protocol blue is the sole accent. Everything structural is cool neutral or navy; green, red, and yellow appear only to carry meaning, never decoration.", "section": "colors" },
+      { "name": "The Mono-For-Identity Rule", "body": "Anything the operator must copy verbatim — DIDs, CIDs, invite codes, record keys, handles — renders in monospace at text-xs. The font itself says \"this is data.\"", "section": "colors" },
+      { "name": "The Departure-Board Header Rule", "body": "Tracked small-caps mono belongs to board headers only — eyebrows, table headers, field labels, badges. Body and paragraph text are never uppercase and never letter-spaced.", "section": "typography" },
+      { "name": "The Paper-Rule", "body": "Resting content never casts an ambient shadow. Paper surfaces earn separation with a hairline border; board chips carry the tactile bevel; only floating layers get the deep shadow.", "section": "elevation" },
+      { "name": "The No-Ambient-Motion Rule", "body": "Exactly one mechanical flip on value change; nothing else animates on its own. prefers-reduced-motion disables it.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do let every identifier (DIDs, CIDs, codes, rkeys, handles) render in text-xs monospace, truncated with a tooltip where wide.",
+      "Do reserve board flip-cells (pale blue in light mode, navy in dark) + AT Protocol blue ink for live values and the active state; put dense data on ruled paper.",
+      "Do use tracked small-caps mono only for board headers — eyebrows, table headers, field labels, badges.",
+      "Do keep one blue primary action per view; color every other action semantically (green/red/yellow).",
+      "Do run the JSON colors so record payloads stay scannable; keep wide tables scrolling horizontally instead of wrapping."
+    ],
+    "donts": [
+      "Don't introduce warm tones (amber, bone, bronze) — the accent is AT Protocol blue on cool neutrals.",
+      "Don't use blue for destructive actions — destructive is always red.",
+      "Don't uppercase or letter-space body text; that register belongs to board headers only.",
+      "Don't scatter multiple animations — one mechanical flip on value change, and honor prefers-reduced-motion.",
+      "Don't render JSON or identifiers in proportional type.",
+      "Don't add gradients, illustrations, or ambient shadows to resting surfaces."
+    ]
+  }
+}

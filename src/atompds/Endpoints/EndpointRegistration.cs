@@ -30,6 +30,8 @@ public static class EndpointRegistration
         app.MapOAuthAuthorizeEndpoints();
         app.MapOAuthClientMetadataEndpoints();
 
+        app.MapAdminApiEndpoints();
+
         var xrpc = app.MapGroup("xrpc");
         xrpc.MapHealthEndpoints();
 

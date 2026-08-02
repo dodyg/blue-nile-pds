@@ -2,6 +2,8 @@ import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setAdminPassword } from '../stores/auth';
 import { validatePassword } from '../api/client';
+import Button from '../components/Button';
+import { Input } from '../components/Input';
 
 export default function Login() {
   const [password, setPassword] = useState('');
@@ -29,25 +31,41 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md border border-gray-200 w-80">
-        <h1 className="text-xl font-bold text-gray-900 mb-6 text-center">PDS Admin</h1>
-        <input
+    <div className="flex min-h-screen items-center justify-center bg-page px-4">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm rounded-md border border-subtle bg-surface p-8 shadow-card"
+      >
+        <div className="rounded-sm border border-black/15 bg-board px-4 py-3 text-center shadow-chip">
+          <p className="font-display text-base font-bold tracking-[0.18em] text-board-text uppercase">PDS Admin</p>
+          <p className="mt-1 font-mono text-[9px] tracking-[0.14em] text-board-text-dim uppercase">atproto · departure board</p>
+        </div>
+
+        <p className="mt-6 mb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">
+          Admin password
+        </p>
+        <Input
           type="password"
           placeholder="Admin password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          className="w-full px-3 py-2 rounded bg-gray-50 text-gray-900 border border-gray-300 focus:border-blue-500 focus:outline-none mb-4"
           autoFocus
         />
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-        <button
+
+        {error && (
+          <p className="mt-3 rounded-sm border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger-deep dark:text-danger">
+            {error}
+          </p>
+        )}
+
+        <Button
           type="submit"
+          variant="primary"
           disabled={loading || !password}
-          className="w-full py-2 rounded bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+          className="mt-5 w-full"
         >
           {loading ? 'Verifying...' : 'Sign in'}
-        </button>
+        </Button>
       </form>
     </div>
   );

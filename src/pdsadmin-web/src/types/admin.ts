@@ -86,3 +86,27 @@ export interface GetRecordResponse {
   cid?: string;
   value: unknown;
 }
+
+export interface BackupStatus {
+  status: 'idle' | 'running' | 'completed' | 'failed';
+  startedAt?: string;
+  completedAt?: string;
+  fileName?: string;
+  sizeBytes?: number;
+  error?: string;
+}
+
+export interface BackupEntry {
+  fileName: string;
+  createdAt: string;
+  sizeBytes: number;
+}
+
+export interface BackupListResponse {
+  backups: BackupEntry[];
+}
+
+export interface BackupCreateResponse {
+  status: string;
+  startedAt: string;
+}

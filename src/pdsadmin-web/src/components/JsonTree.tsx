@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react';
 
 function valueColor(value: unknown): string {
-  if (value === null) return 'text-gray-400';
-  if (typeof value === 'string') return 'text-green-700';
-  if (typeof value === 'number') return 'text-blue-600';
-  if (typeof value === 'boolean') return 'text-purple-600';
+  if (value === null) return 'text-data-null';
+  if (typeof value === 'string') return 'text-data-string';
+  if (typeof value === 'number') return 'text-data-number';
+  if (typeof value === 'boolean') return 'text-data-boolean';
   return '';
 }
 
@@ -35,7 +35,7 @@ function JsonNode({ label, value, depth, did }: { label?: string; value: unknown
   if (!isExpandable(value)) {
     return (
       <div className="flex items-start gap-1.5">
-        {label !== undefined && <span className="text-gray-600 shrink-0">{label}:</span>}
+        {label !== undefined && <span className="text-secondary shrink-0">{label}:</span>}
         <span className={`${valueColor(value)} break-all`}>{formatPrimitive(value)}</span>
       </div>
     );
@@ -53,26 +53,26 @@ function JsonNode({ label, value, depth, did }: { label?: string; value: unknown
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1 text-gray-600 hover:text-gray-900 cursor-pointer"
+        className="flex items-center gap-1 text-secondary hover:text-ink cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
-        <span className="text-xs w-3 shrink-0">{expanded ? '▼' : '▶'}</span>
-        {label !== undefined && <span className="text-gray-600">{label}:</span>}
-        <span className="text-gray-400 text-xs">
+        <span className="w-3 shrink-0 text-[10px] text-muted">{expanded ? '▾' : '▸'}</span>
+        {label !== undefined && <span className="text-secondary">{label}:</span>}
+        <span className="text-xs text-muted">
           {Array.isArray(value) ? `[${value.length}]` : `{${entries.length}}`}
         </span>
       </button>
       {expanded && !isEmpty && (
-        <div className="ml-4 pl-2 border-l border-gray-200 space-y-0.5">
+        <div className="ml-4 space-y-0.5 border-l border-subtle pl-2">
           {entries.map(([k, v]) => (
             <JsonNode key={k} label={k} value={v} depth={depth + 1} did={did} />
           ))}
           {imgSrc && (
-            <img src={imgSrc} alt="blob" className="mt-1 max-h-64 rounded border border-gray-200" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img src={imgSrc} alt="blob" className="mt-1 max-h-64 rounded-sm border border-subtle" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           )}
         </div>
       )}
       {expanded && isEmpty && (
-        <div className="ml-4 text-gray-400 text-xs">{Array.isArray(value) ? '[]' : '{}'}</div>
+        <div className="ml-4 text-xs text-muted">{Array.isArray(value) ? '[]' : '{}'}</div>
       )}
     </div>
   );

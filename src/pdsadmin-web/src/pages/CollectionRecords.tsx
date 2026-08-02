@@ -2,6 +2,11 @@ import { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useListRecords } from '../hooks/useRepo';
 import JsonTree from '../components/JsonTree';
+import PageHeader from '../components/PageHeader';
+import Button from '../components/Button';
+import FlipChip from '../components/FlipChip';
+import { TableBoard, Table, Th, Tr, Td } from '../components/Table';
+import EmptyState from '../components/EmptyState';
 
 export default function CollectionRecords() {
   const { did, collection } = useParams<{ did: string; collection: string }>();
@@ -24,56 +29,64 @@ export default function CollectionRecords() {
 
   return (
     <div>
-      <button
-        onClick={() => navigate(`/accounts/${encodeURIComponent(did ?? '')}`)}
-        className="text-blue-600 hover:text-blue-700 text-sm mb-2 font-medium"
-      >
+      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(`/accounts/${encodeURIComponent(did ?? '')}`)}>
         ← Back to account
-      </button>
-      <h1 className="text-2xl font-bold mb-1">{collection}</h1>
-      <p className="text-sm text-gray-500 font-mono mb-4">{did}</p>
-      <p className="text-xs text-gray-400 mb-4">{records.length} records</p>
+      </Button>
 
-      {error && <p className="text-red-600 mb-4">{error.message}</p>}
-      {isPending && records.length === 0 && <p className="text-gray-500">Loading...</p>}
-      {records.length === 0 && !isPending && <p className="text-gray-400">No records found in this collection</p>}
+      <PageHeader
+        eyebrow="repo · collection"
+        title={collection}
+        description={did}
+        actions={<FlipChip tone="accent">{records.length} records</FlipChip>}
+      />
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-500">
-              <th className="p-2 font-medium w-0">#</th>
-              <th className="p-2 font-medium w-0">Rkey</th>
-              <th className="p-2 font-medium w-0">CID</th>
-              <th className="p-2 font-medium">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {records.map((r, i) => {
-              const rkey = rkeyFromUri(r.uri);
-              return (
-                <tr key={r.uri} className="border-b border-gray-200">
-                  <td className="p-2 text-xs text-gray-400 align-top w-0 whitespace-nowrap">{i + 1}</td>
-                  <td className="p-2 align-top w-0 whitespace-nowrap">
-                    <Link
-                      to={`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}/${encodeURIComponent(rkey)}`}
-                      className="font-mono text-xs text-blue-600 hover:text-blue-700"
-                    >
-                      {rkey}
-                    </Link>
-                  </td>
-                  <td className="p-2 align-top w-0 whitespace-nowrap">
-                    <span className="font-mono text-xs text-gray-400">{r.cid.slice(0, 12)}…</span>
-                  </td>
-                  <td className="p-2">
-                    <JsonTree value={r.value} did={did} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {error && <p className="mb-4 text-sm text-danger">{error.message}</p>}
+
+      {records.length === 0 && !isPending ? (
+        <EmptyState
+          title="No records in this collection"
+          description="This collection has no stored records."
+        />
+      ) : (
+        <TableBoard>
+          <Table>
+            <thead>
+              <Tr>
+                <Th className="w-0">#</Th>
+                <Th className="w-0">Rkey</Th>
+                <Th className="w-0">CID</Th>
+                <Th>Value</Th>
+              </Tr>
+            </thead>
+            <tbody>
+              {records.map((r, i) => {
+                const rkey = rkeyFromUri(r.uri);
+                return (
+                  <Tr key={r.uri}>
+                    <Td className="w-0 whitespace-nowrap text-xs text-muted">{i + 1}</Td>
+                    <Td className="w-0 whitespace-nowrap">
+                      <Link
+                        to={`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}/${encodeURIComponent(rkey)}`}
+                        className="font-mono text-xs text-primary underline decoration-subtle underline-offset-2 hover:text-primary-hover hover:decoration-accent"
+                      >
+                        {rkey}
+                      </Link>
+                    </Td>
+                    <Td className="w-0 whitespace-nowrap">
+                      <span className="font-mono text-xs text-muted">{r.cid.slice(0, 12)}…</span>
+                    </Td>
+                    <Td>
+                      <JsonTree value={r.value} did={did} />
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </TableBoard>
+      )}
+
+      {isPending && records.length === 0 && <p className="text-sm text-secondary">Loading...</p>}
     </div>
   );
 }

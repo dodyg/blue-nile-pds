@@ -10,6 +10,7 @@ import RecordDetail from './pages/RecordDetail';
 import InviteCodes from './pages/InviteCodes';
 import CreateInviteCodes from './pages/CreateInviteCodes';
 import SubjectStatus from './pages/SubjectStatus';
+import Backup from './pages/Backup';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="invites/create" element={<CreateInviteCodes />} />
             <Route path="invites" element={<InviteCodes />} />
             <Route path="subjects" element={<SubjectStatus />} />
+            <Route path="backup" element={<Backup />} />
           </Route>
         </Route>
       </Routes>

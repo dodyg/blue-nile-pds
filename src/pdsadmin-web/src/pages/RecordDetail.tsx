@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetRecord } from '../hooks/useRepo';
 import JsonTree from '../components/JsonTree';
+import PageHeader from '../components/PageHeader';
+import Button from '../components/Button';
+import FlipChip from '../components/FlipChip';
+import { Card } from '../components/Card';
 
 export default function RecordDetail() {
   const { did, collection, rkey } = useParams<{ did: string; collection: string; rkey: string }>();
@@ -12,38 +16,43 @@ export default function RecordDetail() {
 
   return (
     <div>
-      <button
-        onClick={() => navigate(`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}`)}
-        className="text-blue-600 hover:text-blue-700 text-sm mb-2 font-medium"
-      >
+      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}`)}>
         ← Back to collection
-      </button>
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl font-bold break-all">{rkey}</h1>
-        <button
-          onClick={() => setRaw(!raw)}
-          className="px-3 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
-        >
-          {raw ? 'Tree' : 'Raw'}
-        </button>
-      </div>
-      <p className="text-sm text-gray-500 font-mono mb-1">{did} / {collection}</p>
-      {data?.cid && <p className="text-xs text-gray-400 font-mono mb-4">CID: {data.cid}</p>}
+      </Button>
 
-      {error && <p className="text-red-600 mb-4">{error.message}</p>}
-      {isPending && <p className="text-gray-500">Loading...</p>}
+      <PageHeader
+        eyebrow="repo · record"
+        title={rkey}
+        description={`${did} / ${collection}`}
+        actions={
+          <Button variant="secondary" size="sm" onClick={() => setRaw(!raw)}>
+            {raw ? 'Tree' : 'Raw'}
+          </Button>
+        }
+      />
+
+      {data?.cid && (
+        <div className="mb-4">
+          <FlipChip tone="accent" title="Content identifier">
+            CID: {data.cid}
+          </FlipChip>
+        </div>
+      )}
+
+      {error && <p className="mb-4 text-sm text-danger">{error.message}</p>}
+      {isPending && <p className="text-sm text-secondary">Loading...</p>}
 
       {data && (
         raw ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-4 overflow-auto">
-            <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all">
+          <Card className="overflow-auto p-4">
+            <pre className="whitespace-pre-wrap break-all font-mono text-xs leading-relaxed">
               {JSON.stringify(data.value, null, 2)}
             </pre>
-          </div>
+          </Card>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <Card className="p-4">
             <JsonTree value={data.value} did={did} />
-          </div>
+          </Card>
         )
       )}
     </div>
