@@ -86,6 +86,7 @@ public record ServerConfig
         BskyAppView = MapBskyAppViewConfig(env);
         Proxy = MapProxyConfig(env);
         SecretsConfig = MapSecretsConfig(env);
+        Backup = MapBackupConfig(env);
         Crawlers = env.PDS_CRAWLERS.ToArray();
     }
     public ServiceConfig Service { get; init; }
@@ -99,6 +100,7 @@ public record ServerConfig
     public IBskyAppViewConfig BskyAppView { get; init; }
     public ProxyConfig Proxy { get; init; }
     public SecretsConfig SecretsConfig { get; init; }
+    public BackupConfig Backup { get; init; }
 
     public ServiceConfig MapServiceConfig(ServerEnvironment env)
     {
@@ -234,6 +236,35 @@ public record ServerConfig
         };
     }
 
+    public BackupConfig MapBackupConfig(ServerEnvironment env)
+    {
+        var directory = env.PDS_BACKUP_DIRECTORY;
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            var dataDir = env.PDS_DATA_DIRECTORY;
+            if (!string.IsNullOrWhiteSpace(dataDir))
+            {
+                directory = Path.Combine(Path.GetDirectoryName(dataDir) ?? dataDir, "backups");
+            }
+            else
+            {
+                directory = "backups";
+            }
+        }
+
+        directory = ExpandPath(directory);
+        if (!Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        return new BackupConfig
+        {
+            Directory = directory,
+            MaxKeep = env.PDS_BACKUP_MAX_KEEP
+        };
+    }
+
     private static string ExpandPath(string path)
     {
         if (string.IsNullOrEmpty(path))
@@ -262,6 +293,7 @@ public record ServerConfig
         services.AddSingleton(config.Proxy);
         services.AddSingleton(config.SecretsConfig);
         services.AddSingleton(config.Subscription);
+        services.AddSingleton(config.Backup);
 
         // AccountManager deps
         services.AddScoped<AccountRepository>();
@@ -408,5 +440,7 @@ public record ServerConfig
         services.AddSingleton<ChannelWriter<Func<IServiceProvider, Task>>>(sp => sp.GetRequiredService<BackgroundJobQueue>().Writer);
         services.AddSingleton<BackgroundEmailDispatcher>();
         services.AddHostedService<BackgroundJobWorker>();
+
+        services.AddSingleton<BackupService>();
     }
 }
