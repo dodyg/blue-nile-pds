@@ -3,6 +3,7 @@
 public record ProxyConfig
 {
     public bool DisableSsrfProtection { get; init; }
+    public bool RequireProxyHeader { get; init; } = true;
     public bool AllowHTTP2 { get; init; }
     public int HeadersTimeout { get; init; }
     public int BodyTimeout { get; init; }

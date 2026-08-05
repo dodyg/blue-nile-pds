@@ -26,6 +26,7 @@ public static class AppViewProxyEndpoints
         group.MapPost("app.bsky.notification.registerPush", RegisterPushAsync);
 
         // Static proxy routes
+        group.MapGet("app.bsky.actor.getProfile", GetProfileProxyAsync).WithMetadata(new OptionalAccessStandardAttribute());
         group.MapGet("app.bsky.actor.getProfiles", ProxyAsync).WithMetadata(new AccessStandardAttribute());
         group.MapGet("app.bsky.actor.getSuggestions", ProxyAsync).WithMetadata(new AccessStandardAttribute());
         group.MapGet("app.bsky.actor.searchActorsTypeahead", ProxyAsync).WithMetadata(new AccessStandardAttribute());
@@ -148,6 +149,31 @@ public static class AppViewProxyEndpoints
         }
     }
 
+    private static async Task<IResult> GetProfileProxyAsync(
+        HttpContext context,
+        IBskyAppViewConfig config,
+        ActorRepositoryProvider actorRepositoryProvider,
+        HttpClient client,
+        IdResolver idResolver,
+        ServiceJwtBuilder serviceJwtBuilder,
+        WriteSnapshotCache writeSnapshotCache,
+        ILogger<Program> logger)
+    {
+        try
+        {
+            return await InnerAsync(context, config, actorRepositoryProvider, client, idResolver, serviceJwtBuilder, writeSnapshotCache, logger, allowAnonymous: true);
+        }
+        catch (XRPCError)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error in AppViewProxy getProfile");
+            return Results.StatusCode(500);
+        }
+    }
+
     private static readonly HashSet<string> ProtectedMethods = new(StringComparer.Ordinal)
     {
         "com.atproto.server.createSession",
@@ -234,10 +260,16 @@ public static class AppViewProxyEndpoints
         IdResolver idResolver,
         ServiceJwtBuilder serviceJwtBuilder,
         WriteSnapshotCache writeSnapshotCache,
-        ILogger logger)
+        ILogger logger,
+        bool allowAnonymous = false)
     {
         var proxyConfig = context.RequestServices.GetRequiredService<ProxyConfig>();
-        var auth = context.GetAuthOutput();
+        var auth = TryGetAuthOutput(context);
+        if (auth == null && !allowAnonymous)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
+        }
+
         var reqNsid = ParseUrlNsid(context.Request.Path);
         var proxyTarget = await ResolveProxyTargetAsync(context, config, idResolver, reqNsid);
         var url = $"{proxyTarget.Url}/xrpc/{reqNsid}";
@@ -247,16 +279,20 @@ public static class AppViewProxyEndpoints
             ValidateUrlAgainstSsrf(url);
         }
 
-        var signingKeyPair = actorRepositoryProvider.KeyPair(auth.AccessCredentials.Did, true);
-        if (signingKeyPair is not IExportableKeyPair)
+        string? jwt = null;
+        if (auth != null)
         {
-            throw new XRPCError(500);
-        }
+            var signingKeyPair = actorRepositoryProvider.KeyPair(auth.AccessCredentials.Did, true);
+            if (signingKeyPair is not IExportableKeyPair)
+            {
+                throw new XRPCError(500);
+            }
 
-        var jwt = serviceJwtBuilder.CreateServiceJwt(
-            auth.AccessCredentials.Did,
-            proxyTarget.Did,
-            reqNsid);
+            jwt = serviceJwtBuilder.CreateServiceJwt(
+                auth.AccessCredentials.Did,
+                proxyTarget.Did,
+                reqNsid);
+        }
 
         if (context.Request.Method == "GET")
         {
@@ -269,11 +305,14 @@ public static class AppViewProxyEndpoints
             {
                 request.Headers.Add("Accept-Language", acceptLanguage.ToArray());
             }
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            if (jwt != null)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            }
 
             var response = await client.SendAsync(request);
             var content = await response.Content.ReadAsStringAsync();
-            content = PatchReadAfterWriteResponse(reqNsid, auth.AccessCredentials.Did, response, content, writeSnapshotCache);
+            content = PatchReadAfterWriteResponse(reqNsid, auth?.AccessCredentials.Did, response, content, writeSnapshotCache);
 
             logger.LogDebug("[PROXY][{status}] {path} via {serviceDid}", response.StatusCode, url, proxyTarget.Did);
 
@@ -292,7 +331,10 @@ public static class AppViewProxyEndpoints
             {
                 request.Headers.Add("Accept-Language", acceptLanguage.ToArray());
             }
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            if (jwt != null)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+            }
 
             if (context.Request.ContentLength > 0)
             {
@@ -374,7 +416,17 @@ public static class AppViewProxyEndpoints
         return Results.Empty;
     }
 
-    private static string PatchReadAfterWriteResponse(string reqNsid, string did, HttpResponseMessage response, string content, WriteSnapshotCache writeSnapshotCache)
+    private static AuthVerifier.AccessOutput? TryGetAuthOutput(HttpContext context)
+    {
+        if (context.Items.TryGetValue("AuthOutput", out var item) && item is AuthVerifier.AccessOutput output)
+        {
+            return output;
+        }
+
+        return null;
+    }
+
+    private static string PatchReadAfterWriteResponse(string reqNsid, string? did, HttpResponseMessage response, string content, WriteSnapshotCache writeSnapshotCache)
     {
         if (!response.IsSuccessStatusCode || !ShouldPatchReadAfterWrite(reqNsid) || string.IsNullOrWhiteSpace(content))
         {
@@ -405,7 +457,7 @@ public static class AppViewProxyEndpoints
         return root.ToJsonString();
     }
 
-    private static bool PatchNode(JsonNode? node, string did, WriteSnapshotCache writeSnapshotCache)
+    private static bool PatchNode(JsonNode? node, string? did, WriteSnapshotCache writeSnapshotCache)
     {
         if (node == null) return false;
 
@@ -431,7 +483,7 @@ public static class AppViewProxyEndpoints
         return modified;
     }
 
-    private static bool PatchUriSnapshot(JsonObject obj, string did, WriteSnapshotCache writeSnapshotCache)
+    private static bool PatchUriSnapshot(JsonObject obj, string? did, WriteSnapshotCache writeSnapshotCache)
     {
         if (!obj.TryGetPropertyValue("uri", out var uriNode) || uriNode is not JsonValue uriValue)
             return false;
@@ -465,7 +517,7 @@ public static class AppViewProxyEndpoints
         return modified;
     }
 
-    private static bool PatchProfileSnapshot(JsonObject obj, string did, WriteSnapshotCache writeSnapshotCache)
+    private static bool PatchProfileSnapshot(JsonObject obj, string? did, WriteSnapshotCache writeSnapshotCache)
     {
         if (!obj.TryGetPropertyValue("did", out var didNode) ||
             didNode is not JsonValue didValue ||
@@ -552,6 +604,16 @@ public static class AppViewProxyEndpoints
 
     private static async Task<ProxyServiceDestination> ResolveProxyTargetAsync(HttpContext context, IBskyAppViewConfig config, IdResolver idResolver, string reqNsid)
     {
+        var proxyHeader = context.Request.Headers["atproto-proxy"];
+        if (proxyHeader.Count == 0)
+        {
+            var proxyConfig = context.RequestServices.GetRequiredService<ProxyConfig>();
+            if (proxyConfig.RequireProxyHeader)
+            {
+                throw new XRPCError(new InvalidRequestErrorDetail("atproto-proxy header required"));
+            }
+        }
+
         // T-17: route chat.bsky.* to dedicated chat service
         if (reqNsid.StartsWith("chat.bsky.", StringComparison.Ordinal))
         {
@@ -562,7 +624,6 @@ public static class AppViewProxyEndpoints
             }
         }
 
-        var proxyHeader = context.Request.Headers["atproto-proxy"];
         if (proxyHeader.Count == 0)
         {
             if (config is not BskyAppViewConfig bskyConfig)

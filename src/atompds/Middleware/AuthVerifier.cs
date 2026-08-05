@@ -78,6 +78,17 @@ public class AuthVerifier
         return auth;
     }
 
+    public async Task<AccessOutput?> OptionalAccessStandardAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
+    {
+        var authorization = ctx.Request.Headers.Authorization;
+        if (authorization.Count == 0 || string.IsNullOrWhiteSpace(authorization.ToString()))
+        {
+            return null;
+        }
+
+        return await AccessStandardAsync(ctx, checkTakenDown, checkDeactivated);
+    }
+
     public async Task<AccessOutput> AccessFullAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
     {
         var auth = await ValidateAccessTokenAsync(ctx,

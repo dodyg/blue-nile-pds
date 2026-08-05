@@ -113,7 +113,6 @@ public static class EndpointRegistration
         xrpc.MapGetAuthorPostsEndpoints();
 
         var appGroup = xrpc.MapGroup("").WithTags("App");
-        appGroup.MapGetProfileEndpoints();
         appGroup.MapGetPreferencesEndpoints();
         appGroup.MapPutPreferencesEndpoints();
 

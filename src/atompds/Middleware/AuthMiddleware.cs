@@ -35,6 +35,16 @@ public class AuthMiddleware
             context.Items["AuthOutput"] = output;
         }
 
+        var optionalAccessStandard = endpoint.Metadata.GetMetadata<OptionalAccessStandardAttribute>();
+        if (optionalAccessStandard != null)
+        {
+            var output = await optionalAccessStandard.HandleAsync(verifier, context);
+            if (output != null)
+            {
+                context.Items["AuthOutput"] = output;
+            }
+        }
+
         var accessFull = endpoint.Metadata.GetMetadata<AccessFullAttribute>();
         if (accessFull != null)
         {
@@ -127,6 +137,23 @@ public class AccessStandardAttribute : Attribute
     public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
         return verifier.AccessStandardAsync(context, _checkTakenDown, _checkDeactivated);
+    }
+}
+
+public class OptionalAccessStandardAttribute : Attribute
+{
+    private readonly bool _checkDeactivated;
+    private readonly bool _checkTakenDown;
+
+    public OptionalAccessStandardAttribute(bool checkTakenDown = false, bool checkDeactivated = false)
+    {
+        _checkTakenDown = checkTakenDown;
+        _checkDeactivated = checkDeactivated;
+    }
+
+    public Task<AuthVerifier.AccessOutput?> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return verifier.OptionalAccessStandardAsync(context, _checkTakenDown, _checkDeactivated);
     }
 }
 
