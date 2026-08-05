@@ -94,6 +94,7 @@ public class ServerEnvironment
 
     // Proxy
     public bool? PDS_PROXY_ALLOW_HTTP2 { get; set; }
+    public bool? PDS_PROXY_REQUIRE_HEADER { get; set; }
     public int? PDS_PROXY_HEADERS_TIMEOUT { get; set; }
     public int? PDS_PROXY_BODY_TIMEOUT { get; set; }
     public long? PDS_PROXY_MAX_RESPONSE_SIZE { get; set; }

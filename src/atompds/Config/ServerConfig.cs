@@ -205,6 +205,7 @@ public record ServerConfig
         {
             DisableSsrfProtection = env.PDS_DISABLE_SSRF_PROTECTION ?? env.PDS_DEV_MODE,
             AllowHTTP2 = env.PDS_PROXY_ALLOW_HTTP2 ?? false,
+            RequireProxyHeader = env.PDS_PROXY_REQUIRE_HEADER ?? true,
             HeadersTimeout = env.PDS_PROXY_HEADERS_TIMEOUT ?? 10000,
             BodyTimeout = env.PDS_PROXY_BODY_TIMEOUT ?? 30000,
             MaxResponseSize = env.PDS_PROXY_MAX_RESPONSE_SIZE ?? 10 * 1024 * 1024, // 10MB

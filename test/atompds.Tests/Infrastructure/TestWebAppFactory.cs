@@ -21,9 +21,15 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
     private const string PlcDirectoryUrl = "https://plc.test.local";
 
     private readonly string _tempDir;
+    private readonly IReadOnlyDictionary<string, string?>? _additionalConfig;
 
-    public TestWebAppFactory()
+    public TestWebAppFactory() : this(null)
     {
+    }
+
+    public TestWebAppFactory(IReadOnlyDictionary<string, string?>? additionalConfig)
+    {
+        _additionalConfig = additionalConfig;
         _tempDir = Path.Combine(Path.GetTempPath(), $"atompds-tests-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(Path.Combine(_tempDir, "blocks"));
@@ -36,7 +42,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
         builder.ConfigureHostConfiguration(config =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
+            var values = new Dictionary<string, string?>
             {
                 ["Config:PDS_HOSTNAME"] = "localhost",
                 ["Config:PDS_PORT"] = "2583",
@@ -64,7 +70,16 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                 ["Config:PDS_LOGO_URL"] = "https://test.test/logo.png",
                 ["Config:PDS_BSKY_APP_VIEW_URL"] = "https://appview.bsky.social",
                 ["Config:PDS_BSKY_APP_VIEW_DID"] = "did:web:appview.bsky.social",
-            });
+                ["Config:PDS_PROXY_REQUIRE_HEADER"] = "true",
+            };
+            if (_additionalConfig != null)
+            {
+                foreach (var (key, value) in _additionalConfig)
+                {
+                    values[key] = value;
+                }
+            }
+            config.AddInMemoryCollection(values);
         });
         builder.ConfigureServices(services =>
         {
