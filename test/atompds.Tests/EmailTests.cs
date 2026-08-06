@@ -76,6 +76,28 @@ public class EmailTests
     }
 
     [Test]
+    public async Task RequestEmailConfirmation_StoresBase32FormattedToken()
+    {
+        var account = await CreateAccountAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/xrpc/com.atproto.server.requestEmailConfirmation");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessJwt);
+        var response = await Client.SendAsync(request);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AccountManager.Db.AccountManagerDb>();
+        var token = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstOrDefaultAsync(db.EmailTokens.Where(t =>
+                t.Did == account.Did &&
+                t.Purpose == AccountManager.Db.EmailToken.EmailTokenPurpose.confirm_email));
+
+        await Assert.That(token).IsNotNull();
+        await Assert.That(System.Text.RegularExpressions.Regex.IsMatch(token!.Token, "^[a-z2-7]{5}-[a-z2-7]{5}$")).IsTrue();
+    }
+
+    [Test]
     public async Task RequestEmailUpdate_Succeeds()
     {
         var account = await CreateAccountAsync();

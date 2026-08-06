@@ -17,7 +17,8 @@ public class EmailTokenStore
 
     public async Task<string> CreateEmailTokenAsync(string did, EmailToken.EmailTokenPurpose purpose)
     {
-        var token = Utils.RandomNumericCode(6);
+        var encoded = Utils.RandomBase32String(8);
+        var token = $"{encoded[..5]}-{encoded[5..10]}";
         var now = DateTime.UtcNow;
 
 
