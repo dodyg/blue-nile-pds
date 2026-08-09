@@ -9,6 +9,7 @@ const nav = [
   { to: '/invites', label: 'Invites' },
   { to: '/subjects', label: 'Subjects' },
   { to: '/backup', label: 'Backup' },
+  { to: '/repo/resync', label: 'Repo Resync' },
 ];
 
 function SunIcon() {

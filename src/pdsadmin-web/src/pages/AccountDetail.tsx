@@ -10,6 +10,7 @@ import PageHeader from '../components/PageHeader';
 import { Table, Th, Tr, Td } from '../components/Table';
 import { useAccountInfo, useSubjectStatus, useUpdateSubjectStatus, useDeleteAccount, useEnableInvites, useDisableInvites, useUpdateAccountPassword, useUpdateAccountEmail, useUpdateAccountHandle } from '../hooks/useAccounts';
 import { useDescribeRepo, useDownloadAccountRepo } from '../hooks/useRepo';
+import { useStartRepoResync } from '../hooks/useRepoResync';
 
 export default function AccountDetail() {
   const { did } = useParams<{ did: string }>();
@@ -43,6 +44,7 @@ export default function AccountDetail() {
   const updateEmail = useUpdateAccountEmail();
   const updateHandle = useUpdateAccountHandle();
   const downloadRepo = useDownloadAccountRepo();
+  const startResync = useStartRepoResync();
 
   const takedownRef = subjectStatus?.takedown?.ref ?? null;
   const isTakenDown = !!takedownRef;
@@ -240,6 +242,22 @@ export default function AccountDetail() {
           onClick={() => setModal({ action: 'updateHandle', title: 'Update handle', label: 'Handle', initialValue: info.handle })}
         >
           Update handle
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => setConfirm({
+            title: 'Resync repo',
+            message: `Re-encode ${info.handle}'s repo in canonical DAG-CBOR? This rewrites repo history (new commit has no prev). Only do this to repair canonical-format divergence.`,
+            confirmLabel: 'Resync repo',
+            confirmClass: 'bg-danger text-white dark:bg-danger-deep hover:opacity-90',
+            action: () => startResync.mutate(info.did, {
+              onSuccess: () => setMessage('Repo resync started'),
+              onError: (e: Error) => setMessage(e.message),
+            }),
+          })}
+          disabled={startResync.isPending}
+        >
+          {startResync.isPending ? 'Resyncing…' : 'Resync repo'}
         </Button>
       </div>
 

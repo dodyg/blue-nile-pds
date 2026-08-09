@@ -19,3 +19,8 @@ export const backupKeys = {
   status: ['backups', 'status'] as const,
   list: ['backups', 'list'] as const,
 };
+
+export const repoResyncKeys = {
+  all: ['repoResync'] as const,
+  status: ['repoResync', 'status'] as const,
+};

@@ -110,3 +110,18 @@ export interface BackupCreateResponse {
   status: string;
   startedAt: string;
 }
+
+export interface RepoResyncStatus {
+  status: 'idle' | 'running' | 'completed' | 'failed';
+  did?: string;
+  startedAt?: string;
+  completedAt?: string;
+  recordsScanned?: number;
+  recordsRewritten?: number;
+  error?: string;
+}
+
+export interface RepoResyncCreateResponse {
+  status: string;
+  startedAt: string;
+}
