@@ -32,9 +32,9 @@ public class Repo
         var data = MST.MST.Create(storage, []);
         foreach (var record in initialWrites)
         {
-            var cid = newBlocks.Add(record.Record);
+            newBlocks.Set(record.Cid, record.RecordBytes);
             var dataKey = MST.Util.FormatDataKey(record.Collection, record.RKey);
-            data = await data.AddAsync(dataKey, cid);
+            data = await data.AddAsync(dataKey, record.Cid);
         }
 
         var dataCid = await data.GetPointerAsync();
@@ -81,16 +81,16 @@ public class Repo
         {
             if (write is RecordCreateOp create)
             {
-                var cid = leaves.Add(create.Record);
+                leaves.Set(create.Cid, create.RecordBytes);
                 var dataKey = $"{create.Collection}/{create.RKey}";
-                data = await data.AddAsync(dataKey, cid);
+                data = await data.AddAsync(dataKey, create.Cid);
                 //data = await data.Update(dataKey, cid);
             }
             else if (write is RecordUpdateOp update)
             {
-                var cid = leaves.Add(update.Record);
+                leaves.Set(update.Cid, update.RecordBytes);
                 var dataKey = $"{update.Collection}/{update.RKey}";
-                data = await data.UpdateAsync(dataKey, cid);
+                data = await data.UpdateAsync(dataKey, update.Cid);
             }
             else if (write is RecordDeleteOp delete)
             {
@@ -228,7 +228,7 @@ public interface IPreparedDataWrite : IPreparedWrite
 public record BlobConstraint(string[]? Accept, long? MaxSize);
 public record PreparedBlobRef(Cid Cid, string MimeType, long Size, BlobConstraint Constraints);
 
-public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
+public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, byte[] RecordBytes, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
 {
     public WriteOpAction Action => WriteOpAction.Create;
 
@@ -237,11 +237,13 @@ public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record
         return new RecordCreateOp(
             Uri.Collection ?? throw new InvalidOperationException("Missing collection."),
             Uri.RecordKey ?? throw new InvalidOperationException("Missing record key."),
-            Record);
+            Record,
+            Cid,
+            RecordBytes);
     }
 }
 
-public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
+public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, byte[] RecordBytes, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
 {
     public WriteOpAction Action => WriteOpAction.Update;
 
@@ -250,7 +252,9 @@ public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record
         return new RecordUpdateOp(
             Uri.Collection ?? throw new InvalidOperationException("Missing collection."),
             Uri.RecordKey ?? throw new InvalidOperationException("Missing record key."),
-            Record);
+            Record,
+            Cid,
+            RecordBytes);
     }
 }
 
@@ -271,12 +275,12 @@ public interface IRecordWriteOp
     public WriteOpAction Action { get; }
 }
 
-public record RecordCreateOp(string Collection, string RKey, CBORObject Record) : IRecordWriteOp
+public record RecordCreateOp(string Collection, string RKey, CBORObject Record, Cid Cid, byte[] RecordBytes) : IRecordWriteOp
 {
     public WriteOpAction Action => WriteOpAction.Create;
 }
 
-public record RecordUpdateOp(string Collection, string RKey, CBORObject Record) : IRecordWriteOp
+public record RecordUpdateOp(string Collection, string RKey, CBORObject Record, Cid Cid, byte[] RecordBytes) : IRecordWriteOp
 {
     public WriteOpAction Action => WriteOpAction.Update;
 }

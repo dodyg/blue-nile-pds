@@ -15,6 +15,10 @@ public static class AdminApiEndpoints
         backup.MapGet("list", HandleList).WithMetadata(new AdminTokenAttribute());
         backup.MapGet("download", HandleDownload).WithMetadata(new AdminTokenAttribute());
         backup.MapPost("delete", HandleDelete).WithMetadata(new AdminTokenAttribute());
+
+        var resync = app.MapGroup("admin/api/repo/resync");
+        resync.MapPost("", HandleResyncAsync).WithMetadata(new AdminTokenAttribute());
+        resync.MapGet("status", HandleResyncStatus).WithMetadata(new AdminTokenAttribute());
         return app;
     }
 
@@ -67,6 +71,36 @@ public static class AdminApiEndpoints
         backupService.DeleteBackup(request.FileName);
         return Results.NoContent();
     }
+
+    private static async Task<IResult> HandleResyncAsync(RepoResyncService resyncService, RepoResyncRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Did))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
+        }
+
+        await resyncService.StartAsync(request.Did);
+        return Results.Ok(new RepoResyncCreateOutput
+        {
+            Status = "started",
+            StartedAt = DateTime.UtcNow
+        });
+    }
+
+    private static IResult HandleResyncStatus(RepoResyncService resyncService)
+    {
+        var state = resyncService.GetStatus();
+        return Results.Ok(new RepoResyncStatusOutput
+        {
+            Status = state.Status.ToString().ToLowerInvariant(),
+            Did = state.Did,
+            StartedAt = state.StartedAt,
+            CompletedAt = state.CompletedAt,
+            RecordsScanned = state.RecordsScanned,
+            RecordsRewritten = state.RecordsRewritten,
+            Error = state.Error
+        });
+    }
 }
 
 public record BackupCreateOutput
@@ -113,4 +147,36 @@ public record BackupDeleteRequest
 {
     [JsonPropertyName("fileName")]
     public string FileName { get; init; } = "";
+}
+
+public record RepoResyncRequest
+{
+    [JsonPropertyName("did")]
+    public string Did { get; init; } = "";
+}
+
+public record RepoResyncCreateOutput
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "";
+    [JsonPropertyName("startedAt")]
+    public DateTime StartedAt { get; init; }
+}
+
+public record RepoResyncStatusOutput
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "";
+    [JsonPropertyName("did")]
+    public string? Did { get; init; }
+    [JsonPropertyName("startedAt")]
+    public DateTime? StartedAt { get; init; }
+    [JsonPropertyName("completedAt")]
+    public DateTime? CompletedAt { get; init; }
+    [JsonPropertyName("recordsScanned")]
+    public int RecordsScanned { get; init; }
+    [JsonPropertyName("recordsRewritten")]
+    public int RecordsRewritten { get; init; }
+    [JsonPropertyName("error")]
+    public string? Error { get; init; }
 }

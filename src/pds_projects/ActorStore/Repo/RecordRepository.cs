@@ -104,6 +104,42 @@ public class RecordRepository
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Rebuild the record index to match a fully re-encoded repo (repo resync).
+    /// Updates the Cid of existing rows in place so takedown state and indexedAt are preserved.
+    /// </summary>
+    public async Task ReindexResyncAsync(string rev, IReadOnlyList<RecordCreateOp> ops)
+    {
+        await _db.Backlinks.ExecuteDeleteAsync();
+
+        foreach (var op in ops)
+        {
+            var uri = ATUri.Create(_did, op.Collection, op.RKey);
+            var uriStr = uri.ToString();
+            var existing = await _db.Records.FirstOrDefaultAsync(x => x.Uri == uriStr);
+            if (existing != null)
+            {
+                existing.Cid = op.Cid.ToString();
+                existing.RepoRev = rev;
+            }
+            else
+            {
+                _db.Records.Add(new Record
+                {
+                    Uri = uriStr,
+                    Cid = op.Cid.ToString(),
+                    Collection = op.Collection,
+                    Rkey = op.RKey,
+                    RepoRev = rev,
+                    IndexedAt = DateTime.UtcNow
+                });
+            }
+
+            await AddBacklinksAsync(GetBacklinks(uri, op.Record));
+            await _db.SaveChangesAsync();
+        }
+    }
+
     public async Task DeleteRecordAsync(ATUri uri)
     {
         await _db.Records.Where(x => x.Uri == uri.ToString()).ExecuteDeleteAsync();

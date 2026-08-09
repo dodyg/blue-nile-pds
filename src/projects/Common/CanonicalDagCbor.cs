@@ -1,6 +1,7 @@
 using System.Formats.Cbor;
 using System.Text;
 using System.Text.Json;
+using PeterO.Cbor;
 
 namespace Common;
 
@@ -15,6 +16,94 @@ public static class CanonicalDagCbor
         var writer = new CborWriter(CborConformanceMode.Canonical, false);
         WriteElement(writer, element);
         return writer.Encode();
+    }
+
+    /// <summary>
+    /// Re-encode an already-decoded PeterO <see cref="CBORObject"/> as canonical DAG-CBOR bytes.
+    /// Map keys are sorted by UTF-8 byte order. Useful for converting legacy
+    /// (non-canonical) stored blocks to the canonical form.
+    /// </summary>
+    public static byte[] Encode(CBORObject obj)
+    {
+        var writer = new CborWriter(CborConformanceMode.Canonical, false);
+        WriteValue(writer, obj);
+        return writer.Encode();
+    }
+
+    private static void WriteValue(CborWriter writer, CBORObject obj)
+    {
+        if (obj.IsTagged)
+        {
+            foreach (var tag in obj.GetAllTags())
+            {
+                writer.WriteTag((CborTag)(long)tag);
+            }
+            obj = obj.Untag();
+        }
+
+        switch (obj.Type)
+        {
+            case CBORType.Map:
+                var keys = obj.Keys.ToList()
+                    .OrderBy(k => k.AsString(), Utf8ByteComparer.Instance)
+                    .ToList();
+                writer.WriteStartMap(keys.Count);
+                foreach (var key in keys)
+                {
+                    writer.WriteTextString(key.AsString());
+                    WriteValue(writer, obj[key]);
+                }
+                writer.WriteEndMap();
+                break;
+
+            case CBORType.Array:
+                writer.WriteStartArray(obj.Count);
+                for (var i = 0; i < obj.Count; i++)
+                {
+                    WriteValue(writer, obj[i]);
+                }
+                writer.WriteEndArray();
+                break;
+
+            case CBORType.TextString:
+                writer.WriteTextString(obj.AsString());
+                break;
+
+            case CBORType.ByteString:
+                writer.WriteByteString(obj.GetByteString());
+                break;
+
+            case CBORType.Integer:
+                writer.WriteInt64(obj.AsNumber().ToInt64Checked());
+                break;
+
+            case CBORType.FloatingPoint:
+                writer.WriteDouble(obj.AsDouble());
+                break;
+
+            case CBORType.Boolean:
+                writer.WriteBoolean(obj.AsBoolean());
+                break;
+
+            default:
+                if (obj.IsNumber && obj.AsNumber().IsInteger())
+                {
+                    writer.WriteInt64(obj.AsNumber().ToInt64Checked());
+                }
+                else if (obj.IsNumber)
+                {
+                    writer.WriteDouble(obj.AsDouble());
+                }
+                else if (obj.IsNull || obj.IsUndefined)
+                {
+                    writer.WriteNull();
+                }
+                else
+                {
+                    throw new NotSupportedException($"CBORType.{obj.Type} is not supported in DAG-CBOR");
+                }
+                break;
+        }
     }
 
     private static void WriteElement(CborWriter writer, JsonElement element)

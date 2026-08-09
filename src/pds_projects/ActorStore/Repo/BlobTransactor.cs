@@ -125,7 +125,8 @@ public class BlobTransactor
 
     public async Task ProcessWriteBlobsAsync(string rev, IPreparedWrite[] preparedWrites)
     {
-        await using var tx = await Db.Database.BeginTransactionAsync();
+        var ownsTx = Db.Database.CurrentTransaction == null;
+        await using var tx = ownsTx ? await Db.Database.BeginTransactionAsync() : null;
 
         HashSet<string> newBlobCids = preparedWrites.Where(pw => pw is PreparedCreate or PreparedUpdate)
             .Cast<IPreparedDataWrite>()
@@ -172,7 +173,10 @@ public class BlobTransactor
             .ExecuteUpdateAsync(b => b.SetProperty(b => b.Status, BlobStatus.Permanent));
     
         await Db.SaveChangesAsync();
-        await tx.CommitAsync();
+        if (ownsTx)
+        {
+            await tx!.CommitAsync();
+        }
 
 
         // now make changes to the blob store 
