@@ -74,8 +74,8 @@ export default function AccountDetail() {
         actions={(
           <>
             <Button
-              variant="secondary"
-              size="sm"
+              variant="primary"
+              size="md"
               onClick={() => downloadRepo.mutate(info.did, { onSuccess: () => setMessage('Repo downloaded as CAR file') })}
               disabled={downloadRepo.isPending}
             >
