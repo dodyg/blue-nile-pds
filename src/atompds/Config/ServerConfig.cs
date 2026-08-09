@@ -443,5 +443,6 @@ public record ServerConfig
         services.AddHostedService<BackgroundJobWorker>();
 
         services.AddSingleton<BackupService>();
+        services.AddSingleton<RepoResyncService>();
     }
 }

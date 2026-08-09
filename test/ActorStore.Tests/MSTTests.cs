@@ -1,4 +1,7 @@
+using System.Text.Json;
+using ActorStore.Repo;
 using CID;
+using Common;
 using Crypto.Secp256k1;
 using global::Repo;
 using global::Repo.MST;
@@ -53,7 +56,7 @@ public class MSTTests
         var keypair = Secp256k1Keypair.Create(false);
         var repo = await global::Repo.Repo.CreateAsync(storage, "did:plc:test", keypair,
         [
-            new RecordCreateOp("app.bsky.feed.post", "1", CBORObject.NewMap().Add("$type", "app.bsky.feed.post"))
+            CreatePostOp()
         ]);
 
         // Remove a leaf block to simulate missing block
@@ -70,5 +73,13 @@ public class MSTTests
         }
 
         await Assert.That(reachable.Count).IsGreaterThanOrEqualTo(1);
+    }
+
+    private static RecordCreateOp CreatePostOp()
+    {
+        var record = CBORObject.NewMap().Add("$type", "app.bsky.feed.post");
+        var recordBytes = CanonicalDagCbor.Encode(JsonDocument.Parse(record.ToJSONString()).RootElement);
+        var cid = Prepare.CidForBytes(recordBytes);
+        return new RecordCreateOp("app.bsky.feed.post", "1", record, cid, recordBytes);
     }
 }

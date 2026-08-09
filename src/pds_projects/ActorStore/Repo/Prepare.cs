@@ -48,11 +48,13 @@ public class Prepare
         AssertNoExplicitSlurs(collection, rkey, record);
         var recordJson = record.GetRawText();
         var recordCbor = CBORObject.FromJSONString(recordJson);
+        var recordBytes = CanonicalDagCbor.Encode(record);
         return new PreparedCreate(
             ATUri.Create(did, collection, rkey),
-            CidForSafeRecord(record),
+            CidForBytes(recordBytes),
             swapCid,
             recordCbor,
+            recordBytes,
             ExtractBlobReferences(record),
             validationStatus);
     }
@@ -70,11 +72,13 @@ public class Prepare
         var validationStatus = ValidateRecord(record, collection, maybeValidate, createdAtTolerance);
 
         AssertNoExplicitSlurs(collection, rkey, record);
+        var recordBytes = CanonicalDagCbor.Encode(record);
         return new PreparedUpdate(
             ATUri.Create(did, collection, rkey),
-            CidForSafeRecord(record),
+            CidForBytes(recordBytes),
             swapCid,
             CBORObject.FromJSONString(record.GetRawText()),
+            recordBytes,
             ExtractBlobReferences(record),
             validationStatus);
     }
@@ -151,7 +155,11 @@ public class Prepare
 
     public static Cid CidForSafeRecord(JsonElement record)
     {
-        var bytes = CanonicalDagCbor.Encode(record);
+        return CidForBytes(CanonicalDagCbor.Encode(record));
+    }
+
+    public static Cid CidForBytes(byte[] bytes)
+    {
         var hash = Multihash.Encode(System.Security.Cryptography.SHA256.HashData(bytes), HashType.SHA2_256);
         return Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash);
     }

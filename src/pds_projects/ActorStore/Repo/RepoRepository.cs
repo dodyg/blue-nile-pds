@@ -42,9 +42,13 @@ public class RepoRepository
         var writeOpts = writes.Select(x => x.CreateWriteToOp()).ToArray();
         var commit = await global::Repo.Repo.FormatInitCommitAsync(Storage, _did, _keyPair, writeOpts);
 
-        await Storage.ApplyCommitAsync(commit);
-        await IndexWritesAsync(writes.Cast<IPreparedWrite>().ToArray(), commit.Rev);
-        // await Blob.ProcessWriteBlobs(commit.Rev, writes);
+        await InTransactionAsync(async () =>
+        {
+            await Storage.ApplyCommitAsync(commit);
+            await IndexWritesAsync(writes.Cast<IPreparedWrite>().ToArray(), commit.Rev);
+            // await Blob.ProcessWriteBlobs(commit.Rev, writes);
+            return true;
+        });
 
         return commit;
     }
@@ -75,10 +79,34 @@ public class RepoRepository
         // T-11: validate blob constraints before applying
         await ValidateBlobConstraintsAsync(writes);
 
-        await Storage.ApplyCommitAsync(commit);
-        await IndexWritesAsync(writes, commit.Rev);
-        await Blob.ProcessWriteBlobsAsync(commit.Rev, writes);
+        await InTransactionAsync(async () =>
+        {
+            await Storage.ApplyCommitAsync(commit);
+            await IndexWritesAsync(writes, commit.Rev);
+            await Blob.ProcessWriteBlobsAsync(commit.Rev, writes);
+            return true;
+        });
         return commit;
+    }
+
+    private async Task<T> InTransactionAsync<T>(Func<Task<T>> fn)
+    {
+        if (_db.Database.CurrentTransaction != null)
+        {
+            return await fn();
+        }
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            var result = await fn();
+            await tx.CommitAsync();
+            return result;
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
     }
 
     private async Task ValidateBlobConstraintsAsync(IPreparedWrite[] writes)
