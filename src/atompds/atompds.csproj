@@ -19,6 +19,10 @@
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
         <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+        <PackageReference Include="OpenTelemetry.Exporter.Console" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
         <PackageReference Include="Scrypt.NET" />
         <PackageReference Include="SimpleBase" />
         <PackageReference Include="StackExchange.Redis" />
@@ -44,14 +48,11 @@
         <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
     </PropertyGroup>
 
-    <Target Name="DebugEnsureNodeEnv"
-            BeforeTargets="Build"
-            Condition="'$(Configuration)' == 'Debug' AND !Exists('$(SpaRoot)node_modules')">
+    <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition="'$(Configuration)' == 'Debug' AND !Exists('$(SpaRoot)node_modules')">
         <Exec Command="node --version" ContinueOnError="true">
             <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />
         </Exec>
-        <Error Condition="'$(ErrorCode)' != '0'"
-            Text="Node.js is required to build this project. Please install it from https://nodejs.org." />
+        <Error Condition="'$(ErrorCode)' != '0'" Text="Node.js is required to build this project. Please install it from https://nodejs.org." />
         <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
     </Target>
 
