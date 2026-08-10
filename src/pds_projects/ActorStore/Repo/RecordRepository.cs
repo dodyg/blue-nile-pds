@@ -44,7 +44,7 @@ public class RecordRepository
         {
             return null;
         }
-        var block = await _db.RepoBlocks.FirstOrDefaultAsync(x => x.Cid == record.Cid);
+        var block = await _db.RepoBlocks.AsNoTracking().FirstOrDefaultAsync(x => x.Cid == record.Cid);
         if (block == null)
         {
             return null;
@@ -79,12 +79,16 @@ public class RecordRepository
         Record? existing = null;
         if (action == WriteOpAction.Update)
         {
-            existing = await _db.Records.AsNoTracking().FirstOrDefaultAsync(x => x.Uri == uri.ToString());
+            existing = await _db.Records.FirstOrDefaultAsync(x => x.Uri == uri.ToString());
         }
 
         if (existing != null)
         {
-            _db.Records.Update(row);
+            existing.Cid = row.Cid;
+            existing.Collection = row.Collection;
+            existing.Rkey = row.Rkey;
+            existing.RepoRev = row.RepoRev;
+            existing.IndexedAt = row.IndexedAt;
         }
         else
         {

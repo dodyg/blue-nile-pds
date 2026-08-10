@@ -42,19 +42,12 @@ public class SqlRepoTransactor : IRepoStorage
             Size = block.Length
         };
 
-        // TODO: should find a way to do "ON CONFLICT DO NOTHING" here
-        if (_db.RepoBlocks.Any(x => x.Cid == cid.ToString()))
-        {
-            _db.RepoBlocks.Update(newBlock);
-        }
-        else
-        {
-            _db.RepoBlocks.Add(newBlock);
-        }
+        UpsertRepoBlock(newBlock);
 
         await _db.SaveChangesAsync();
         _cache.Set(cid, block);
     }
+
     public Task PutManyAsync(BlockMap toPut, string rev)
     {
         var blocks = new List<RepoBlock>();
@@ -69,20 +62,43 @@ public class SqlRepoTransactor : IRepoStorage
             });
         }
 
-        // TODO: should find a way to do "ON CONFLICT DO NOTHING" here
         foreach (var block in blocks)
         {
-            if (_db.RepoBlocks.Any(x => x.Cid == block.Cid))
-            {
-                _db.RepoBlocks.Update(block);
-            }
-            else
-            {
-                _db.RepoBlocks.Add(block);
-            }
+            UpsertRepoBlock(block);
         }
 
         return _db.SaveChangesAsync();
+    }
+
+    // Reconciles a block write with the change tracker so an upserted key never
+    // collides with an already-tracked RepoBlock for the same Cid.
+    private void UpsertRepoBlock(RepoBlock block)
+    {
+        var tracked = _db.ChangeTracker.Entries<RepoBlock>()
+            .FirstOrDefault(e => e.Entity.Cid == block.Cid);
+
+        if (tracked != null)
+        {
+            var entity = tracked.Entity;
+            entity.Content = block.Content;
+            entity.RepoRev = block.RepoRev;
+            entity.Size = block.Size;
+            if (tracked.State == EntityState.Deleted)
+            {
+                tracked.State = EntityState.Modified;
+            }
+            return;
+        }
+
+        // TODO: should find a way to do "ON CONFLICT DO NOTHING" here
+        if (_db.RepoBlocks.Any(x => x.Cid == block.Cid))
+        {
+            _db.RepoBlocks.Update(block);
+        }
+        else
+        {
+            _db.RepoBlocks.Add(block);
+        }
     }
 
     public Task UpdateRootAsync(Cid cid, string rev)
