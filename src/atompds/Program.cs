@@ -7,6 +7,7 @@ using atompds.Middleware;
 using atompds.Services;
 using Config;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Logs;
 using Sequencer.Db;
 
 namespace atompds;
@@ -19,6 +20,16 @@ public class Program
         {
             Args = args,
             ContentRootPath = AppContext.BaseDirectory
+        });
+
+        // Configure OpenTelemetry Logging
+        builder.Logging.AddOpenTelemetry(options =>
+        {
+            options.IncludeFormattedMessage = true;
+            options.IncludeScopes = true;
+            options.ParseStateValues = true;
+
+            options.AddOtlpExporter();
         });
 
         builder.Services.AddCors();
