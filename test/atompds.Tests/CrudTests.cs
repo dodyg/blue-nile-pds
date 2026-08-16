@@ -435,4 +435,130 @@ public class CrudTests
         var uri = json.GetProperty("uri").GetString()!;
         await Assert.That(uri).Contains("self");
     }
+
+    [Test]
+    public async Task PutRecord_UpdateProfile_SameContent_WithSwapRecord_Succeeds()
+    {
+        var account = await CreateAccountAsync();
+        await CreateProfileAsync(account);
+
+        var cid = await GetProfileCidAsync(account);
+
+        var body = new Dictionary<string, object?>
+        {
+            ["repo"] = account.Did,
+            ["collection"] = "app.bsky.actor.profile",
+            ["rkey"] = "self",
+            ["swapRecord"] = cid,
+            ["record"] = new Dictionary<string, object?>
+            {
+                ["$type"] = "app.bsky.actor.profile",
+                ["displayName"] = "Mostafa Ehab",
+                ["description"] = "A test profile"
+            }
+        };
+        var request = new HttpRequestMessage(HttpMethod.Post, "/xrpc/com.atproto.repo.putRecord")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessJwt);
+        var response = await Client.SendAsync(request);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task PutRecord_UpdateProfile_ChangedContent_WithSwapRecord_Succeeds()
+    {
+        var account = await CreateAccountAsync();
+        await CreateProfileAsync(account);
+
+        var cid = await GetProfileCidAsync(account);
+
+        var body = new Dictionary<string, object?>
+        {
+            ["repo"] = account.Did,
+            ["collection"] = "app.bsky.actor.profile",
+            ["rkey"] = "self",
+            ["swapRecord"] = cid,
+            ["record"] = new Dictionary<string, object?>
+            {
+                ["$type"] = "app.bsky.actor.profile",
+                ["displayName"] = "Updated Name",
+                ["description"] = "A changed profile"
+            }
+        };
+        var request = new HttpRequestMessage(HttpMethod.Post, "/xrpc/com.atproto.repo.putRecord")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessJwt);
+        var response = await Client.SendAsync(request);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task PutRecord_UpdateProfile_SwapRecordMismatch_ReturnsError()
+    {
+        var account = await CreateAccountAsync();
+        await CreateProfileAsync(account);
+
+        var cid = await GetProfileCidAsync(account);
+        var wrongCid = cid[..^1] + (cid[^1] == 'a' ? 'b' : 'a');
+
+        var body = new Dictionary<string, object?>
+        {
+            ["repo"] = account.Did,
+            ["collection"] = "app.bsky.actor.profile",
+            ["rkey"] = "self",
+            ["swapRecord"] = wrongCid,
+            ["record"] = new Dictionary<string, object?>
+            {
+                ["$type"] = "app.bsky.actor.profile",
+                ["displayName"] = "Updated Name"
+            }
+        };
+        var request = new HttpRequestMessage(HttpMethod.Post, "/xrpc/com.atproto.repo.putRecord")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessJwt);
+        var response = await Client.SendAsync(request);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    private async Task CreateProfileAsync(AccountInfo account)
+    {
+        var body = new Dictionary<string, object?>
+        {
+            ["repo"] = account.Did,
+            ["collection"] = "app.bsky.actor.profile",
+            ["rkey"] = "self",
+            ["record"] = new Dictionary<string, object?>
+            {
+                ["$type"] = "app.bsky.actor.profile",
+                ["displayName"] = "Mostafa Ehab",
+                ["description"] = "A test profile"
+            }
+        };
+        var request = new HttpRequestMessage(HttpMethod.Post, "/xrpc/com.atproto.repo.createRecord")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.AccessJwt);
+        var response = await Client.SendAsync(request);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    private async Task<string> GetProfileCidAsync(AccountInfo account)
+    {
+        var response = await Client.GetAsync(
+            $"/xrpc/com.atproto.repo.getRecord?repo={account.Did}&collection=app.bsky.actor.profile&rkey=self");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var json = await AuthTestHelper.ReadJsonAsync(response);
+        return json.GetProperty("cid").GetString()!;
+    }
 }
