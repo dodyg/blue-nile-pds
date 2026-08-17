@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "africa.bsky.admin.rejectAccount",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Reject a pending account, leaving it suspended",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["did"],
+          "properties": {
+            "did": { "type": "string", "format": "did" }
+          }
+        }
+      },
+      "errors": [{ "name": "AccountNotFound" }]
+    }
+  }
+}

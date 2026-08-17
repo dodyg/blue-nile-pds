@@ -61,24 +61,24 @@ public class AuthVerifier
             : Did.FormatDidKey(Const.SECP256K1_JWT_ALG, Convert.FromHexString(config.EntrywayJwtVerifyKeyK256PublicKeyHex));
     }
 
-    public async Task<AccessOutput> AccessStandardAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput> AccessStandardAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         var auth = await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access],
             ScopeMap[AuthScope.AppPass],
             ScopeMap[AuthScope.AppPassPrivileged]
-        ], checkTakenDown, checkDeactivated);
+        ], checkTakenDown, checkDeactivated, checkSuspended);
 
         if (auth.AccessCredentials.Scope == ScopeMap[AuthScope.Takendown])
         {
-            throw new XRPCError(new ErrorDetail("AccountTakenDown", "Account has been taken down"));
+            throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountTakenDown", "Account has been taken down"));
         }
 
         return auth;
     }
 
-    public async Task<AccessOutput?> OptionalAccessStandardAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput?> OptionalAccessStandardAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         var authorization = ctx.Request.Headers.Authorization;
         if (authorization.Count == 0 || string.IsNullOrWhiteSpace(authorization.ToString()))
@@ -86,35 +86,35 @@ public class AuthVerifier
             return null;
         }
 
-        return await AccessStandardAsync(ctx, checkTakenDown, checkDeactivated);
+        return await AccessStandardAsync(ctx, checkTakenDown, checkDeactivated, checkSuspended);
     }
 
-    public async Task<AccessOutput> AccessFullAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput> AccessFullAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         var auth = await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access]
-        ], checkTakenDown, checkDeactivated);
+        ], checkTakenDown, checkDeactivated, checkSuspended);
 
         if (auth.AccessCredentials.Scope == ScopeMap[AuthScope.Takendown])
         {
-            throw new XRPCError(new ErrorDetail("AccountTakenDown", "Account has been taken down"));
+            throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountTakenDown", "Account has been taken down"));
         }
 
         return auth;
     }
 
-    public async Task<AccessOutput> AccessPrivilegedAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput> AccessPrivilegedAsync(HttpContext ctx, bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         var auth = await ValidateAccessTokenAsync(ctx,
         [
             ScopeMap[AuthScope.Access],
             ScopeMap[AuthScope.AppPassPrivileged]
-        ], checkTakenDown, checkDeactivated);
+        ], checkTakenDown, checkDeactivated, checkSuspended);
 
         if (auth.AccessCredentials.Scope == ScopeMap[AuthScope.Takendown])
         {
-            throw new XRPCError(new ErrorDetail("AccountTakenDown", "Account has been taken down"));
+            throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountTakenDown", "Account has been taken down"));
         }
 
         return auth;
@@ -149,7 +149,7 @@ public class AuthVerifier
         }, result.Token);
     }
 
-    public async Task<AccessOutput> ValidateAccessTokenAsync(HttpContext ctx, string[] scopes, bool checkTakenDown = false, bool checkDeactivated = false)
+    public async Task<AccessOutput> ValidateAccessTokenAsync(HttpContext ctx, string[] scopes, bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         if (ctx.Response.HasStarted)
         {
@@ -176,7 +176,7 @@ public class AuthVerifier
                 throw new XRPCError(new InvalidTokenErrorDetail("Unexpected authorization type"));
         }
 
-        if (checkTakenDown || checkDeactivated)
+        if (checkTakenDown || checkDeactivated || checkSuspended)
         {
             var found = await _accountRepository.GetAccountAsync(accessOutput.AccessCredentials.Did, new AvailabilityFlags(checkTakenDown, checkDeactivated));
             if (found == null)
@@ -186,12 +186,17 @@ public class AuthVerifier
 
             if (checkTakenDown && found.SoftDeleted)
             {
-                throw new XRPCError(new ErrorDetail("AccountTakenDown", "Account has been taken down"));
+                throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountTakenDown", "Account has been taken down"));
             }
 
             if (checkDeactivated && found.DeactivatedAt != null)
             {
-                throw new XRPCError(new ErrorDetail("AccountDeactivated", "Account has been deactivated"));
+                throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountDeactivated", "Account has been deactivated"));
+            }
+
+            if (checkSuspended && found.SuspendedAt != null)
+            {
+                throw new XRPCError(ResponseType.Forbidden, new ErrorDetail("AccountSuspended", "Account has been suspended"));
             }
         }
 
@@ -607,7 +612,7 @@ public class AuthVerifier
 
         if (string.IsNullOrWhiteSpace(auth.Token))
         {
-            throw new XRPCError(new ErrorDetail("AuthMissing", ""));
+            throw new XRPCError(ResponseType.AuthRequired, new ErrorDetail("AuthMissing", "Missing token"));
         }
 
         var (payload, headers) = JwtVerify(auth.Token, options);

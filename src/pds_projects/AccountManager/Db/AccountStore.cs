@@ -124,6 +124,10 @@ public class AccountStore
         {
             return AccountStatus.Takendown;
         }
+        if (account.SuspendedAt != null)
+        {
+            return AccountStatus.Suspended;
+        }
         if (account.DeactivatedAt != null)
         {
             return AccountStatus.Deactivated;
@@ -131,7 +135,7 @@ public class AccountStore
         return AccountStatus.Active;
     }
 
-    public async Task RegisterActorAsync(string did, string handle, bool? deactivated)
+    public async Task RegisterActorAsync(string did, string handle, bool? deactivated, bool? suspended = null)
     {
         var createdAt = DateTime.UtcNow;
         try
@@ -143,7 +147,8 @@ public class AccountStore
                 CreatedAt = createdAt,
                 DeactivatedAt = deactivated == true ? createdAt : null,
                 DeleteAfter = deactivated == true ? createdAt.AddDays(3) : null,
-                TakedownRef = null
+                TakedownRef = null,
+                SuspendedAt = suspended == true ? createdAt : null
             };
             _db.Actors.Add(actorObj);
             await _db.SaveChangesAsync();
@@ -155,7 +160,7 @@ public class AccountStore
         }
     }
 
-    public async Task RegisterAccountAsync(string did, string email, string passwordScrypt)
+    public async Task RegisterAccountAsync(string did, string email, string passwordScrypt, string? location = null, string? accountType = null)
     {
         try
         {
@@ -165,7 +170,9 @@ public class AccountStore
                 Email = email.ToLower(),
                 PasswordSCrypt = passwordScrypt,
                 EmailConfirmedAt = null,
-                InvitesDisabled = false
+                InvitesDisabled = false,
+                Location = location,
+                AccountType = accountType
             };
             _db.Accounts.Add(accountObj);
             await _db.SaveChangesAsync();
@@ -207,6 +214,11 @@ public class AccountStore
         if (account.TakedownRef != null)
         {
             return (false, AccountStore.AccountStatus.Takendown);
+        }
+
+        if (account.SuspendedAt != null)
+        {
+            return (false, AccountStore.AccountStatus.Suspended);
         }
 
         if (account.DeactivatedAt != null)
@@ -304,6 +316,71 @@ public class AccountStore
             account.InvitesDisabled = disabled;
             await _db.SaveChangesAsync();
         }
+    }
+
+    public async Task UpdateAccountMetadataAsync(string did, string? location, string? accountType)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.Location = location;
+            account.AccountType = accountType;
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Account metadata updated for {Did}", did);
+        }
+    }
+
+    public async Task SuspendAccountAsync(string did, DateTime? suspendedAt = null)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.SuspendedAt = suspendedAt ?? DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Account suspended: {Did}", did);
+        }
+    }
+
+    public async Task UnsuspendAccountAsync(string did)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.SuspendedAt = null;
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Account unsuspended: {Did}", did);
+        }
+    }
+
+    public async Task<(ActorAccount[] Accounts, string? Cursor)> GetPendingAccountsAsync(string? cursor, int limit)
+    {
+        limit = Math.Clamp(limit, 1, 100);
+
+        var query = _db.Accounts
+            .Include(a => a.Actor)
+            .Where(a => a.Actor != null && a.Actor.SuspendedAt != null)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(cursor))
+        {
+            query = query.Where(a => string.Compare(a.Actor!.Did, cursor) > 0);
+        }
+
+        query = query.OrderBy(a => a.Actor!.Did).Take(limit + 1);
+        var results = await query.ToArrayAsync();
+
+        string? nextCursor = null;
+        if (results.Length > limit)
+        {
+            nextCursor = results[limit - 1].Actor!.Did;
+            results = results[..limit];
+        }
+
+        var accounts = results
+            .Select(r => ActorAccount.From(r.Actor!, r)!)
+            .ToArray();
+
+        return (accounts, nextCursor);
     }
 
     public async Task<(ActorAccount[] Accounts, string? Cursor)> SearchAccountsAsync(string? email, string? cursor, int limit)

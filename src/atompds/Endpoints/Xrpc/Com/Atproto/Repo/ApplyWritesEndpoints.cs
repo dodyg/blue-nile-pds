@@ -30,10 +30,10 @@ public static class ApplyWritesEndpoints
     public static RouteGroupBuilder MapApplyWritesEndpoints(this RouteGroupBuilder group)
     {
         group.MapGet("com.atproto.repo.getRecord", GetRecordAsync);
-        group.MapPost("com.atproto.repo.putRecord", PutRecordAsync).WithMetadata(new AccessStandardAttribute(true, true)).RequireRateLimiting("repo-write");
-        group.MapPost("com.atproto.repo.deleteRecord", DeleteRecordAsync).WithMetadata(new AccessStandardAttribute(true, true)).RequireRateLimiting("repo-write");
-        group.MapPost("com.atproto.repo.createRecord", CreateRecordAsync).WithMetadata(new AccessStandardAttribute(true, true)).RequireRateLimiting("repo-write");
-        group.MapPost("com.atproto.repo.applyWrites", ApplyWritesAsync).WithMetadata(new AccessStandardAttribute(true, true)).RequireRateLimiting("repo-write");
+        group.MapPost("com.atproto.repo.putRecord", PutRecordAsync).WithMetadata(new AccessStandardAttribute(true, true, true)).RequireRateLimiting("repo-write");
+        group.MapPost("com.atproto.repo.deleteRecord", DeleteRecordAsync).WithMetadata(new AccessStandardAttribute(true, true, true)).RequireRateLimiting("repo-write");
+        group.MapPost("com.atproto.repo.createRecord", CreateRecordAsync).WithMetadata(new AccessStandardAttribute(true, true, true)).RequireRateLimiting("repo-write");
+        group.MapPost("com.atproto.repo.applyWrites", ApplyWritesAsync).WithMetadata(new AccessStandardAttribute(true, true, true)).RequireRateLimiting("repo-write");
         return group;
     }
 

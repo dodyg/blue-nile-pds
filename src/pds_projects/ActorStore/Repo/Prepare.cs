@@ -23,7 +23,8 @@ public class Prepare
         "app.bsky.actor.profile",
         "app.bsky.graph.follow",
         "app.bsky.feed.like",
-        "app.bsky.feed.repost"
+        "app.bsky.feed.repost",
+        "africa.bsky.account"
     ];
 
     public static PreparedDelete PrepareDelete(string did, string collection, string rkey, Cid? swapCid)
@@ -136,6 +137,9 @@ public class Prepare
                 break;
             case "app.bsky.feed.repost":
                 EnsureRequiredField(record, "subject");
+                EnsureRequiredField(record, "createdAt");
+                break;
+            case "africa.bsky.account":
                 EnsureRequiredField(record, "createdAt");
                 break;
         }

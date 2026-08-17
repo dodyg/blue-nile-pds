@@ -66,7 +66,10 @@ public class AccountRepository
         string repoCid,
         string repoRev,
         string? inviteCode,
-        bool? deactivated)
+        bool? deactivated,
+        string? location = null,
+        string? accountType = null,
+        bool? suspended = null)
     {
         string? passwordScrypt = null;
         if (password != null)
@@ -86,10 +89,10 @@ public class AccountRepository
         }
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
-        await _accountStore.RegisterActorAsync(did, handle, deactivated);
+        await _accountStore.RegisterActorAsync(did, handle, deactivated, suspended);
         if (email != null && passwordScrypt != null)
         {
-            await _accountStore.RegisterAccountAsync(did, email, passwordScrypt);
+            await _accountStore.RegisterAccountAsync(did, email, passwordScrypt, location, accountType);
         }
         await _inviteStore.RecordInviteUseAsync(did, inviteCode, now);
         await _auth.StoreRefreshTokenAsync(refreshDecoded, null);
@@ -200,6 +203,21 @@ public class AccountRepository
         await _accountStore.DeactivateAccountAsync(did, deleteAfter);
     }
 
+    public async Task SuspendAccountAsync(string did)
+    {
+        await _accountStore.SuspendAccountAsync(did);
+    }
+
+    public async Task UnsuspendAccountAsync(string did)
+    {
+        await _accountStore.UnsuspendAccountAsync(did);
+    }
+
+    public async Task<(ActorAccount[] Accounts, string? Cursor)> GetPendingAccountsAsync(string? cursor, int limit)
+    {
+        return await _accountStore.GetPendingAccountsAsync(cursor, limit);
+    }
+
     public async Task<AccountStore.AccountStatus> GetAccountStatusAsync(string did)
     {
         return await _accountStore.GetAccountStatusAsync(did);
@@ -233,6 +251,11 @@ public class AccountRepository
     public async Task UpdateInvitesDisabledAsync(string did, bool disabled)
     {
         await _accountStore.UpdateInvitesDisabledAsync(did, disabled);
+    }
+
+    public async Task UpdateAccountMetadataAsync(string did, string? location, string? accountType)
+    {
+        await _accountStore.UpdateAccountMetadataAsync(did, location, accountType);
     }
 
     public record LoginResult(ActorAccount Account, string? AppPasswordName, string? AppPasswordScope);
@@ -278,6 +301,12 @@ public class AccountRepository
             var appPassResult = await _appPasswordStore.VerifyAppPasswordAsync(user.Did, password);
             if (appPassResult != null && appPassResult.Value.Valid)
             {
+                if (user.SuspendedAt != null)
+                {
+                    _logger.LogWarning("Suspended account attempted app-password login: {Did}", user.Did);
+                    throw new XRPCError(new AuthRequiredErrorDetail("Invalid username or password"));
+                }
+
                 if (user.SoftDeleted)
                 {
                     if (!allowTakendown)

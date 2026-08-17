@@ -40,6 +40,10 @@
     "PDS_PRIVACY_POLICY_URL": "https://example.com/privacy",
     "PDS_TERMS_OF_SERVICE_URL": "https://example.com/terms",
 
+    // Account approval — require admin approval for new accounts (default false)
+    "PDS_ACCOUNT_APPROVAL_REQUIRED": false,
+    "PDS_ADMIN_EMAIL": "admin@example.com", // receives pending-account notifications; falls back to PDS_CONTACT_EMAIL
+
     // SMTP Mailer configuration
     "PDS_SMTP_HOST": "smtp.example.com",
     "PDS_SMTP_PORT": 587,

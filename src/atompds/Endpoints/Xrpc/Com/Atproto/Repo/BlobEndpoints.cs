@@ -13,7 +13,7 @@ public static class BlobEndpoints
 {
     public static RouteGroupBuilder MapBlobEndpoints(this RouteGroupBuilder group)
     {
-        group.MapPost("com.atproto.repo.uploadBlob", HandleAsync).WithMetadata(new AccessStandardAttribute(true, true)).RequireRateLimiting("repo-write");
+        group.MapPost("com.atproto.repo.uploadBlob", HandleAsync).WithMetadata(new AccessStandardAttribute(true, true, true)).RequireRateLimiting("repo-write");
         return group;
     }
 
