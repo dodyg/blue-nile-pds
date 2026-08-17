@@ -66,7 +66,7 @@
         <Exec WorkingDirectory="%(SpaProject.Identity)" Command="npm ci" Condition="!Exists('%(SpaProject.Identity)/node_modules')" />
     </Target>
 
-    <Target Name="BuildFrontend" BeforeTargets="ComputeFilesToPublish">
+    <Target Name="BuildFrontend" BeforeTargets="BeforeBuild;Publish">
         <Message Importance="high" Text="Restoring npm dependencies for %(SpaProject.Name)..." />
         <Exec WorkingDirectory="%(SpaProject.Identity)" Command="npm ci" />
 
