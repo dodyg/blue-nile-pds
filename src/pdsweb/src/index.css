@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+
+  --page: #f9fafb;
+  --surface: #ffffff;
+  --surface-raised: #fafafa;
+  --subtle: #e5e7eb;
+  --input: #d1d5db;
+  --hover: #f3f4f6;
+  --row-hover: #f9fafb;
+  --overlay: rgb(0 0 0 / 0.4);
+
+  --ink: #232e3e;
+  --secondary: #6b7280;
+  --muted: #9ca3af;
+  --ghost: #374151;
+  --neutral: #4b5563;
+
+  --board: #eaf1ff;
+  --board-hover: #dde9ff;
+  --board-text: #1d4ed8;
+  --board-text-dim: #45679b;
+
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
+  --focus-ring: #3b82f6;
+  --accent: #0560ff;
+  --accent-hover: #0547c9;
+  --accent-soft: #dbeafe;
+  --accent-ring: #93c5fd;
+
+  --warning: #eab308;
+  --warning-hover: #ca8a04;
+  --warning-bg: #fef9c3;
+  --warning-text: #854d0e;
+  --success: #16a34a;
+  --success-deep: #15803d;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-deep: #991b1b;
+
+  --data-string: #15803d;
+  --data-number: #2563eb;
+  --data-boolean: #7c3aed;
+  --data-null: #9ca3af;
+
+  --card-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 2px 8px rgb(15 23 42 / 0.05);
+  --chip-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 2px rgb(15 23 42 / 0.08);
+  --modal-shadow: 0 4px 12px rgb(15 23 42 / 0.12), 0 24px 48px -12px rgb(15 23 42 / 0.28);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --page: #0f172a;
+  --surface: #1e293b;
+  --surface-raised: #243247;
+  --subtle: #334155;
+  --input: #475569;
+  --hover: #263447;
+  --row-hover: #1b263c;
+  --overlay: rgb(0 0 0 / 0.6);
+
+  --ink: #e2e8f0;
+  --secondary: #94a3b8;
+  --muted: #64748b;
+  --ghost: #cbd5e1;
+  --neutral: #94a3b8;
+
+  --board: #0a1120;
+  --board-hover: #141f36;
+  --board-text: #6ea8ff;
+  --board-text-dim: #7f9bc4;
+
+  --primary: #60a5fa;
+  --primary-hover: #93c5fd;
+  --focus-ring: #60a5fa;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-soft: rgb(59 130 246 / 0.15);
+  --accent-ring: #60a5fa;
+
+  --warning: #facc15;
+  --warning-hover: #fde047;
+  --warning-bg: rgb(250 204 21 / 0.15);
+  --warning-text: #fde047;
+  --success: #4ade80;
+  --success-deep: #22c55e;
+  --danger: #f87171;
+  --danger-hover: #fca5a5;
+  --danger-deep: #dc2626;
+
+  --data-string: #86efac;
+  --data-number: #60a5fa;
+  --data-boolean: #c084fc;
+  --data-null: #64748b;
+
+  --card-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 2px 8px rgb(0 0 0 / 0.3);
+  --chip-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 3px rgb(0 0 0 / 0.6);
+  --modal-shadow: 0 4px 12px rgb(0 0 0 / 0.5), 0 24px 48px -12px rgb(0 0 0 / 0.7);
+}
+
+@theme inline {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-display: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-subtle: var(--subtle);
+  --color-input: var(--input);
+  --color-hover: var(--hover);
+  --color-row-hover: var(--row-hover);
+  --color-overlay: var(--overlay);
+
+  --color-ink: var(--ink);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-ghost: var(--ghost);
+  --color-neutral: var(--neutral);
+
+  --color-board: var(--board);
+  --color-board-hover: var(--board-hover);
+  --color-board-text: var(--board-text);
+  --color-board-text-dim: var(--board-text-dim);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-focus-ring: var(--focus-ring);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ring: var(--accent-ring);
+
+  --color-warning: var(--warning);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-text: var(--warning-text);
+  --color-success: var(--success);
+  --color-success-deep: var(--success-deep);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-deep: var(--danger-deep);
+
+  --color-data-string: var(--data-string);
+  --color-data-number: var(--data-number);
+  --color-data-boolean: var(--data-boolean);
+  --color-data-null: var(--data-null);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  --shadow-card: var(--card-shadow);
+  --shadow-chip: var(--chip-shadow);
+  --shadow-modal: var(--modal-shadow);
+
+  --animate-flap: flap 500ms cubic-bezier(0.5, 0, 0.5, 1) 1;
+
+  @keyframes flap {
+    0% {
+      transform: rotateX(0deg);
+      filter: brightness(1);
+    }
+    45% {
+      transform: rotateX(-84deg);
+      filter: brightness(1.7);
+    }
+    55% {
+      transform: rotateX(-96deg);
+      filter: brightness(0.85);
+    }
+    100% {
+      transform: rotateX(0deg);
+      filter: brightness(1);
+    }
+  }
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--page);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-flap {
+      animation: none;
+    }
+  }
+}

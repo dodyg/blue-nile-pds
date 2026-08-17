@@ -13,23 +13,36 @@ public static class RootEndpoints
     {
         var version = typeof(RootEndpoints).Assembly.GetName().Version!.ToString(3);
 
-        app.MapGet("/", () => Results.Json(new
+        app.MapGet("/", (HttpContext ctx, IWebHostEnvironment env) =>
         {
-            serviceName = environment.PDS_SERVICE_NAME,
-            did = serviceConfig.Did,
-            version,
-            publicUrl = serviceConfig.PublicUrl,
-            availableUserDomains = identityConfig.ServiceHandleDomains,
-            contactEmail = environment.PDS_CONTACT_EMAIL,
-            logoUrl = environment.PDS_LOGO_URL,
-            links = new
+            // Serve the public SPA for browser navigations; keep the JSON
+            // service-info response for API clients and non-HTML requests.
+            var accept = ctx.Request.Headers.Accept.ToString();
+            if (accept.Contains("text/html", StringComparison.OrdinalIgnoreCase))
             {
-                home = environment.PDS_HOME_URL ?? serviceConfig.PublicUrl,
-                support = environment.PDS_SUPPORT_URL,
-                privacyPolicy = environment.PDS_PRIVACY_POLICY_URL,
-                termsOfService = environment.PDS_TERMS_OF_SERVICE_URL
+                var fileInfo = env.WebRootFileProvider.GetFileInfo("index.html");
+                if (fileInfo.Exists && fileInfo.PhysicalPath != null)
+                    return Results.File(fileInfo.PhysicalPath, "text/html");
             }
-        }));
+
+            return Results.Json(new
+            {
+                serviceName = environment.PDS_SERVICE_NAME,
+                did = serviceConfig.Did,
+                version,
+                publicUrl = serviceConfig.PublicUrl,
+                availableUserDomains = identityConfig.ServiceHandleDomains,
+                contactEmail = environment.PDS_CONTACT_EMAIL,
+                logoUrl = environment.PDS_LOGO_URL,
+                links = new
+                {
+                    home = environment.PDS_HOME_URL ?? serviceConfig.PublicUrl,
+                    support = environment.PDS_SUPPORT_URL,
+                    privacyPolicy = environment.PDS_PRIVACY_POLICY_URL,
+                    termsOfService = environment.PDS_TERMS_OF_SERVICE_URL
+                }
+            });
+        });
 
         app.MapGet("/robots.txt", () => "User-agent: *\nAllow: /xrpc/\nDisallow: /");
 

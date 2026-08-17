@@ -88,7 +88,8 @@ public class Program
             app.Services.GetRequiredService<ServiceConfig>(),
             app.Services.GetRequiredService<IdentityConfig>());
 
-        app.MapFallbackToFile("admin/index.html");
+        app.MapFallbackToFile("/admin/{**path}", "admin/index.html");
+        app.MapFallbackToFile("index.html");
 
         await app.RunAsync();
     }
