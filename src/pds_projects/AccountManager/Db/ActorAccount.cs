@@ -7,9 +7,12 @@ public record ActorAccount(
     string? TakedownRef,
     DateTime? DeactivatedAt,
     DateTime? DeleteAfter,
+    DateTime? SuspendedAt,
     string? Email,
     DateTime? EmailConfirmedAt,
-    bool? InvitesDisabled)
+    bool? InvitesDisabled,
+    string? Location,
+    string? AccountType)
 {
 
     public bool SoftDeleted => TakedownRef != null;
@@ -21,6 +24,7 @@ public record ActorAccount(
         }
 
         return new ActorAccount(actor.Did, actor.Handle, actor.CreatedAt, actor.TakedownRef, actor.DeactivatedAt,
-            actor.DeleteAfter, account?.Email, account?.EmailConfirmedAt, account?.InvitesDisabled);
+            actor.DeleteAfter, actor.SuspendedAt, account?.Email, account?.EmailConfirmedAt, account?.InvitesDisabled,
+            account?.Location, account?.AccountType);
     }
 }

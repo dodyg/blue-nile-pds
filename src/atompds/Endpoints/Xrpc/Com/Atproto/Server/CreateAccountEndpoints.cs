@@ -2,6 +2,8 @@ using System.Text.Json;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
+using ActorStore.Repo;
+using atompds.Config;
 using atompds.Middleware;
 using atompds.Services;
 using atompds.Utils;
@@ -14,6 +16,7 @@ using DidLib;
 using Handle;
 using Identity;
 using Microsoft.Data.Sqlite;
+using Repo;
 using Sequencer;
 using Xrpc;
 using Operations = DidLib.Operations;
@@ -46,6 +49,9 @@ public static class CreateAccountEndpoints
         ReservedSigningKeyStore reservedSigningKeyStore,
         EmailAddressValidator emailAddressValidator,
         EntrywayRelayService entrywayRelayService,
+        ApprovalConfig approvalConfig,
+        BackgroundEmailDispatcher mailer,
+        ServerEnvironment environment,
         ILogger<Program> logger)
     {
         string? validatedDid = null;
@@ -60,9 +66,13 @@ public static class CreateAccountEndpoints
                 : await ValidateInputsForLocalPdsAsync(request, context, authVerifier, invitesConfig, emailAddressValidator, handle, accountRepository, reservedSigningKeyStore, identityConfig, serviceConfig, secretsConfig);
             validatedDid = validatedInputs.Did;
 
+            var pending = approvalConfig.Required;
+
+            var writes = BuildInitialWrites(validatedInputs);
+
             await using var actorStoreDb = actorRepositoryProvider.Create(validatedInputs.Did, validatedInputs.SigningKey);
             conn = actorStoreDb.Connection;
-            var commit = await actorStoreDb.TransactRepoAsync(async repo => await repo.Repo.CreateRepoAsync([]));
+            var commit = await actorStoreDb.TransactRepoAsync(async repo => await repo.Repo.CreateRepoAsync(writes));
 
             if (validatedInputs.PlcOp != null)
             {
@@ -86,16 +96,24 @@ public static class CreateAccountEndpoints
                 commit.Cid.ToString(),
                 commit.Rev,
                 validatedInputs.InviteCode,
-                validatedInputs.Deactivated);
+                validatedInputs.Deactivated,
+                null,
+                null,
+                pending);
 
             if (!validatedInputs.Deactivated)
             {
                 await sequencer.SequenceIdentityEventAsync(validatedInputs.Did, validatedInputs.Handle);
-                await sequencer.SequenceAccountEventAsync(validatedInputs.Did, AccountStore.AccountStatus.Active);
-                await sequencer.SequenceCommitAsync(validatedInputs.Did, commit, []);
+                await sequencer.SequenceAccountEventAsync(validatedInputs.Did, pending ? AccountStore.AccountStatus.Suspended : AccountStore.AccountStatus.Active);
+                await sequencer.SequenceCommitAsync(validatedInputs.Did, commit, writes);
             }
 
             await accountRepository.UpdateRepoRootAsync(validatedInputs.Did, commit.Cid, commit.Rev);
+
+            if (pending)
+            {
+                await NotifyAdminOfPendingAccountAsync(environment, mailer, validatedInputs);
+            }
 
             return Results.Ok(new CreateAccountOutput
             {
@@ -116,6 +134,33 @@ public static class CreateAccountEndpoints
             }
             throw;
         }
+    }
+
+    private static PreparedCreate[] BuildInitialWrites(ValidatedCreateAccount validatedInputs)
+    {
+        var record = JsonSerializer.SerializeToElement(new Dictionary<string, object?>
+        {
+            ["$type"] = "africa.bsky.account",
+            ["createdAt"] = DateTime.UtcNow.ToString("O")
+        });
+
+        return [Prepare.PrepareCreate(validatedInputs.Did, "africa.bsky.account", "self", null, record, null)];
+    }
+
+    private static Task NotifyAdminOfPendingAccountAsync(ServerEnvironment environment, BackgroundEmailDispatcher mailer, ValidatedCreateAccount validatedInputs)
+    {
+        var adminEmail = environment.PDS_ADMIN_EMAIL ?? environment.PDS_CONTACT_EMAIL;
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(validatedInputs.Email))
+        {
+            return Task.CompletedTask;
+        }
+
+        return mailer.SendCustomEmailAsync(
+            "New account pending approval",
+            $"A new account ({validatedInputs.Handle}) is pending approval.\n\n" +
+            $"DID: {validatedInputs.Did}\n" +
+            $"Email: {validatedInputs.Email}\n",
+            adminEmail);
     }
 
     private static async Task<DidDocument?> SafeResolveDidDocAsync(string did, bool forceRefresh, IdResolver idResolver, ILogger logger)

@@ -71,6 +71,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                 ["Config:PDS_BSKY_APP_VIEW_URL"] = "https://appview.bsky.social",
                 ["Config:PDS_BSKY_APP_VIEW_DID"] = "did:web:appview.bsky.social",
                 ["Config:PDS_PROXY_REQUIRE_HEADER"] = "true",
+                ["Config:PDS_ACCOUNT_APPROVAL_REQUIRED"] = "false",
             };
             if (_additionalConfig != null)
             {

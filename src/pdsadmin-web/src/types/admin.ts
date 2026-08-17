@@ -28,6 +28,21 @@ export interface GetAccountInfoResponse {
   threatSignatures?: { property: string; value: string }[];
 }
 
+export interface PendingAccountView {
+  did: string;
+  handle: string;
+  email: string;
+  location?: string;
+  accountType?: string;
+  createdAt: string;
+  emailConfirmed: boolean;
+}
+
+export interface ListPendingAccountsResponse {
+  accounts: PendingAccountView[];
+  cursor?: string;
+}
+
 export interface SearchAccountsResponse {
   accounts: GetAccountInfoResponse[];
   cursor?: string;

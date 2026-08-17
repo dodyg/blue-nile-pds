@@ -13,6 +13,8 @@ public class Account
     [StringLength(2048)] public required string PasswordSCrypt { get; set; }
     public DateTime? EmailConfirmedAt { get; set; }
     public bool InvitesDisabled { get; set; }
+    [StringLength(2048)] public string? Location { get; set; }
+    [StringLength(2048)] public string? AccountType { get; set; }
 
     public virtual Actor? Actor { get; set; }
 }
@@ -28,6 +30,7 @@ public class Actor
     [StringLength(2048)] public required string? TakedownRef { get; set; }
     public DateTime? DeactivatedAt { get; set; }
     public DateTime? DeleteAfter { get; set; }
+    public DateTime? SuspendedAt { get; set; }
 
     public virtual Account? Account { get; set; }
 }

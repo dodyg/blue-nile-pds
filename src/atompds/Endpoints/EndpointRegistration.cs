@@ -10,6 +10,8 @@ using atompds.Endpoints.Xrpc.Com.Atproto.Server;
 using atompds.Endpoints.Xrpc.Com.Atproto.Sync;
 using atompds.Endpoints.Xrpc.Com.Atproto.Temp;
 using atompds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
+using atompds.Endpoints.Xrpc.Africa.Bsky;
+using atompds.Endpoints.Xrpc.Africa.Bsky.Admin;
 using Config;
 
 namespace atompds.Endpoints;
@@ -34,6 +36,7 @@ public static class EndpointRegistration
 
         var xrpc = app.MapGroup("xrpc");
         xrpc.MapHealthEndpoints();
+        xrpc.MapSetAccountProfileEndpoints();
 
         var admin = xrpc.MapGroup("").WithTags("Admin");
         admin.MapAccountInvitesAdminEndpoints();
@@ -48,6 +51,7 @@ public static class EndpointRegistration
         admin.MapUpdateAccountEmailAdminEndpoints();
         admin.MapUpdateAccountHandleAdminEndpoints();
         admin.MapUpdateAccountPasswordAdminEndpoints();
+        admin.MapAccountApprovalEndpoints();
 
         var ozone = xrpc.MapGroup("").WithTags("Ozone");
         ozone.MapOzoneProxyEndpoints();

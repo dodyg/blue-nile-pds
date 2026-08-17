@@ -1,0 +1,43 @@
+{
+    "lexicon": 1,
+    "id": "africa.bsky.setAccountProfile",
+    "defs": {
+        "main": {
+            "type": "procedure",
+            "description": "Set account metadata (location and account type) for the authenticated account. Stores the data in the africa.bsky.account record.",
+            "input": {
+                "encoding": "application/json",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "maxLength": 200,
+                            "description": "Free-form location of the account"
+                        },
+                        "accountType": {
+                            "type": "string",
+                            "knownValues": [
+                                "individual",
+                                "organization",
+                                "business"
+                            ],
+                            "description": "Whether the account is an individual, organization, or business"
+                        }
+                    }
+                }
+            },
+            "output": {
+                "encoding": "application/json",
+                "schema": {
+                    "type": "object",
+                    "required": ["uri", "cid"],
+                    "properties": {
+                        "uri": { "type": "string", "format": "at-uri" },
+                        "cid": { "type": "string", "format": "cid" }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -127,16 +127,18 @@ public class AccessStandardAttribute : Attribute
 {
     private readonly bool _checkDeactivated;
     private readonly bool _checkTakenDown;
+    private readonly bool _checkSuspended;
 
-    public AccessStandardAttribute(bool checkTakenDown = false, bool checkDeactivated = false)
+    public AccessStandardAttribute(bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         _checkTakenDown = checkTakenDown;
         _checkDeactivated = checkDeactivated;
+        _checkSuspended = checkSuspended;
     }
 
     public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
-        return verifier.AccessStandardAsync(context, _checkTakenDown, _checkDeactivated);
+        return verifier.AccessStandardAsync(context, _checkTakenDown, _checkDeactivated, _checkSuspended);
     }
 }
 
@@ -144,16 +146,18 @@ public class OptionalAccessStandardAttribute : Attribute
 {
     private readonly bool _checkDeactivated;
     private readonly bool _checkTakenDown;
+    private readonly bool _checkSuspended;
 
-    public OptionalAccessStandardAttribute(bool checkTakenDown = false, bool checkDeactivated = false)
+    public OptionalAccessStandardAttribute(bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         _checkTakenDown = checkTakenDown;
         _checkDeactivated = checkDeactivated;
+        _checkSuspended = checkSuspended;
     }
 
     public Task<AuthVerifier.AccessOutput?> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
-        return verifier.OptionalAccessStandardAsync(context, _checkTakenDown, _checkDeactivated);
+        return verifier.OptionalAccessStandardAsync(context, _checkTakenDown, _checkDeactivated, _checkSuspended);
     }
 }
 
@@ -161,16 +165,18 @@ public class AccessFullAttribute : Attribute
 {
     private readonly bool _checkDeactivated;
     private readonly bool _checkTakenDown;
+    private readonly bool _checkSuspended;
 
-    public AccessFullAttribute(bool checkTakenDown = false, bool checkDeactivated = false)
+    public AccessFullAttribute(bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         _checkTakenDown = checkTakenDown;
         _checkDeactivated = checkDeactivated;
+        _checkSuspended = checkSuspended;
     }
 
     public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
-        return verifier.AccessFullAsync(context, _checkTakenDown, _checkDeactivated);
+        return verifier.AccessFullAsync(context, _checkTakenDown, _checkDeactivated, _checkSuspended);
     }
 }
 
@@ -178,16 +184,18 @@ public class AccessPrivilegedAttribute : Attribute
 {
     private readonly bool _checkDeactivated;
     private readonly bool _checkTakenDown;
+    private readonly bool _checkSuspended;
 
-    public AccessPrivilegedAttribute(bool checkTakenDown = false, bool checkDeactivated = false)
+    public AccessPrivilegedAttribute(bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
     {
         _checkTakenDown = checkTakenDown;
         _checkDeactivated = checkDeactivated;
+        _checkSuspended = checkSuspended;
     }
 
     public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
     {
-        return verifier.AccessPrivilegedAsync(context, _checkTakenDown, _checkDeactivated);
+        return verifier.AccessPrivilegedAsync(context, _checkTakenDown, _checkDeactivated, _checkSuspended);
     }
 }
 

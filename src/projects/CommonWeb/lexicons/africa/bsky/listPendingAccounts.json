@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "africa.bsky.admin.listPendingAccounts",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List accounts that are pending admin approval",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "cursor": { "type": "string" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["accounts"],
+          "properties": {
+            "accounts": {
+              "type": "array",
+              "items": { "type": "ref", "ref": "africa.bsky.admin.defs#pendingAccountView" }
+            },
+            "cursor": { "type": "string" }
+          }
+        }
+      },
+      "errors": [{ "name": "InvalidRequest" }]
+    }
+  }
+}

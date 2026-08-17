@@ -15,11 +15,15 @@ namespace AccountManager.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
 
             modelBuilder.Entity("AccountManager.Db.Account", b =>
                 {
                     b.Property<string>("Did")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AccountType")
                         .HasMaxLength(2048)
                         .HasColumnType("TEXT");
 
@@ -34,6 +38,10 @@ namespace AccountManager.Migrations
                     b.Property<bool>("InvitesDisabled")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Location")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PasswordSCrypt")
                         .IsRequired()
                         .HasMaxLength(2048)
@@ -42,6 +50,21 @@ namespace AccountManager.Migrations
                     b.HasKey("Did");
 
                     b.ToTable("account");
+                });
+
+            modelBuilder.Entity("AccountManager.Db.AccountDevice", b =>
+                {
+                    b.Property<string>("Did")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Did", "DeviceId");
+
+                    b.ToTable("account_device");
                 });
 
             modelBuilder.Entity("AccountManager.Db.Actor", b =>
@@ -62,6 +85,9 @@ namespace AccountManager.Migrations
                     b.Property<string>("Handle")
                         .IsRequired()
                         .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("SuspendedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TakedownRef")
@@ -99,149 +125,6 @@ namespace AccountManager.Migrations
                     b.HasKey("Did", "Name");
 
                     b.ToTable("app_password");
-                });
-
-            modelBuilder.Entity("AccountManager.Db.EmailToken", b =>
-                {
-                    b.Property<int>("Purpose")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Did")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("RequestedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Purpose", "Did");
-
-                    b.HasIndex("Purpose", "Token")
-                        .IsUnique();
-
-                    b.ToTable("email_token");
-                });
-
-            modelBuilder.Entity("AccountManager.Db.InviteCode", b =>
-                {
-                    b.Property<string>("Code")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AvailableUses")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Disabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ForAccount")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Code");
-
-                    b.HasIndex("ForAccount");
-
-                    b.ToTable("invite_code");
-                });
-
-            modelBuilder.Entity("AccountManager.Db.InviteCodeUse", b =>
-                {
-                    b.Property<string>("Code")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UsedBy")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UsedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Code", "UsedBy");
-
-                    b.ToTable("invite_code_use");
-                });
-
-            modelBuilder.Entity("AccountManager.Db.RefreshToken", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("AppPasswordName")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Did")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NextId")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Did");
-
-                    b.ToTable("refresh_token");
-                });
-
-            modelBuilder.Entity("AccountManager.Db.RepoRoot", b =>
-                {
-                    b.Property<string>("Did")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Cid")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("IndexedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Rev")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Did");
-
-                    b.ToTable("repo_root");
-                });
-
-            modelBuilder.Entity("AccountManager.Db.AccountDevice", b =>
-                {
-                    b.Property<string>("DeviceId")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Did")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Did", "DeviceId");
-
-                    b.ToTable("account_device");
                 });
 
             modelBuilder.Entity("AccountManager.Db.AuthorizationRequest", b =>
@@ -323,6 +206,81 @@ namespace AccountManager.Migrations
                     b.ToTable("device");
                 });
 
+            modelBuilder.Entity("AccountManager.Db.EmailToken", b =>
+                {
+                    b.Property<int>("Purpose")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Did")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Purpose", "Did");
+
+                    b.HasIndex("Purpose", "Token")
+                        .IsUnique();
+
+                    b.ToTable("email_token");
+                });
+
+            modelBuilder.Entity("AccountManager.Db.InviteCode", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AvailableUses")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Disabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ForAccount")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Code");
+
+                    b.HasIndex("ForAccount");
+
+                    b.ToTable("invite_code");
+                });
+
+            modelBuilder.Entity("AccountManager.Db.InviteCodeUse", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UsedBy")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Code", "UsedBy");
+
+                    b.ToTable("invite_code_use");
+                });
+
             modelBuilder.Entity("AccountManager.Db.Lexicon", b =>
                 {
                     b.Property<string>("Nsid")
@@ -346,6 +304,59 @@ namespace AccountManager.Migrations
                     b.HasKey("Nsid");
 
                     b.ToTable("lexicon");
+                });
+
+            modelBuilder.Entity("AccountManager.Db.RefreshToken", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AppPasswordName")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Did")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NextId")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Did");
+
+                    b.ToTable("refresh_token");
+                });
+
+            modelBuilder.Entity("AccountManager.Db.RepoRoot", b =>
+                {
+                    b.Property<string>("Did")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cid")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("IndexedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Rev")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Did");
+
+                    b.ToTable("repo_root");
                 });
 
             modelBuilder.Entity("AccountManager.Db.Token", b =>

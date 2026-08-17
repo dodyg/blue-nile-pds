@@ -66,6 +66,10 @@ public class ServerEnvironment
     public int? PDS_INVITE_INTERVAL { get; set; }
     public int InviteEpoch { get; set; } = 0;
 
+    // Account approval
+    public bool PDS_ACCOUNT_APPROVAL_REQUIRED { get; set; } = false;
+    public string? PDS_ADMIN_EMAIL { get; set; }
+
     // Subscription
     public int PDS_MAX_SUBSCRIPTION_BUFFER { get; set; } = 500;
     public int PDS_REPO_BACKFILL_LIMIT_MS { get; set; } = DAY;

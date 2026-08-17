@@ -39,6 +39,7 @@ public static class ListReposEndpoints
                     CreatedAt = actor.CreatedAt,
                     TakedownRef = actor.TakedownRef,
                     DeactivatedAt = actor.DeactivatedAt,
+                    SuspendedAt = actor.SuspendedAt,
                     Head = repoRoot.Cid,
                     Rev = repoRoot.Rev
                 });
@@ -57,7 +58,7 @@ public static class ListReposEndpoints
 
         var repos = result.Select(r =>
         {
-            var actorAccount = new ActorAccount(r.Did, null, r.CreatedAt, r.TakedownRef, r.DeactivatedAt, null, null, null, null);
+            var actorAccount = new ActorAccount(r.Did, null, r.CreatedAt, r.TakedownRef, r.DeactivatedAt, null, r.SuspendedAt, null, null, null, null, null);
             var (active, status) = AccountStore.FormatAccountStatus(actorAccount);
             return new { r.Did, r.Head, r.Rev, active, status = status.ToString() };
         }).ToArray();

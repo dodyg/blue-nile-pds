@@ -1,0 +1,38 @@
+{
+    "lexicon": 1,
+    "id": "africa.bsky.account",
+    "defs": {
+        "main": {
+            "type": "record",
+            "description": "Account metadata record for africa.bsky",
+            "key": "literal:self",
+            "record": {
+                "type": "object",
+                "required": [
+                    "createdAt"
+                ],
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "description": "Free-form location of the account"
+                    },
+                    "accountType": {
+                        "type": "string",
+                        "knownValues": [
+                            "individual",
+                            "organization",
+                            "business"
+                        ],
+                        "description": "Whether the account is an individual, organization, or business"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "datetime",
+                        "description": "When the record was created"
+                    }
+                }
+            }
+        }
+    }
+}
