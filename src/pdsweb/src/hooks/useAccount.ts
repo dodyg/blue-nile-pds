@@ -14,6 +14,8 @@ import type {
   RequestPasswordResetRequest,
   ResetPasswordRequest,
   SessionResponse,
+  SetAccountProfileRequest,
+  SetAccountProfileResponse,
   UpdateEmailRequest,
 } from '../types/pds';
 
@@ -51,7 +53,20 @@ export function useCreateAccount() {
   return useMutation({
     mutationFn: (body: CreateAccountRequest) =>
       xrpcPost<SessionResponse>('com.atproto.server.createAccount', body),
-    onSuccess: (session) => setAccessJwt(session.accessJwt),
+    onSuccess: (session) => {
+      if (session.accessJwt) setAccessJwt(session.accessJwt);
+    },
+  });
+}
+
+export function useSetAccountProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SetAccountProfileRequest) =>
+      xrpcPost<SetAccountProfileResponse>('africa.bsky.setAccountProfile', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: accountKeys.session });
+    },
   });
 }
 

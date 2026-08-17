@@ -276,6 +276,13 @@ export default function Profile() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
+      {session.active === false && session.status === 'suspended' && (
+        <div className="rounded-sm border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning-text dark:text-warning">
+          Your account is pending approval by an administrator. Until it is approved, your profile is
+          read-only and you cannot post.
+        </div>
+      )}
+
       <Card>
         <CardHeader title="Your profile" subtitle={`@${session.handle}`} />
         <div className="flex items-center gap-3 border-b border-subtle px-4 py-3">

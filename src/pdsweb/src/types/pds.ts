@@ -83,6 +83,16 @@ export interface CreateAccountRequest {
   inviteCode?: string;
 }
 
+export interface SetAccountProfileRequest {
+  location?: string;
+  accountType?: string;
+}
+
+export interface SetAccountProfileResponse {
+  uri: string;
+  cid: string;
+}
+
 export interface CreateSessionRequest {
   identifier: string;
   password: string;
@@ -101,6 +111,8 @@ export interface GetSessionResponse {
   handle: string;
   email?: string;
   emailConfirmed?: boolean;
+  active?: boolean;
+  status?: string;
 }
 
 export interface RequestEmailUpdateResponse {

@@ -10,6 +10,8 @@ import RecordDetail from './pages/RecordDetail';
 import InviteCodes from './pages/InviteCodes';
 import CreateInviteCodes from './pages/CreateInviteCodes';
 import SubjectStatus from './pages/SubjectStatus';
+import Approvals from './pages/Approvals';
+import ApprovalDetail from './pages/ApprovalDetail';
 import Backup from './pages/Backup';
 import RepoResync from './pages/RepoResync';
 
@@ -28,6 +30,8 @@ export default function App() {
             <Route path="invites/create" element={<CreateInviteCodes />} />
             <Route path="invites" element={<InviteCodes />} />
             <Route path="subjects" element={<SubjectStatus />} />
+            <Route path="approvals" element={<Approvals />} />
+            <Route path="approvals/:did" element={<ApprovalDetail />} />
             <Route path="backup" element={<Backup />} />
             <Route path="repo/resync" element={<RepoResync />} />
           </Route>

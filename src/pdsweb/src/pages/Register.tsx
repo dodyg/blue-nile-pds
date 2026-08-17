@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCreateAccount } from '../hooks/useAccount';
+import { useCreateAccount, useSetAccountProfile } from '../hooks/useAccount';
 import { useDescribeServer, useHandleAvailability } from '../hooks/useServer';
 import { Card, CardHeader } from '../components/Card';
 import { Input } from '../components/Input';
@@ -12,6 +12,12 @@ function errMessage(err: unknown): string | null {
   return 'Something went wrong';
 }
 
+const ACCOUNT_TYPES = [
+  { value: 'individual', label: 'Individual' },
+  { value: 'organization', label: 'Organization' },
+  { value: 'business', label: 'Business' },
+];
+
 export default function Register() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -19,6 +25,8 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [location, setLocation] = useState('');
+  const [accountType, setAccountType] = useState('individual');
   const [formError, setFormError] = useState<string | null>(null);
 
   const describe = useDescribeServer();
@@ -30,8 +38,9 @@ export default function Register() {
     availability.data?.result.$type === 'com.atproto.temp.checkHandleAvailability#resultAvailable';
 
   const createAccount = useCreateAccount();
+  const setAccountProfile = useSetAccountProfile();
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
 
@@ -64,18 +73,28 @@ export default function Register() {
       return;
     }
 
-    createAccount.mutate(
-      {
+    try {
+      await createAccount.mutateAsync({
         email: email.trim(),
         handle: effectiveHandle,
         password,
         ...(inviteRequired ? { inviteCode: inviteCode.trim() } : {}),
-      },
-      {
-        onSuccess: () => navigate('/profile'),
-        onError: (err) => setFormError(errMessage(err)),
-      },
-    );
+      });
+
+      if (location.trim() || accountType !== 'individual') {
+        setAccountProfile.mutate(
+          {
+            ...(location.trim() ? { location: location.trim() } : {}),
+            ...(accountType !== 'individual' ? { accountType } : {}),
+          },
+          { onError: () => undefined },
+        );
+      }
+
+      navigate('/profile');
+    } catch (err) {
+      setFormError(errMessage(err));
+    }
   }
 
   return (
@@ -115,6 +134,31 @@ export default function Register() {
             {availability.isError && (
               <p className="mt-1 text-xs text-danger">That handle does not look right.</p>
             )}
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-secondary">Location</span>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="City, Country"
+              maxLength={200}
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-secondary">Account type</span>
+            <select
+              value={accountType}
+              onChange={(e) => setAccountType(e.target.value)}
+              className="block w-full rounded-sm border border-subtle bg-surface px-3 py-2 text-sm text-ink focus:outline-2 focus:outline-offset-2 focus:outline-focus-ring"
+            >
+              {ACCOUNT_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="block">
