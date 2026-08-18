@@ -16,7 +16,7 @@ export default function RecordDetail() {
 
   return (
     <div>
-      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}`)}>
+      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(`/admin/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}`)}>
         ← Back to collection
       </Button>
 

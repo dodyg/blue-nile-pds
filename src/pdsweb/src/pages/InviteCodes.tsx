@@ -30,7 +30,7 @@ export default function InviteCodes() {
         title="Invite Codes"
         description="Issue and manage invite codes."
         actions={
-          <Button variant="primary" onClick={() => navigate('/invites/create')}>
+          <Button variant="primary" onClick={() => navigate('/admin/invites/create')}>
             Create invite codes
           </Button>
         }
@@ -44,7 +44,7 @@ export default function InviteCodes() {
         <EmptyState
           title="No invite codes"
           description="No invite codes have been issued yet."
-          action={<Button variant="primary" onClick={() => navigate('/invites/create')}>Create invite codes</Button>}
+          action={<Button variant="primary" onClick={() => navigate('/admin/invites/create')}>Create invite codes</Button>}
         />
       ) : (
         <TableBoard>

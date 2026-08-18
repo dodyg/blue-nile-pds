@@ -62,7 +62,7 @@ export default function AccountDetail() {
         variant="ghost"
         size="sm"
         className="mb-3 -ml-2"
-        onClick={() => navigate('/accounts')}
+        onClick={() => navigate('/admin/accounts')}
       >
         ← Back to accounts
       </Button>
@@ -152,7 +152,7 @@ export default function AccountDetail() {
             {repoInfo.collections.sort().map(col => (
               <button
                 key={col}
-                onClick={() => navigate(`/accounts/${encodeURIComponent(info.did)}/collections/${encodeURIComponent(col)}`)}
+                onClick={() => navigate(`/admin/accounts/${encodeURIComponent(info.did)}/collections/${encodeURIComponent(col)}`)}
                 className="rounded-sm border border-subtle bg-page px-3 py-1.5 font-mono text-xs text-ghost transition-colors hover:border-accent-ring hover:bg-accent-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
               >
                 {col}

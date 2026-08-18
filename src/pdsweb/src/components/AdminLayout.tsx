@@ -4,13 +4,13 @@ import { clearAdminPassword } from '../stores/auth';
 import { useTheme } from '../hooks/useTheme';
 
 const nav = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/accounts', label: 'Accounts' },
-  { to: '/invites', label: 'Invites' },
-  { to: '/subjects', label: 'Subjects' },
-  { to: '/approvals', label: 'Approvals' },
-  { to: '/backup', label: 'Backup' },
-  { to: '/repo/resync', label: 'Repo Resync' },
+  { to: '/admin', label: 'Dashboard' },
+  { to: '/admin/accounts', label: 'Accounts' },
+  { to: '/admin/invites', label: 'Invites' },
+  { to: '/admin/subjects', label: 'Subjects' },
+  { to: '/admin/approvals', label: 'Approvals' },
+  { to: '/admin/backup', label: 'Backup' },
+  { to: '/admin/repo/resync', label: 'Repo Resync' },
 ];
 
 function SunIcon() {
@@ -37,7 +37,7 @@ export default function Layout() {
 
   function handleLogout() {
     clearAdminPassword();
-    navigate('/login', { replace: true });
+    navigate('/admin/login', { replace: true });
   }
 
   function closeMobileMenu() {
@@ -76,7 +76,7 @@ export default function Layout() {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
+            end={item.to === '/admin'}
             onClick={onClick}
             className={({ isActive }) =>
               `flex items-center gap-2.5 rounded-sm px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${

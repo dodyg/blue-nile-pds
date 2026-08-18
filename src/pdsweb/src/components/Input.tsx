@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, Ref, TextareaHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 
 const base =
   'w-full rounded-sm bg-surface border border-input text-ink placeholder:text-muted ' +
@@ -11,12 +11,24 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   ref?: Ref<HTMLInputElement>;
 }
 
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  ref?: Ref<HTMLSelectElement>;
+}
+
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   ref?: Ref<HTMLTextAreaElement>;
 }
 
 export function Input({ ref, className = '', ...rest }: InputProps) {
   return <input ref={ref} className={`${base} ${pad} ${className}`} {...rest} />;
+}
+
+export function Select({ ref, className = '', children, ...rest }: SelectProps) {
+  return (
+    <select ref={ref} className={`${base} ${pad} ${className}`} {...rest}>
+      {children}
+    </select>
+  );
 }
 
 export function Textarea({ ref, className = '', ...rest }: TextareaProps) {

@@ -58,7 +58,7 @@ light themes are both supported. Existing name: "PDS Admin".
 ## Evidence on Hand
 
 Real XRPC endpoints and admin models in src/atompds/Endpoints/ and
-src/pdsadmin-web/src/api + hooks. No fabricated content; no testimonials,
+src/pdsweb/src/api + hooks. No fabricated content; no testimonials,
 customers, or benchmarks to cite.
 
 ## Product Principles

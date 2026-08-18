@@ -10,7 +10,7 @@ export default function DidLink({ did }: Props) {
 
   return (
     <Link
-      to={`/accounts/${encodeURIComponent(did)}`}
+      to={`/admin/accounts/${encodeURIComponent(did)}`}
       className="font-mono text-xs text-primary underline decoration-subtle underline-offset-2 transition-colors hover:text-primary-hover hover:decoration-accent"
     >
       {isPending ? did : data?.handle ?? did}

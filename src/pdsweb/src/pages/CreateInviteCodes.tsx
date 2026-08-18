@@ -77,7 +77,7 @@ export default function CreateInviteCodes() {
 
   return (
     <div>
-      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate('/invites')}>
+      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate('/admin/invites')}>
         ← Back to invite codes
       </Button>
 
@@ -108,7 +108,7 @@ export default function CreateInviteCodes() {
           </div>
           <div className="flex gap-3">
             <Button variant="primary" onClick={handleCreateAnother}>Create another batch</Button>
-            <Button variant="secondary" onClick={() => navigate('/invites')}>View all invite codes</Button>
+            <Button variant="secondary" onClick={() => navigate('/admin/invites')}>View all invite codes</Button>
           </div>
         </Card>
       ) : (

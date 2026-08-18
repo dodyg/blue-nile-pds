@@ -18,7 +18,7 @@ This repository is **not production-ready**. Treat it as a protocol-learning and
 - `src/pds_projects/` — PDS-specific services such as account management, actor storage, sequencing, blob storage, mail, and XRPC errors
 - `src/projects/` — lower-level shared libraries such as CID, crypto, DID, identity, handle validation, and repo/MST logic
 - `src/pdsadmin-cli/` — admin CLI
-- `src/pdsadmin-web/` — admin web UI (React SPA)
+- `src/pdsweb/` — single React SPA (public site at `/`, admin UI at `/admin/*`)
 - `src/migration/` — actor-store migration utility
 - `test/` — unit and integration tests
 

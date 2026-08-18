@@ -24,7 +24,7 @@ async function request<T>(method: string, nsid: string, body?: unknown): Promise
     } catch {
       // ignore parse errors
     }
-    throw new XrpcError(res.status, nsid, detail.error, detail.message || res.statusText);
+    throw new XrpcError(res.status, nsid, detail.error, detail.message || res.statusText, true);
   }
 
   if (res.status === 204) return undefined as T;
@@ -63,7 +63,7 @@ async function adminApiRequest<T>(method: string, path: string, body?: unknown):
     } catch {
       // ignore parse errors
     }
-    throw new XrpcError(res.status, `admin/api/${path}`, detail.error, detail.message || res.statusText);
+    throw new XrpcError(res.status, `admin/api/${path}`, detail.error, detail.message || res.statusText, true);
   }
 
   if (res.status === 204) return undefined as T;
@@ -96,7 +96,7 @@ export async function downloadAdminFile(path: string, params: Record<string, str
     } catch {
       // ignore parse errors
     }
-    throw new XrpcError(res.status, `admin/api/${path}`, detail.error, detail.message || res.statusText);
+    throw new XrpcError(res.status, `admin/api/${path}`, detail.error, detail.message || res.statusText, true);
   }
 
   const blob = await res.blob();
@@ -127,7 +127,7 @@ export async function downloadXrpcFile(nsid: string, params: Record<string, stri
     } catch {
       // ignore parse errors
     }
-    throw new XrpcError(res.status, nsid, detail.error, detail.message || res.statusText);
+    throw new XrpcError(res.status, nsid, detail.error, detail.message || res.statusText, true);
   }
 
   const blob = await res.blob();

@@ -12,7 +12,7 @@
 - `src/pds_projects/`: PDS-specific services such as `AccountManager`, `ActorStore`, `BlobStore`, `Sequencer`, `Mailer`, and `Xrpc`.
 - `src/projects/`: lower-level libraries such as `CID`, `Common`, `Crypto`, `DidLib`, `Handle`, `Identity`, and `Repo`.
 - `src/pdsadmin-cli/`: admin CLI.
-- `src/pdsadmin-web/`: admin web UI (React SPA).
+- `src/pdsweb/`: single React SPA serving the public site at `/` and the admin UI at `/admin/*`.
 - `src/migration/`: batch migration utility for actor stores.
 - `test/`: TUnit test projects plus `SubscribeTester`.
 - `atompds.slnx`: root solution file. Use this for solution-wide build and test commands.
@@ -92,7 +92,7 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 
 ## Front-end stack
 
-- React 19 + TypeScript + Vite 8. SPA served at `/admin/` via ASP.NET Core static files middleware.
+- React 19 + TypeScript + Vite 8. Single SPA served from `src/pdsweb/` via ASP.NET Core static files middleware: public site at `/`, admin UI at `/admin/*`.
 - **TanStack Query v5** for all server state. `queryClient.ts` configures global defaults (30s stale, 1 retry), global `queryCache.onError` for 401 redirects, and `XrpcError` class. Mutations auto-invalidate related query keys on success.
 - **No direct `xrpcGet`/`xrpcPost` calls from components.** All API interaction goes through domain hooks (`useAccountInfo`, `useSearchAccounts`, `useSubjectStatus`, `useDashboardStats`, `useInviteCodes`, etc.) in `hooks/useAccounts.ts`, `hooks/useInvites.ts`, `hooks/useDashboard.ts`.
 - Add a new hook for any new endpoint. Follow the pattern: `useQuery`/`useInfiniteQuery` for reads, `useMutation` + `queryClient.invalidateQueries` for writes.

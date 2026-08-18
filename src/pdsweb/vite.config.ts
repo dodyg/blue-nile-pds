@@ -7,11 +7,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     outDir: '../atompds/wwwroot',
-    emptyOutDir: false,
+    emptyOutDir: true,
   },
   server: {
     proxy: {
       '/xrpc': 'http://localhost:5093',
+      '/admin/api': 'http://localhost:5093',
     },
   },
 })

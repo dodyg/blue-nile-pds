@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminApiGet, adminApiPost, downloadAdminFile } from '../api/client';
+import { adminApiGet, adminApiPost, downloadAdminFile } from '../api/adminClient';
 import { backupKeys } from '../api/queryKeys';
 import type { BackupCreateResponse, BackupListResponse, BackupStatus } from '../types/admin';
 
