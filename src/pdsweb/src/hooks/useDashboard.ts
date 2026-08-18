@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { xrpcGet } from '../api/client';
+import { xrpcGet } from '../api/adminClient';
 import { dashboardKeys } from '../api/queryKeys';
 
 interface ListReposResponse {

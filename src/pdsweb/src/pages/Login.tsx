@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setAdminPassword } from '../stores/auth';
-import { validatePassword } from '../api/client';
+import { validatePassword } from '../api/adminClient';
 import Button from '../components/Button';
 import { Input } from '../components/Input';
 
@@ -19,7 +19,7 @@ export default function Login() {
       const ok = await validatePassword(password);
       if (ok) {
         setAdminPassword(password);
-        navigate('/', { replace: true });
+        navigate('/admin', { replace: true });
       } else {
         setError('Invalid admin password');
       }

@@ -1,4 +1,10 @@
 import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
+import { clearAdminPassword } from '../stores/auth';
+
+function authRedirect() {
+  clearAdminPassword();
+  window.location.href = '/admin/login';
+}
 
 export function createQueryClient() {
   return new QueryClient({
@@ -12,21 +18,33 @@ export function createQueryClient() {
         retry: 0,
       },
     },
-    queryCache: new QueryCache({}),
-    mutationCache: new MutationCache({}),
+    queryCache: new QueryCache({
+      onError: handleError,
+    }),
+    mutationCache: new MutationCache({
+      onError: handleError,
+    }),
   });
+}
+
+function handleError(error: unknown) {
+  if (error instanceof XrpcError && error.status === 401 && error.isAdmin) {
+    authRedirect();
+  }
 }
 
 export class XrpcError extends Error {
   status: number;
   nsid: string;
   error?: string;
+  isAdmin?: boolean;
 
-  constructor(status: number, nsid: string, error?: string, message?: string) {
+  constructor(status: number, nsid: string, error?: string, message?: string, isAdmin?: boolean) {
     super(message || error || `Request failed`);
     this.name = 'XrpcError';
     this.status = status;
     this.nsid = nsid;
     this.error = error;
+    this.isAdmin = isAdmin;
   }
 }

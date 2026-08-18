@@ -83,7 +83,7 @@ export default function Accounts() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate(`/accounts/${encodeURIComponent(acc.did)}`)}
+                      onClick={() => navigate(`/admin/accounts/${encodeURIComponent(acc.did)}`)}
                     >
                       View
                     </Button>

@@ -50,7 +50,7 @@ export default function Approvals() {
                 <Tr key={acc.did}>
                   <Td>
                     <button
-                      onClick={() => navigate(`/approvals/${encodeURIComponent(acc.did)}`)}
+                      onClick={() => navigate(`/admin/approvals/${encodeURIComponent(acc.did)}`)}
                       className="text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                     >
                       <div className="font-medium text-ink hover:text-primary">{acc.handle}</div>

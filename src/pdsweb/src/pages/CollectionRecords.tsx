@@ -29,7 +29,7 @@ export default function CollectionRecords() {
 
   return (
     <div>
-      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(`/accounts/${encodeURIComponent(did ?? '')}`)}>
+      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate(`/admin/accounts/${encodeURIComponent(did ?? '')}`)}>
         ← Back to account
       </Button>
 
@@ -66,7 +66,7 @@ export default function CollectionRecords() {
                     <Td className="w-0 whitespace-nowrap text-xs text-muted">{i + 1}</Td>
                     <Td className="w-0 whitespace-nowrap">
                       <Link
-                        to={`/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}/${encodeURIComponent(rkey)}`}
+                        to={`/admin/accounts/${encodeURIComponent(did ?? '')}/collections/${encodeURIComponent(collection ?? '')}/${encodeURIComponent(rkey)}`}
                         className="font-mono text-xs text-primary underline decoration-subtle underline-offset-2 hover:text-primary-hover hover:decoration-accent"
                       >
                         {rkey}

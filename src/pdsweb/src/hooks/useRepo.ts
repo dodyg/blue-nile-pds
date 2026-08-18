@@ -1,5 +1,5 @@
 import { useQuery, useInfiniteQuery, useMutation } from '@tanstack/react-query';
-import { xrpcGet, downloadXrpcFile } from '../api/client';
+import { xrpcGet, downloadXrpcFile } from '../api/adminClient';
 import type { DescribeRepoResponse, ListRecordsResponse, GetRecordResponse } from '../types/admin';
 
 export const repoKeys = {

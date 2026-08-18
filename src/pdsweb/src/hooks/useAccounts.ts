@@ -1,5 +1,5 @@
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { xrpcGet, xrpcPost } from '../api/client';
+import { xrpcGet, xrpcPost } from '../api/adminClient';
 import { accountKeys } from '../api/queryKeys';
 import type { GetAccountInfoResponse, SearchAccountsResponse, SubjectStatus } from '../types/admin';
 

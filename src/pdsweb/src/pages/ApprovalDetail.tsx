@@ -28,7 +28,7 @@ export default function ApprovalDetail() {
 
   return (
     <div>
-      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate('/approvals')}>
+      <Button variant="ghost" size="sm" className="mb-3 -ml-2" onClick={() => navigate('/admin/approvals')}>
         ← Back to approvals
       </Button>
 
