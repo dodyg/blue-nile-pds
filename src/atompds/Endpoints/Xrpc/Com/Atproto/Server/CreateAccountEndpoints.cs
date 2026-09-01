@@ -3,7 +3,6 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
-using atompds.Config;
 using atompds.Middleware;
 using atompds.Services;
 using atompds.Utils;
@@ -49,9 +48,6 @@ public static class CreateAccountEndpoints
         ReservedSigningKeyStore reservedSigningKeyStore,
         EmailAddressValidator emailAddressValidator,
         EntrywayRelayService entrywayRelayService,
-        ApprovalConfig approvalConfig,
-        BackgroundEmailDispatcher mailer,
-        ServerEnvironment environment,
         ILogger<Program> logger)
     {
         string? validatedDid = null;
@@ -65,8 +61,6 @@ public static class CreateAccountEndpoints
                 ? await ValidateInputsForEntrywayPdsAsync(request, handle, serviceConfig, secretsConfig, identityConfig, reservedSigningKeyStore, accountRepository)
                 : await ValidateInputsForLocalPdsAsync(request, context, authVerifier, invitesConfig, emailAddressValidator, handle, accountRepository, reservedSigningKeyStore, identityConfig, serviceConfig, secretsConfig);
             validatedDid = validatedInputs.Did;
-
-            var pending = approvalConfig.Required;
 
             var writes = BuildInitialWrites(validatedInputs);
 
@@ -96,24 +90,16 @@ public static class CreateAccountEndpoints
                 commit.Cid.ToString(),
                 commit.Rev,
                 validatedInputs.InviteCode,
-                validatedInputs.Deactivated,
-                null,
-                null,
-                pending);
+                validatedInputs.Deactivated);
 
             if (!validatedInputs.Deactivated)
             {
                 await sequencer.SequenceIdentityEventAsync(validatedInputs.Did, validatedInputs.Handle);
-                await sequencer.SequenceAccountEventAsync(validatedInputs.Did, pending ? AccountStore.AccountStatus.Suspended : AccountStore.AccountStatus.Active);
+                await sequencer.SequenceAccountEventAsync(validatedInputs.Did, AccountStore.AccountStatus.Active);
                 await sequencer.SequenceCommitAsync(validatedInputs.Did, commit, writes);
             }
 
             await accountRepository.UpdateRepoRootAsync(validatedInputs.Did, commit.Cid, commit.Rev);
-
-            if (pending)
-            {
-                await NotifyAdminOfPendingAccountAsync(environment, mailer, validatedInputs);
-            }
 
             return Results.Ok(new CreateAccountOutput
             {
@@ -145,22 +131,6 @@ public static class CreateAccountEndpoints
         });
 
         return [Prepare.PrepareCreate(validatedInputs.Did, "africa.bsky.account", "self", null, record, null)];
-    }
-
-    private static Task NotifyAdminOfPendingAccountAsync(ServerEnvironment environment, BackgroundEmailDispatcher mailer, ValidatedCreateAccount validatedInputs)
-    {
-        var adminEmail = environment.PDS_ADMIN_EMAIL ?? environment.PDS_CONTACT_EMAIL;
-        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(validatedInputs.Email))
-        {
-            return Task.CompletedTask;
-        }
-
-        return mailer.SendCustomEmailAsync(
-            "New account pending approval",
-            $"A new account ({validatedInputs.Handle}) is pending approval.\n\n" +
-            $"DID: {validatedInputs.Did}\n" +
-            $"Email: {validatedInputs.Email}\n",
-            adminEmail);
     }
 
     private static async Task<DidDocument?> SafeResolveDidDocAsync(string did, bool forceRefresh, IdResolver idResolver, ILogger logger)

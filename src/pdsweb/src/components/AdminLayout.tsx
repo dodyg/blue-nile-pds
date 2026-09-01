@@ -8,7 +8,6 @@ const nav = [
   { to: '/admin/accounts', label: 'Accounts' },
   { to: '/admin/invites', label: 'Invites' },
   { to: '/admin/subjects', label: 'Subjects' },
-  { to: '/admin/approvals', label: 'Approvals' },
   { to: '/admin/backup', label: 'Backup' },
   { to: '/admin/repo/resync', label: 'Repo Resync' },
 ];

@@ -11,7 +11,6 @@ using atompds.Endpoints.Xrpc.Com.Atproto.Sync;
 using atompds.Endpoints.Xrpc.Com.Atproto.Temp;
 using atompds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 using atompds.Endpoints.Xrpc.Africa.Bsky;
-using atompds.Endpoints.Xrpc.Africa.Bsky.Admin;
 using Config;
 
 namespace atompds.Endpoints;
@@ -51,8 +50,6 @@ public static class EndpointRegistration
         admin.MapUpdateAccountEmailAdminEndpoints();
         admin.MapUpdateAccountHandleAdminEndpoints();
         admin.MapUpdateAccountPasswordAdminEndpoints();
-        admin.MapAccountApprovalEndpoints();
-
         var ozone = xrpc.MapGroup("").WithTags("Ozone");
         ozone.MapOzoneProxyEndpoints();
 

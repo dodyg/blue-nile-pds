@@ -83,7 +83,6 @@ public record ServerConfig
             : MapS3BlobstoreConfig(env);
         Identity = MapIdentityConfig(env);
         Invites = MapInviteConfig(env);
-        Approval = MapApprovalConfig(env);
         BskyAppView = MapBskyAppViewConfig(env);
         Proxy = MapProxyConfig(env);
         SecretsConfig = MapSecretsConfig(env);
@@ -98,7 +97,6 @@ public record ServerConfig
     public BlobStoreConfig Blobstore { get; init; }
     public IdentityConfig Identity { get; init; }
     public InvitesConfig Invites { get; init; }
-    public ApprovalConfig Approval { get; init; }
     public IBskyAppViewConfig BskyAppView { get; init; }
     public ProxyConfig Proxy { get; init; }
     public SecretsConfig SecretsConfig { get; init; }
@@ -177,13 +175,6 @@ public record ServerConfig
                 Epoch = env.InviteEpoch
             }
             : new NonRequiredInvitesConfig();
-    }
-
-    public ApprovalConfig MapApprovalConfig(ServerEnvironment env)
-    {
-        return env.PDS_ACCOUNT_APPROVAL_REQUIRED
-            ? new RequiredApprovalConfig()
-            : new NonRequiredApprovalConfig();
     }
 
     public IBskyAppViewConfig MapBskyAppViewConfig(ServerEnvironment env)
@@ -299,7 +290,6 @@ public record ServerConfig
         services.AddSingleton(config.Blobstore);
         services.AddSingleton(config.Identity);
         services.AddSingleton(config.Invites);
-        services.AddSingleton(config.Approval);
         services.AddSingleton(config.BskyAppView);
         services.AddSingleton(config.Proxy);
         services.AddSingleton(config.SecretsConfig);

@@ -69,13 +69,13 @@ public class AccountRepository
         bool? deactivated,
         string? location = null,
         string? accountType = null,
-        bool? suspended = null)
+        bool? suspended = null,
+        bool alreadyHashed = false)
     {
         string? passwordScrypt = null;
         if (password != null)
         {
-            var enc = new ScryptEncoder();
-            passwordScrypt = enc.Encode(password);
+            passwordScrypt = alreadyHashed ? password : new ScryptEncoder().Encode(password);
         }
 
         var tokens = _auth.CreateTokens(did, _secretsConfig.JwtSecret, _serviceConfig.Did, Auth.ACCESS_TOKEN_SCOPE);
@@ -201,21 +201,6 @@ public class AccountRepository
     public async Task DeactivateAccountAsync(string did, DateTimeOffset? deleteAfter)
     {
         await _accountStore.DeactivateAccountAsync(did, deleteAfter);
-    }
-
-    public async Task SuspendAccountAsync(string did)
-    {
-        await _accountStore.SuspendAccountAsync(did);
-    }
-
-    public async Task UnsuspendAccountAsync(string did)
-    {
-        await _accountStore.UnsuspendAccountAsync(did);
-    }
-
-    public async Task<(ActorAccount[] Accounts, string? Cursor)> GetPendingAccountsAsync(string? cursor, int limit)
-    {
-        return await _accountStore.GetPendingAccountsAsync(cursor, limit);
     }
 
     public async Task<AccountStore.AccountStatus> GetAccountStatusAsync(string did)
