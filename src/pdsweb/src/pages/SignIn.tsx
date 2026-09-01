@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCreateSession } from '../hooks/useAccount';
+import { usePendingLogin } from '../hooks/usePending';
 import { Card, CardHeader } from '../components/Card';
 import { Input } from '../components/Input';
 import Button from '../components/Button';
@@ -18,6 +19,7 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
 
   const signIn = useCreateSession();
+  const pendingLogin = usePendingLogin();
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +28,15 @@ export default function SignIn() {
       { identifier: identifier.trim(), password },
       {
         onSuccess: () => navigate('/profile', { replace: true }),
-        onError: (err) => setError(errMessage(err)),
+        onError: () => {
+          pendingLogin.mutate(
+            { identifier: identifier.trim(), password },
+            {
+              onSuccess: () => navigate('/pending/profile', { replace: true }),
+              onError: (err) => setError(errMessage(err)),
+            },
+          );
+        },
       },
     );
   }
@@ -61,8 +71,8 @@ export default function SignIn() {
               {error}
             </p>
           )}
-          <Button type="submit" disabled={signIn.isPending} className="w-full">
-            {signIn.isPending ? 'Signing in…' : 'Sign in'}
+          <Button type="submit" disabled={signIn.isPending || pendingLogin.isPending} className="w-full">
+            {signIn.isPending || pendingLogin.isPending ? 'Signing in…' : 'Sign in'}
           </Button>
           <p className="text-center text-sm">
             <Link to="/profile/forgot-password" className="text-secondary underline transition-colors hover:text-ink">

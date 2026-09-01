@@ -1,83 +1,77 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { usePendingAccounts, useApproveAccount, useRejectAccount } from '../hooks/useApprovals';
+import { Link } from 'react-router-dom';
+import { usePendingAdminList, usePendingApprove, usePendingReject } from '../hooks/useAdminPending';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
+import { Card } from '../components/Card';
 import { TableBoard, Table, Th, Tr, Td } from '../components/Table';
 import EmptyState from '../components/EmptyState';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { XrpcError } from '../api/queryClient';
+
+function errMessage(err: unknown): string | null {
+  if (err instanceof XrpcError) return err.message || err.error || 'Something went wrong';
+  return 'Something went wrong';
+}
 
 export default function Approvals() {
-  const [approving, setApproving] = useState<string | null>(null);
-  const [rejecting, setRejecting] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const { data, isPending, error, fetchNextPage, hasNextPage, isFetchingNextPage } = usePendingAdminList();
+  const approve = usePendingApprove();
+  const reject = usePendingReject();
 
-  const { data, isPending, error, fetchNextPage, hasNextPage, isFetchingNextPage } = usePendingAccounts();
-  const approveMutation = useApproveAccount();
-  const rejectMutation = useRejectAccount();
+  const [approveId, setApproveId] = useState<number | null>(null);
+  const [rejectId, setRejectId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const accounts = data?.pages.flatMap(p => p.accounts) ?? [];
+  const items = data?.pages.flatMap(p => p.items) ?? [];
+
+  if (isPending) return <p className="text-sm text-secondary">Loading…</p>;
+  if (error) return <p className="text-sm text-danger">{errMessage(error)}</p>;
 
   return (
     <div>
-      <PageHeader
-        eyebrow="approvals · queue"
-        title="Approvals"
-        description="Accounts waiting for admin approval."
-      />
+      <PageHeader eyebrow="moderation · approvals" title="Pending approvals" description="Review pending registrations and approve or reject them." />
 
-      {error && <p className="mb-4 text-sm text-danger">{error.message}</p>}
-      {isPending && accounts.length === 0 && <p className="mb-4 text-sm text-secondary">Loading...</p>}
-
-      {accounts.length === 0 && !isPending ? (
-        <EmptyState title="No pending approvals" description="All caught up — no accounts are waiting for review." />
+      {items.length === 0 ? (
+        <EmptyState title="No pending registrations" description="All caught up — no accounts are waiting for review." />
       ) : (
         <TableBoard>
           <Table>
             <thead>
-              <Tr>
+              <tr>
                 <Th>Handle</Th>
-                <Th className="hidden md:table-cell">Email</Th>
-                <Th className="hidden lg:table-cell">Location</Th>
-                <Th className="hidden lg:table-cell">Type</Th>
-                <Th className="hidden xl:table-cell">Requested</Th>
-                <Th />
-              </Tr>
+                <Th>Email</Th>
+                <Th>Location</Th>
+                <Th>Type</Th>
+                <Th>Requested</Th>
+                <Th>Actions</Th>
+              </tr>
             </thead>
             <tbody>
-              {accounts.map(acc => (
-                <Tr key={acc.did}>
-                  <Td>
-                    <button
-                      onClick={() => navigate(`/admin/approvals/${encodeURIComponent(acc.did)}`)}
-                      className="text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+              {items.map((item) => (
+                <Tr key={item.id}>
+                  <Td className="font-mono text-xs">
+                    <Link
+                      to={`/admin/approvals/${item.id}`}
+                      className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                     >
-                      <div className="font-medium text-ink hover:text-primary">{acc.handle}</div>
-                      <div className="max-w-[200px] truncate font-mono text-xs text-muted">{acc.did}</div>
-                    </button>
+                      {item.handle}
+                    </Link>
                   </Td>
-                  <Td className="hidden text-secondary md:table-cell">{acc.email || '—'}</Td>
-                  <Td className="hidden text-secondary lg:table-cell">{acc.location || '—'}</Td>
-                  <Td className="hidden lg:table-cell">
-                    <Badge tone="accent">{acc.accountType || 'individual'}</Badge>
-                  </Td>
-                  <Td className="hidden whitespace-nowrap text-secondary xl:table-cell">
-                    {new Date(acc.createdAt).toLocaleString()}
-                  </Td>
-                  <Td className="whitespace-nowrap">
+                  <Td className="font-mono text-xs">{item.email}</Td>
+                  <Td>{item.location || '—'}</Td>
+                  <Td>{item.accountType || 'individual'}</Td>
+                  <Td className="text-xs text-secondary">{new Date(item.createdAt).toLocaleString()}</Td>
+                  <Td>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => setApproving(acc.did)}
-                        disabled={approveMutation.isPending}
-                      >
+                      <Button variant="primary" size="sm" onClick={() => setApproveId(item.id)} disabled={approve.isPending || reject.isPending}>
                         Approve
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setRejecting(acc.did)}>
+                      <Button variant="ghost" size="sm" onClick={() => setRejectId(item.id)} disabled={approve.isPending || reject.isPending}>
                         Reject
                       </Button>
+                      {(item.emailConfirmed === false || item.emailConfirmedAt == null) && <Badge tone="warning">unconfirmed</Badge>}
                     </div>
                   </Td>
                 </Tr>
@@ -88,54 +82,44 @@ export default function Approvals() {
       )}
 
       {hasNextPage && (
-        <Button
-          variant="secondary"
-          className="mt-4"
-          onClick={() => fetchNextPage()}
-          disabled={isFetchingNextPage}
-        >
-          {isFetchingNextPage ? 'Loading...' : 'Load more'}
-        </Button>
+        <div className="mt-4 flex justify-center">
+          <Button variant="secondary" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+            {isFetchingNextPage ? 'Loading…' : 'Load more'}
+          </Button>
+        </div>
       )}
 
-      <ConfirmDialog
-        open={approving !== null}
-        title="Approve account?"
-        message={
-          approving
-            ? 'This will activate the account and allow the user to log in. A confirmation email will be sent.'
-            : ''
-        }
-        confirmLabel="Approve"
-        confirmClass="bg-accent-soft text-primary hover:opacity-90"
-        onConfirm={() => {
-          if (approving) {
-            approveMutation.mutate(approving, {
-              onSettled: () => setApproving(null),
-            });
-          }
-        }}
-        onCancel={() => setApproving(null)}
-      />
+      {actionError && <p className="mt-4 text-sm text-danger">{actionError}</p>}
+      {approve.error && <p className="mt-2 text-sm text-danger">{errMessage(approve.error)}</p>}
+      {reject.error && <p className="mt-2 text-sm text-danger">{errMessage(reject.error)}</p>}
 
       <ConfirmDialog
-        open={rejecting !== null}
-        title="Reject account?"
-        message={
-          rejecting
-            ? 'The account will remain disabled and the user will be notified. This cannot be undone from this screen.'
-            : ''
-        }
-        confirmLabel="Reject"
+        open={approveId != null}
+        title="Approve account?"
+        message="This will create the PDS account and send a confirmation email to the user."
+        confirmLabel="Approve"
         onConfirm={() => {
-          if (rejecting) {
-            rejectMutation.mutate(rejecting, {
-              onSettled: () => setRejecting(null),
-            });
-          }
+          if (approveId == null) return;
+          setActionError(null);
+          approve.mutate({ id: approveId }, { onSuccess: () => setApproveId(null), onError: (e) => setActionError(errMessage(e)) });
         }}
-        onCancel={() => setRejecting(null)}
+        onCancel={() => setApproveId(null)}
       />
+
+      <Card className={rejectId == null ? 'hidden' : 'mt-4 p-4'}>
+        <p className="text-sm font-medium text-ink">Reject account?</p>
+        <p className="mt-1 text-sm text-secondary">The user will be notified by email.</p>
+        <div className="mt-3 flex items-center gap-2">
+          <Button variant="danger" onClick={() => {
+            if (rejectId == null) return;
+            setActionError(null);
+            reject.mutate({ id: rejectId }, { onSuccess: () => setRejectId(null), onError: (e) => setActionError(errMessage(e)) });
+          }} disabled={reject.isPending}>
+            {reject.isPending ? 'Rejecting…' : 'Reject'}
+          </Button>
+          <Button variant="ghost" onClick={() => setRejectId(null)}>Cancel</Button>
+        </div>
+      </Card>
     </div>
   );
 }

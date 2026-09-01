@@ -1,30 +1,42 @@
 import { useState, type ReactNode } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { usePendingAdminDetail, usePendingApprove, usePendingReject } from '../hooks/useAdminPending';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
 import { Card } from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { useAccountInfo } from '../hooks/useAccounts';
-import { usePendingAccount, useApproveAccount, useRejectAccount } from '../hooks/useApprovals';
+import { XrpcError } from '../api/queryClient';
+
+function errMessage(err: unknown): string | null {
+  if (err instanceof XrpcError) return err.message || err.error || 'Something went wrong';
+  return 'Something went wrong';
+}
 
 export default function ApprovalDetail() {
-  const { did } = useParams<{ did: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [approving, setApproving] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
+  const numericId = id != null ? Number(id) : null;
+  const isValidId = numericId != null && Number.isInteger(numericId) && numericId > 0;
 
-  const { data: info, isPending, error: infoError, refetch } = useAccountInfo(did ?? '');
-  const { account: pendingAccount } = usePendingAccount(did);
-  const approveMutation = useApproveAccount();
-  const rejectMutation = useRejectAccount();
+  const { data, isPending, error } = usePendingAdminDetail(isValidId ? numericId : null);
+  const approve = usePendingApprove();
+  const reject = usePendingReject();
 
-  if (isPending && !info) return <div className="text-sm text-secondary">Loading...</div>;
-  if (infoError && !info) return <div className="text-sm text-danger">{infoError.message}</div>;
-  if (!info) return <div className="text-sm text-secondary">Account not found</div>;
+  const [showApprove, setShowApprove] = useState(false);
+  const [showReject, setShowReject] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  const stillPending = !!pendingAccount;
-  const emailConfirmed = !!info.emailConfirmedAt;
+  if (!isValidId) {
+    return <p className="text-sm text-danger">Invalid approval id.</p>;
+  }
+
+  if (isPending) return <p className="text-sm text-secondary">Loading…</p>;
+  if (error) return <p className="text-sm text-danger">{errMessage(error)}</p>;
+  if (!data) return <p className="text-sm text-secondary">Registration not found.</p>;
+
+  const isProcessed = data.status.toLowerCase() !== 'pending';
 
   return (
     <div>
@@ -33,86 +45,112 @@ export default function ApprovalDetail() {
       </Button>
 
       <PageHeader
-        eyebrow="approvals · passenger record"
-        title={info.handle}
-        description={info.did}
+        eyebrow="moderation · approvals"
+        title={data.handle}
+        description={data.email}
         actions={(
-          stillPending ? <Badge tone="warning">pending</Badge> : <Badge tone="success">approved</Badge>
+          <>
+            <Badge tone={data.status.toLowerCase() === 'approved' ? 'success' : data.status.toLowerCase() === 'rejected' ? 'danger' : 'warning'}>
+              {data.status}
+            </Badge>
+            {data.emailConfirmed ? <Badge tone="success">email confirmed</Badge> : <Badge tone="warning">email unconfirmed</Badge>}
+          </>
         )}
       />
 
       <Card className="mb-6 p-5">
         <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Field label="DID" mono>{info.did}</Field>
-          <Field label="Handle">{info.handle}</Field>
-          <Field label="Email">{info.email || '—'}</Field>
-          <Field label="Email Confirmed">
-            {emailConfirmed ? <Badge tone="success">confirmed</Badge> : <Badge tone="warning">not confirmed</Badge>}
-          </Field>
-          <Field label="Location">{pendingAccount?.location || '—'}</Field>
-          <Field label="Account Type">{pendingAccount?.accountType || 'individual'}</Field>
-          <Field label="Requested">{new Date(info.indexedAt).toLocaleString()}</Field>
+          <Field label="Handle" mono>{data.handle}</Field>
+          <Field label="Email" mono>{data.email}</Field>
+          <Field label="Display name">{data.displayName || '—'}</Field>
+          <Field label="Location">{data.location || '—'}</Field>
+          <Field label="Account type">{data.accountType || 'individual'}</Field>
+          <Field label="Invite code" mono>{data.inviteCode || '—'}</Field>
+          <Field label="Email confirmed">{data.emailConfirmed ? 'Yes' : 'No'}</Field>
+          <Field label="Status">{data.status}</Field>
+          <Field label="Requested">{new Date(data.createdAt).toLocaleString()}</Field>
+          <Field label="Updated">{new Date(data.updatedAt).toLocaleString()}</Field>
+          {data.description && <Field label="Bio">{data.description}</Field>}
         </div>
       </Card>
 
-      {stillPending ? (
-        <div className="flex items-center gap-3">
+      {!isProcessed && (
+        <div className="mb-4 flex items-center gap-3">
           <Button
             variant="primary"
-            onClick={() => setApproving(true)}
-            disabled={approveMutation.isPending}
+            onClick={() => setShowApprove(true)}
+            disabled={approve.isPending || reject.isPending}
           >
-            {approveMutation.isPending ? 'Approving…' : 'Approve account'}
+            Approve
           </Button>
           <Button
-            variant="danger"
-            onClick={() => setRejecting(true)}
-            disabled={rejectMutation.isPending}
+            variant="ghost"
+            onClick={() => setShowReject(true)}
+            disabled={approve.isPending || reject.isPending}
           >
-            {rejectMutation.isPending ? 'Rejecting…' : 'Reject account'}
+            Reject
           </Button>
+          <Link to="/admin/approvals" className="text-sm text-secondary hover:text-ink hover:underline">
+            Back to list
+          </Link>
         </div>
-      ) : (
-        <p className="text-sm text-success-deep dark:text-success">
-          This account has been reviewed and is no longer pending approval.
+      )}
+
+      {isProcessed && (
+        <p className="mb-4 text-sm text-secondary">
+          This registration has already been {data.status.toLowerCase()}.
+          <Link to="/admin/approvals" className="ml-2 text-primary hover:underline">Back to list</Link>
         </p>
       )}
 
-      {approveMutation.error && <p className="mt-4 text-sm text-danger">{approveMutation.error.message}</p>}
-      {rejectMutation.error && <p className="mt-4 text-sm text-danger">{rejectMutation.error.message}</p>}
-
-      <div className="mt-6">
-        <Button variant="ghost" size="sm" onClick={() => refetch()}>
-          Refresh
-        </Button>
-      </div>
+      {actionSuccess && <p className="mb-2 text-sm text-success-deep">{actionSuccess}</p>}
+      {actionError && <p className="mb-2 text-sm text-danger">{actionError}</p>}
+      {approve.error && <p className="mb-2 text-sm text-danger">{errMessage(approve.error)}</p>}
+      {reject.error && <p className="mb-2 text-sm text-danger">{errMessage(reject.error)}</p>}
 
       <ConfirmDialog
-        open={approving}
+        open={showApprove}
         title="Approve account?"
-        message="This will activate the account and allow the user to log in. A confirmation email will be sent."
+        message={`This will create the PDS account for ${data.handle} and send a confirmation email.`}
         confirmLabel="Approve"
-        confirmClass="bg-accent-soft text-primary hover:opacity-90"
         onConfirm={() => {
-          if (did) {
-            approveMutation.mutate(did, { onSettled: () => setApproving(false) });
-          }
+          setActionError(null);
+          setActionSuccess(null);
+          approve.mutate({ id: data.id }, {
+            onSuccess: () => {
+              setShowApprove(false);
+              setActionSuccess(`Approved ${data.handle}.`);
+            },
+            onError: (e) => setActionError(errMessage(e)),
+          });
         }}
-        onCancel={() => setApproving(false)}
+        onCancel={() => setShowApprove(false)}
       />
 
-      <ConfirmDialog
-        open={rejecting}
-        title="Reject account?"
-        message="The account will remain disabled and the user will be notified. This cannot be undone from this screen."
-        confirmLabel="Reject"
-        onConfirm={() => {
-          if (did) {
-            rejectMutation.mutate(did, { onSettled: () => setRejecting(false) });
-          }
-        }}
-        onCancel={() => setRejecting(false)}
-      />
+      <Card className={showReject ? 'mt-4 p-4' : 'hidden'}>
+        <p className="text-sm font-medium text-ink">Reject account?</p>
+        <p className="mt-1 text-sm text-secondary">The user will be notified by email.</p>
+        <div className="mt-3 flex items-center gap-2">
+          <Button
+            variant="danger"
+            onClick={() => {
+              setActionError(null);
+              setActionSuccess(null);
+              reject.mutate({ id: data.id }, {
+                onSuccess: () => {
+                  setShowReject(false);
+                  setActionSuccess(`Rejected ${data.handle}.`);
+                },
+                onError: (e) => setActionError(errMessage(e)),
+              });
+            }}
+            disabled={reject.isPending}
+          >
+            {reject.isPending ? 'Rejecting…' : 'Reject'}
+          </Button>
+          <Button variant="ghost" onClick={() => setShowReject(false)}>Cancel</Button>
+        </div>
+      </Card>
     </div>
   );
 }

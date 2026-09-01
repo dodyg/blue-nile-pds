@@ -8,6 +8,9 @@ import SignIn from './pages/SignIn';
 import ForgotPassword from './pages/ForgotPassword';
 import Profile from './pages/Profile';
 import ProfileView from './pages/ProfileView';
+import PendingProfile from './pages/PendingProfile';
+import Approvals from './pages/Approvals';
+import ApprovalDetail from './pages/ApprovalDetail';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
@@ -17,8 +20,6 @@ import RecordDetail from './pages/RecordDetail';
 import InviteCodes from './pages/InviteCodes';
 import CreateInviteCodes from './pages/CreateInviteCodes';
 import SubjectStatus from './pages/SubjectStatus';
-import Approvals from './pages/Approvals';
-import ApprovalDetail from './pages/ApprovalDetail';
 import Backup from './pages/Backup';
 import RepoResync from './pages/RepoResync';
 
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="profile/forgot-password" element={<ForgotPassword />} />
           <Route path="profile" element={<Profile />} />
           <Route path="profile/:did" element={<ProfileView />} />
+          <Route path="pending/profile" element={<PendingProfile />} />
         </Route>
 
         <Route path="/admin/login" element={<Login />} />
@@ -47,7 +49,7 @@ export default function App() {
             <Route path="invites" element={<InviteCodes />} />
             <Route path="subjects" element={<SubjectStatus />} />
             <Route path="approvals" element={<Approvals />} />
-            <Route path="approvals/:did" element={<ApprovalDetail />} />
+            <Route path="approvals/:id" element={<ApprovalDetail />} />
             <Route path="backup" element={<Backup />} />
             <Route path="repo/resync" element={<RepoResync />} />
           </Route>

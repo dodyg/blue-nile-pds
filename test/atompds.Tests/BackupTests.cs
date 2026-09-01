@@ -38,14 +38,14 @@ public class BackupTests
 
     private async Task<JsonElement> CreateAndWaitForCompletionAsync()
     {
-        var createRequest = CreateAdminRequest(HttpMethod.Post, "/admin/api/backup/create");
+        var createRequest = CreateAdminRequest(HttpMethod.Post, "/api/admin/backup/create");
         var createResponse = await Client.SendAsync(createRequest);
         await Assert.That(createResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var deadline = DateTime.UtcNow.AddSeconds(15);
         while (DateTime.UtcNow < deadline)
         {
-            var statusResponse = await GetAsync("/admin/api/backup/status");
+            var statusResponse = await GetAsync("/api/admin/backup/status");
             var status = await ReadJsonAsync(statusResponse);
             var state = status.GetProperty("status").GetString();
             if (state == "completed")
@@ -65,19 +65,19 @@ public class BackupTests
     [Test]
     public async Task Endpoints_NoAuth_ReturnsAuthError()
     {
-        var create = await Client.PostAsync("/admin/api/backup/create", null);
+        var create = await Client.PostAsync("/api/admin/backup/create", null);
         await Assert.That(create.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
 
-        var status = await Client.GetAsync("/admin/api/backup/status");
+        var status = await Client.GetAsync("/api/admin/backup/status");
         await Assert.That(status.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
 
-        var list = await Client.GetAsync("/admin/api/backup/list");
+        var list = await Client.GetAsync("/api/admin/backup/list");
         await Assert.That(list.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
 
-        var download = await Client.GetAsync("/admin/api/backup/download?fileName=backup-x.zip");
+        var download = await Client.GetAsync("/api/admin/backup/download?fileName=backup-x.zip");
         await Assert.That(download.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
 
-        var delete = await Client.PostAsync("/admin/api/backup/delete", null);
+        var delete = await Client.PostAsync("/api/admin/backup/delete", null);
         await Assert.That(delete.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
@@ -89,14 +89,14 @@ public class BackupTests
         var fileName = status.GetProperty("fileName").GetString();
         await Assert.That(fileName).IsNotNull().And.EndsWith(".zip");
 
-        var listResponse = await GetAsync("/admin/api/backup/list");
+        var listResponse = await GetAsync("/api/admin/backup/list");
         await Assert.That(listResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
         var list = await ReadJsonAsync(listResponse);
         var matches = list.GetProperty("backups").EnumerateArray()
             .Where(b => b.GetProperty("fileName").GetString() == fileName);
         await Assert.That(matches.Count()).IsEqualTo(1);
 
-        var downloadRequest = CreateAdminRequest(HttpMethod.Get, $"/admin/api/backup/download?fileName={fileName}");
+        var downloadRequest = CreateAdminRequest(HttpMethod.Get, $"/api/admin/backup/download?fileName={fileName}");
         var downloadResponse = await Client.SendAsync(downloadRequest);
         await Assert.That(downloadResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(downloadResponse.Content.Headers.ContentType?.MediaType).IsEqualTo("application/zip");
@@ -118,11 +118,11 @@ public class BackupTests
     [Test]
     public async Task Download_InvalidFileName_ReturnsBadRequest()
     {
-        var request = CreateAdminRequest(HttpMethod.Get, "/admin/api/backup/download?fileName=../secret.zip");
+        var request = CreateAdminRequest(HttpMethod.Get, "/api/admin/backup/download?fileName=../secret.zip");
         var response = await Client.SendAsync(request);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
 
-        var request2 = CreateAdminRequest(HttpMethod.Get, "/admin/api/backup/download?fileName=notazip.txt");
+        var request2 = CreateAdminRequest(HttpMethod.Get, "/api/admin/backup/download?fileName=notazip.txt");
         var response2 = await Client.SendAsync(request2);
         await Assert.That(response2.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
@@ -130,7 +130,7 @@ public class BackupTests
     [Test]
     public async Task Download_UnknownFile_ReturnsBadRequest()
     {
-        var request = CreateAdminRequest(HttpMethod.Get, "/admin/api/backup/download?fileName=does-not-exist.zip");
+        var request = CreateAdminRequest(HttpMethod.Get, "/api/admin/backup/download?fileName=does-not-exist.zip");
         var response = await Client.SendAsync(request);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
@@ -142,11 +142,11 @@ public class BackupTests
         var status = await CreateAndWaitForCompletionAsync();
         var fileName = status.GetProperty("fileName").GetString();
 
-        var deleteRequest = CreateAdminRequest(HttpMethod.Post, "/admin/api/backup/delete", JsonSerializer.Serialize(new { fileName }));
+        var deleteRequest = CreateAdminRequest(HttpMethod.Post, "/api/admin/backup/delete", JsonSerializer.Serialize(new { fileName }));
         var deleteResponse = await Client.SendAsync(deleteRequest);
         await Assert.That(deleteResponse.StatusCode).IsEqualTo(HttpStatusCode.NoContent);
 
-        var listResponse = await GetAsync("/admin/api/backup/list");
+        var listResponse = await GetAsync("/api/admin/backup/list");
         var list = await ReadJsonAsync(listResponse);
         var matches = list.GetProperty("backups").EnumerateArray()
             .Where(b => b.GetProperty("fileName").GetString() == fileName);
@@ -156,7 +156,7 @@ public class BackupTests
     [Test]
     public async Task DeleteBackup_InvalidFileName_ReturnsBadRequest()
     {
-        var deleteRequest = CreateAdminRequest(HttpMethod.Post, "/admin/api/backup/delete", "{\"fileName\":\"../evil.zip\"}");
+        var deleteRequest = CreateAdminRequest(HttpMethod.Post, "/api/admin/backup/delete", "{\"fileName\":\"../evil.zip\"}");
         var deleteResponse = await Client.SendAsync(deleteRequest);
         await Assert.That(deleteResponse.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }

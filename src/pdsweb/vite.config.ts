@@ -12,7 +12,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/xrpc': 'http://localhost:5093',
-      '/admin/api': 'http://localhost:5093',
+      '/api/admin': 'http://localhost:5093',
+      '/api/pending': 'http://localhost:5093',
     },
   },
 })

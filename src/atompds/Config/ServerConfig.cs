@@ -83,7 +83,6 @@ public record ServerConfig
             : MapS3BlobstoreConfig(env);
         Identity = MapIdentityConfig(env);
         Invites = MapInviteConfig(env);
-        Approval = MapApprovalConfig(env);
         BskyAppView = MapBskyAppViewConfig(env);
         Proxy = MapProxyConfig(env);
         SecretsConfig = MapSecretsConfig(env);
@@ -98,7 +97,6 @@ public record ServerConfig
     public BlobStoreConfig Blobstore { get; init; }
     public IdentityConfig Identity { get; init; }
     public InvitesConfig Invites { get; init; }
-    public ApprovalConfig Approval { get; init; }
     public IBskyAppViewConfig BskyAppView { get; init; }
     public ProxyConfig Proxy { get; init; }
     public SecretsConfig SecretsConfig { get; init; }
@@ -139,7 +137,8 @@ public record ServerConfig
         {
             AccountDbLoc = MapDbLoc(env, env.PDS_ACCOUNT_DB_LOCATION),
             SequencerDbLoc = MapDbLoc(env, env.PDS_SEQUENCER_DB_LOCATION),
-            DidCacheDbLoc = MapDbLoc(env, env.PDS_DID_CACHE_DB_LOCATION)
+            DidCacheDbLoc = MapDbLoc(env, env.PDS_DID_CACHE_DB_LOCATION),
+            PendingDbLoc = MapDbLoc(env, env.PDS_PENDING_DB_LOCATION)
         };
     }
 
@@ -177,13 +176,6 @@ public record ServerConfig
                 Epoch = env.InviteEpoch
             }
             : new NonRequiredInvitesConfig();
-    }
-
-    public ApprovalConfig MapApprovalConfig(ServerEnvironment env)
-    {
-        return env.PDS_ACCOUNT_APPROVAL_REQUIRED
-            ? new RequiredApprovalConfig()
-            : new NonRequiredApprovalConfig();
     }
 
     public IBskyAppViewConfig MapBskyAppViewConfig(ServerEnvironment env)
@@ -299,7 +291,6 @@ public record ServerConfig
         services.AddSingleton(config.Blobstore);
         services.AddSingleton(config.Identity);
         services.AddSingleton(config.Invites);
-        services.AddSingleton(config.Approval);
         services.AddSingleton(config.BskyAppView);
         services.AddSingleton(config.Proxy);
         services.AddSingleton(config.SecretsConfig);
@@ -454,5 +445,27 @@ public record ServerConfig
 
         services.AddSingleton<BackupService>();
         services.AddSingleton<RepoResyncService>();
+
+        // Pending accounts
+        services.AddDbContext<PendingAccounts.PendingAccountsDb>(x =>
+        {
+            x.UseSqlite($"Data Source={config.Db.PendingDbLoc}");
+#if DEBUG
+            x.EnableSensitiveDataLogging();
+#endif
+        });
+        services.AddScoped<PendingAccounts.Services.PendingEmailTokenStore>();
+        services.AddSingleton(sp => new PendingAccounts.Services.PendingJwtService(
+            config.SecretsConfig.JwtSecret, config.Service.Did));
+        services.AddScoped<PendingAccounts.Services.PendingAccountService>(sp =>
+            new PendingAccounts.Services.PendingAccountService(
+                sp.GetRequiredService<PendingAccounts.PendingAccountsDb>(),
+                sp.GetRequiredService<AccountManagerDb>(),
+                sp.GetRequiredService<AccountRepository>(),
+                sp.GetRequiredService<InviteStore>(),
+                sp.GetRequiredService<PendingAccounts.Services.PendingJwtService>(),
+                sp.GetRequiredService<PendingAccounts.Services.PendingEmailTokenStore>(),
+                config.Service.Did));
+        services.AddScoped<atompds.Services.PendingApprovalService>();
     }
 }

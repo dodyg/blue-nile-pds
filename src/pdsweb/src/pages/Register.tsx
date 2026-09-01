@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateAccount, useSetAccountProfile } from '../hooks/useAccount';
 import { useDescribeServer, useHandleAvailability } from '../hooks/useServer';
+import { usePendingConfig, usePendingRegister } from '../hooks/usePending';
 import { Card, CardHeader } from '../components/Card';
 import { Input } from '../components/Input';
 import Button from '../components/Button';
@@ -31,6 +32,8 @@ export default function Register() {
 
   const describe = useDescribeServer();
   const availability = useHandleAvailability(handle.trim());
+  const pendingConfig = usePendingConfig();
+  const approvalRequired = pendingConfig.data?.approvalRequired ?? false;
 
   const inviteRequired = describe.data?.inviteCodeRequired ?? false;
   const effectiveHandle = handle.trim().toLowerCase();
@@ -39,6 +42,7 @@ export default function Register() {
 
   const createAccount = useCreateAccount();
   const setAccountProfile = useSetAccountProfile();
+  const pendingRegister = usePendingRegister();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,6 +78,19 @@ export default function Register() {
     }
 
     try {
+      if (approvalRequired) {
+        await pendingRegister.mutateAsync({
+          email: email.trim(),
+          handle: effectiveHandle,
+          password,
+          ...(inviteRequired ? { inviteCode: inviteCode.trim() } : {}),
+          ...(location.trim() ? { location: location.trim() } : {}),
+          ...(accountType !== 'individual' ? { accountType } : {}),
+        });
+        navigate('/pending/profile');
+        return;
+      }
+
       await createAccount.mutateAsync({
         email: email.trim(),
         handle: effectiveHandle,
@@ -204,9 +221,10 @@ export default function Register() {
             </p>
           )}
 
-          <Button type="submit" disabled={createAccount.isPending} className="w-full">
-            {createAccount.isPending ? 'Creating account…' : 'Create account'}
+          <Button type="submit" disabled={createAccount.isPending || pendingRegister.isPending} className="w-full">
+            {createAccount.isPending || pendingRegister.isPending ? 'Creating account…' : 'Create account'}
           </Button>
+          {approvalRequired && <p className="text-center text-xs text-muted">Your registration will be reviewed by an administrator.</p>}
         </form>
       </Card>
     </div>

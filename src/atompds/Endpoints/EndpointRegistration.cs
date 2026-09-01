@@ -11,7 +11,7 @@ using atompds.Endpoints.Xrpc.Com.Atproto.Sync;
 using atompds.Endpoints.Xrpc.Com.Atproto.Temp;
 using atompds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 using atompds.Endpoints.Xrpc.Africa.Bsky;
-using atompds.Endpoints.Xrpc.Africa.Bsky.Admin;
+using atompds.Endpoints.Pending;
 using Config;
 
 namespace atompds.Endpoints;
@@ -34,6 +34,15 @@ public static class EndpointRegistration
 
         app.MapAdminApiEndpoints();
 
+        var adminApi = app.MapGroup("api/admin");
+        adminApi.MapPendingAdminEndpoints();
+
+        var pending = app.MapGroup("api/pending");
+        pending.MapPendingRegisterEndpoints();
+        pending.MapPendingProfileEndpoints();
+        pending.MapPendingEmailEndpoints();
+        pending.MapPendingConfigEndpoints();
+
         var xrpc = app.MapGroup("xrpc");
         xrpc.MapHealthEndpoints();
         xrpc.MapSetAccountProfileEndpoints();
@@ -51,8 +60,6 @@ public static class EndpointRegistration
         admin.MapUpdateAccountEmailAdminEndpoints();
         admin.MapUpdateAccountHandleAdminEndpoints();
         admin.MapUpdateAccountPasswordAdminEndpoints();
-        admin.MapAccountApprovalEndpoints();
-
         var ozone = xrpc.MapGroup("").WithTags("Ozone");
         ozone.MapOzoneProxyEndpoints();
 

@@ -37,6 +37,7 @@
         <ProjectReference Include="..\pds_projects\Mailer\Mailer.csproj" />
         <ProjectReference Include="..\pds_projects\Sequencer\Sequencer.csproj" />
         <ProjectReference Include="..\pds_projects\Xrpc\Xrpc.csproj" />
+        <ProjectReference Include="..\pds_projects\PendingAccounts\PendingAccounts.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -50,7 +50,7 @@ async function adminApiRequest<T>(method: string, path: string, body?: unknown):
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(`/admin/api/${path}`, {
+  const res = await fetch(`/api/admin/${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -63,7 +63,7 @@ async function adminApiRequest<T>(method: string, path: string, body?: unknown):
     } catch {
       // ignore parse errors
     }
-    throw new XrpcError(res.status, `admin/api/${path}`, detail.error, detail.message || res.statusText, true);
+    throw new XrpcError(res.status, `api/admin/${path}`, detail.error, detail.message || res.statusText, true);
   }
 
   if (res.status === 204) return undefined as T;
@@ -87,7 +87,7 @@ export async function downloadAdminFile(path: string, params: Record<string, str
   }
 
   const qs = '?' + new URLSearchParams(params).toString();
-  const res = await fetch(`/admin/api/${path}${qs}`, { headers });
+  const res = await fetch(`/api/admin/${path}${qs}`, { headers });
 
   if (!res.ok) {
     let detail: { error?: string; message?: string } = {};
@@ -96,7 +96,7 @@ export async function downloadAdminFile(path: string, params: Record<string, str
     } catch {
       // ignore parse errors
     }
-    throw new XrpcError(res.status, `admin/api/${path}`, detail.error, detail.message || res.statusText, true);
+    throw new XrpcError(res.status, `api/admin/${path}`, detail.error, detail.message || res.statusText, true);
   }
 
   const blob = await res.blob();

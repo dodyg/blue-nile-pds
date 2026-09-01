@@ -50,6 +50,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                 ["Config:PDS_ACCOUNT_DB_LOCATION"] = Path.Combine(_tempDir, "account.sqlite"),
                 ["Config:PDS_SEQUENCER_DB_LOCATION"] = Path.Combine(_tempDir, "sequencer.sqlite"),
                 ["Config:PDS_DID_CACHE_DB_LOCATION"] = Path.Combine(_tempDir, "did_cache.sqlite"),
+                ["Config:PDS_PENDING_DB_LOCATION"] = Path.Combine(_tempDir, "pending.sqlite"),
                 ["Config:PDS_ACTOR_STORE_DIRECTORY"] = Path.Combine(_tempDir, "actors"),
                 ["Config:PDS_BACKUP_DIRECTORY"] = Path.Combine(_tempDir, "backups"),
                 ["Config:PDS_BLOBSTORE_DISK_LOCATION"] = Path.Combine(_tempDir, "blocks"),
