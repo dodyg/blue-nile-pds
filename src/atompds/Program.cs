@@ -67,6 +67,12 @@ public class Program
             await seqDb.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL");
             await seqDb.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000");
             await seqDb.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL");
+
+            var pendingDb = scope.ServiceProvider.GetRequiredService<PendingAccounts.PendingAccountsDb>();
+            await pendingDb.Database.MigrateAsync();
+            await pendingDb.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL");
+            await pendingDb.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000");
+            await pendingDb.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL");
         }
 
         app.UseExceptionHandler("/error");
@@ -80,6 +86,7 @@ public class Program
         }
 
         app.UseAuthMiddleware();
+        app.UsePendingAuth();
         app.UseStaticFiles();
         app.UseNotFoundMiddleware();
 

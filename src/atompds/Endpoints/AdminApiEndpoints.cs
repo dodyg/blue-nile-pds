@@ -9,14 +9,14 @@ public static class AdminApiEndpoints
 {
     public static WebApplication MapAdminApiEndpoints(this WebApplication app)
     {
-        var backup = app.MapGroup("admin/api/backup");
+        var backup = app.MapGroup("api/admin/backup");
         backup.MapPost("create", HandleCreateAsync).WithMetadata(new AdminTokenAttribute());
         backup.MapGet("status", HandleStatus).WithMetadata(new AdminTokenAttribute());
         backup.MapGet("list", HandleList).WithMetadata(new AdminTokenAttribute());
         backup.MapGet("download", HandleDownload).WithMetadata(new AdminTokenAttribute());
         backup.MapPost("delete", HandleDelete).WithMetadata(new AdminTokenAttribute());
 
-        var resync = app.MapGroup("admin/api/repo/resync");
+        var resync = app.MapGroup("api/admin/repo/resync");
         resync.MapPost("", HandleResyncAsync).WithMetadata(new AdminTokenAttribute());
         resync.MapGet("status", HandleResyncStatus).WithMetadata(new AdminTokenAttribute());
         return app;

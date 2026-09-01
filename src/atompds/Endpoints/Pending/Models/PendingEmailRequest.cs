@@ -8,4 +8,5 @@ public class PendingConfirmEmailRequest
 public class PendingUpdateEmailRequest
 {
     public string Email { get; set; } = "";
+    public string? Token { get; set; }
 }

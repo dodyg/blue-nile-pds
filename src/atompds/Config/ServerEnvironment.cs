@@ -61,6 +61,9 @@ public class ServerEnvironment
     // DPoP
     public string? PDS_DPOP_SECRET { get; set; }
 
+    // Pending
+    public string PDS_PENDING_DB_LOCATION { get; set; } = "pending.sqlite";
+
     // Invites
     public bool PDS_INVITE_REQUIRED { get; set; } = true;
     public int? PDS_INVITE_INTERVAL { get; set; }

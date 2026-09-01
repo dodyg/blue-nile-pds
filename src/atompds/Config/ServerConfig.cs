@@ -137,7 +137,8 @@ public record ServerConfig
         {
             AccountDbLoc = MapDbLoc(env, env.PDS_ACCOUNT_DB_LOCATION),
             SequencerDbLoc = MapDbLoc(env, env.PDS_SEQUENCER_DB_LOCATION),
-            DidCacheDbLoc = MapDbLoc(env, env.PDS_DID_CACHE_DB_LOCATION)
+            DidCacheDbLoc = MapDbLoc(env, env.PDS_DID_CACHE_DB_LOCATION),
+            PendingDbLoc = MapDbLoc(env, env.PDS_PENDING_DB_LOCATION)
         };
     }
 
@@ -444,5 +445,27 @@ public record ServerConfig
 
         services.AddSingleton<BackupService>();
         services.AddSingleton<RepoResyncService>();
+
+        // Pending accounts
+        services.AddDbContext<PendingAccounts.PendingAccountsDb>(x =>
+        {
+            x.UseSqlite($"Data Source={config.Db.PendingDbLoc}");
+#if DEBUG
+            x.EnableSensitiveDataLogging();
+#endif
+        });
+        services.AddScoped<PendingAccounts.Services.PendingEmailTokenStore>();
+        services.AddSingleton(sp => new PendingAccounts.Services.PendingJwtService(
+            config.SecretsConfig.JwtSecret, config.Service.Did));
+        services.AddScoped<PendingAccounts.Services.PendingAccountService>(sp =>
+            new PendingAccounts.Services.PendingAccountService(
+                sp.GetRequiredService<PendingAccounts.PendingAccountsDb>(),
+                sp.GetRequiredService<AccountManagerDb>(),
+                sp.GetRequiredService<AccountRepository>(),
+                sp.GetRequiredService<InviteStore>(),
+                sp.GetRequiredService<PendingAccounts.Services.PendingJwtService>(),
+                sp.GetRequiredService<PendingAccounts.Services.PendingEmailTokenStore>(),
+                config.Service.Did));
+        services.AddScoped<atompds.Services.PendingApprovalService>();
     }
 }

@@ -264,10 +264,10 @@ public class RepoResyncTests
     [Test]
     public async Task Endpoints_NoAuth_ReturnsAuthError()
     {
-        var create = await Client.PostAsync("/admin/api/repo/resync", new StringContent("{\"did\":\"did:plc:test\"}", Encoding.UTF8, "application/json"));
+        var create = await Client.PostAsync("/api/admin/repo/resync", new StringContent("{\"did\":\"did:plc:test\"}", Encoding.UTF8, "application/json"));
         await Assert.That(create.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
 
-        var status = await Client.GetAsync("/admin/api/repo/resync/status");
+        var status = await Client.GetAsync("/api/admin/repo/resync/status");
         await Assert.That(status.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 }

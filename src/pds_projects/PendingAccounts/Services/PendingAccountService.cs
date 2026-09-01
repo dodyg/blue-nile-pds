@@ -315,6 +315,9 @@ public class PendingAccountService
         return token;
     }
 
+    public Task AssertValidEmailUpdateTokenAsync(int pendingRegistrationId, string token)
+        => _emailTokenStore.AssertValidTokenAsync(pendingRegistrationId, token, PendingEmailTokenPurpose.update_email);
+
     public async Task<bool> UpdateEmailAsync(int pendingRegistrationId, string newEmail)
     {
         var registration = await _pendingDb.PendingRegistrations.FindAsync(pendingRegistrationId);

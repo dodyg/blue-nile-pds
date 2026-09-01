@@ -65,12 +65,17 @@ public static class PendingEmailEndpoints
         var profile = await pendingAccountService.GetProfileAsync(pendingId.Value);
         if (profile == null) return Results.NotFound();
 
-        var token = await pendingAccountService.RequestEmailUpdateAsync(pendingId.Value);
-        if (token == null)
-            return Results.BadRequest(new { error = "Unable to send verification email" });
+        var tokenRequired = profile.EmailConfirmed;
+        if (tokenRequired)
+        {
+            var token = await pendingAccountService.RequestEmailUpdateAsync(pendingId.Value);
+            if (token == null)
+                return Results.BadRequest(new { error = "Unable to send verification email" });
 
-        await mailer.SendEmailUpdateAsync(token, profile.Email);
-        return Results.Ok();
+            await mailer.SendEmailUpdateAsync(token, profile.Email);
+        }
+
+        return Results.Ok(new { tokenRequired });
     }
 
     private static async Task<IResult> UpdateEmailAsync(
@@ -86,6 +91,24 @@ public static class PendingEmailEndpoints
             return Results.BadRequest(new { error = "Email is required" });
 
         await emailAddressValidator.AssertSupportedEmailAsync(request.Email);
+
+        var profile = await pendingAccountService.GetProfileAsync(pendingId.Value);
+        if (profile == null) return Results.NotFound();
+
+        if (profile.EmailConfirmed)
+        {
+            if (string.IsNullOrWhiteSpace(request.Token))
+                return Results.BadRequest(new { error = "Verification code is required for confirmed emails" });
+
+            try
+            {
+                await pendingAccountService.AssertValidEmailUpdateTokenAsync(pendingId.Value, request.Token);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        }
 
         var success = await pendingAccountService.UpdateEmailAsync(pendingId.Value, request.Email);
         if (!success)
