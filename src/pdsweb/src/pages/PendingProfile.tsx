@@ -1,6 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePendingProfile, usePendingUpdateProfile, usePendingRequestEmailConfirmation, usePendingConfirmEmail, usePendingLogout } from '../hooks/usePending';
+import {
+  usePendingProfile,
+  usePendingUpdateProfile,
+  usePendingRequestEmailConfirmation,
+  usePendingConfirmEmail,
+  usePendingRequestEmailUpdate,
+  usePendingUpdateEmail,
+  usePendingLogout,
+} from '../hooks/usePending';
 import { Card, CardHeader } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import Button from '../components/Button';
@@ -11,6 +19,12 @@ import { getPendingAccessJwt } from '../stores/pendingAuth';
 function errMessage(err: unknown): string | null {
   if (err instanceof XrpcError) return err.message || err.error || 'Something went wrong';
   return 'Something went wrong';
+}
+
+function initials(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '?';
+  return trimmed[0].toUpperCase();
 }
 
 export default function PendingProfile() {
@@ -28,16 +42,26 @@ export default function PendingProfile() {
   const updateProfile = usePendingUpdateProfile();
   const requestEmailConfirmation = usePendingRequestEmailConfirmation();
   const confirmEmail = usePendingConfirmEmail();
+  const requestEmailUpdate = usePendingRequestEmailUpdate();
+  const updateEmail = usePendingUpdateEmail();
 
   const [confirmToken, setConfirmToken] = useState('');
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
   const [confirmErr, setConfirmErr] = useState<string | null>(null);
 
+  const [emailUpdate, setEmailUpdate] = useState('');
+  const [emailUpdateToken, setEmailUpdateToken] = useState('');
+  const [emailMsg, setEmailMsg] = useState<string | null>(null);
+  const [emailErr, setEmailErr] = useState<string | null>(null);
+  const [emailTokenRequested, setEmailTokenRequested] = useState(false);
+  const [tokenRequired, setTokenRequired] = useState(false);
+
   useEffect(() => {
     if (profile.data) {
-      setDisplayName((profile.data as { displayName?: string }).displayName ?? '');
-      setDescription((profile.data as { description?: string }).description ?? '');
-      setLocation((profile.data as { location?: string }).location ?? '');
+      const d = profile.data as unknown as { displayName?: string; description?: string; location?: string };
+      setDisplayName(d.displayName ?? '');
+      setDescription(d.description ?? '');
+      setLocation(d.location ?? '');
     }
   }, [profile.data]);
 
@@ -80,8 +104,21 @@ export default function PendingProfile() {
     );
   }
 
-  const data = profile.data as unknown as { email: string; handle: string; status: string; emailConfirmed?: boolean; createdAt: string; location?: string; accountType?: string; displayName?: string };
-  const emailConfirmed = !!data?.emailConfirmed;
+  const data = profile.data as unknown as {
+    email: string;
+    handle: string;
+    status: string;
+    emailConfirmed?: boolean;
+    emailConfirmedAt?: string;
+    createdAt: string;
+    location?: string;
+    accountType?: string;
+    displayName?: string;
+    description?: string;
+  };
+  const emailConfirmed = !!(data?.emailConfirmed || data?.emailConfirmedAt);
+  const statusLower = (data?.status ?? 'pending').toLowerCase();
+  const isApproved = statusLower === 'approved';
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -107,6 +144,55 @@ export default function PendingProfile() {
     catch (err) { setConfirmErr(errMessage(err)); }
   }
 
+  async function onSendEmailUpdateCode() {
+    setEmailErr(null);
+    setEmailMsg(null);
+    setEmailTokenRequested(true);
+    try {
+      const res = await requestEmailUpdate.mutateAsync();
+      setTokenRequired(res.tokenRequired);
+      setEmailMsg(
+        res.tokenRequired
+          ? 'Verification code sent to your current email.'
+          : 'No code needed — you can update your email directly.',
+      );
+    } catch (err) {
+      setEmailTokenRequested(false);
+      setEmailErr(errMessage(err));
+    }
+  }
+
+  async function onUpdateEmail(e: FormEvent) {
+    e.preventDefault();
+    setEmailErr(null);
+    setEmailMsg(null);
+    if (!emailUpdate.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailUpdate.trim())) {
+      setEmailErr('Enter a valid email address.');
+      return;
+    }
+    if (tokenRequired && !emailUpdateToken.trim()) {
+      setEmailErr('Enter the verification code.');
+      return;
+    }
+    try {
+      await updateEmail.mutateAsync({
+        email: emailUpdate.trim(),
+        ...(tokenRequired ? { token: emailUpdateToken.trim() } : {}),
+      });
+      setEmailMsg('Email updated. It is not confirmed yet — send a confirmation code to verify it.');
+      setEmailUpdate('');
+      setEmailUpdateToken('');
+      setTokenRequired(false);
+      setEmailTokenRequested(false);
+    } catch (err) {
+      setEmailErr(errMessage(err));
+    }
+  }
+
+  const avatarLabel = initials(displayName || data?.handle || '?');
+  const requestedAt = data?.createdAt ? new Date(data.createdAt) : null;
+  const accountTypeLabel = data?.accountType && data.accountType !== 'individual' ? data.accountType : null;
+
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div className="rounded-sm border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning-text dark:text-warning">
@@ -114,33 +200,149 @@ export default function PendingProfile() {
         {emailConfirmed ? null : ' Please confirm your email below.'}
       </div>
 
+      {/* Identity card — enhanced */}
       <Card>
-        <CardHeader title="Pending registration" subtitle={data ? `@${data.handle} · ${data.email}` : undefined} actions={<Badge tone={data?.status === 'Approved' ? 'success' : 'warning'}>{data?.status ?? 'pending'}</Badge>} />
-        <div className="px-4 py-3 text-sm text-secondary">
-          <p>Handle: <span className="font-mono text-ink">{data?.handle}</span></p>
-          <p>Email: <span className="font-mono text-ink">{data?.email}</span> {emailConfirmed ? <Badge tone="success">confirmed</Badge> : <Badge tone="warning">not confirmed</Badge>}</p>
-          <p>Requested: {data?.createdAt ? new Date(data.createdAt).toLocaleString() : '—'}</p>
+        <CardHeader
+          title={displayName || data?.handle || 'Pending registration'}
+          subtitle={data ? `@${data.handle}` : undefined}
+          actions={<Badge tone={isApproved ? 'success' : 'warning'}>{data?.status ?? 'pending'}</Badge>}
+        />
+        <div className="flex items-center gap-3 border-b border-subtle px-4 py-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-board text-lg font-bold text-board-text">
+            {avatarLabel}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-ink">{displayName || data?.handle}</p>
+            <p className="truncate font-mono text-xs text-secondary">{data?.email}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {emailConfirmed ? <Badge tone="success">email confirmed</Badge> : <Badge tone="warning">email not confirmed</Badge>}
+              {accountTypeLabel && <Badge tone="neutral">{accountTypeLabel}</Badge>}
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-3 px-4 py-4 sm:grid-cols-2">
+          <div className="space-y-0.5">
+            <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Handle</p>
+            <p className="font-mono text-sm text-ink">{data?.handle}</p>
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Email</p>
+            <p className="flex flex-wrap items-center gap-1.5 font-mono text-sm text-ink">
+              <span className="break-all">{data?.email}</span>
+              {emailConfirmed ? <Badge tone="success">confirmed</Badge> : <Badge tone="warning">unconfirmed</Badge>}
+            </p>
+          </div>
+          {data?.location && (
+            <div className="space-y-0.5">
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Location</p>
+              <p className="text-sm text-ink">{data.location}</p>
+            </div>
+          )}
+          <div className="space-y-0.5">
+            <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Requested</p>
+            <p className="text-sm text-ink">{requestedAt ? requestedAt.toLocaleString() : '—'}</p>
+          </div>
+          {accountTypeLabel && (
+            <div className="space-y-0.5">
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Account type</p>
+              <p className="text-sm capitalize text-ink">{accountTypeLabel}</p>
+            </div>
+          )}
+          <div className="space-y-0.5">
+            <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted">Status</p>
+            <p className="text-sm capitalize text-ink">{data?.status ?? 'pending'}</p>
+          </div>
         </div>
       </Card>
 
-      {!emailConfirmed && (
-        <Card>
-          <CardHeader title="Confirm email" />
-          <div className="space-y-3 px-4 py-4">
+      {/* Email card — confirm + change */}
+      <Card>
+        <CardHeader
+          title="Email"
+          subtitle={emailConfirmed ? 'Email confirmed' : 'Email not confirmed'}
+        />
+        <div className="space-y-4 px-4 py-4">
+          <p className="text-sm text-secondary">
+            Current email: <span className="break-all font-mono text-ink">{data?.email ?? '—'}</span>
+          </p>
+
+          {!emailConfirmed && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex-1 rounded-sm border border-subtle bg-surface px-3 py-2 font-mono text-xs text-secondary">
+                  Enter the code sent to your email
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={onSendConfirmCode}
+                  disabled={requestEmailConfirmation.isPending}
+                >
+                  {requestEmailConfirmation.isPending ? 'Sending…' : 'Send code'}
+                </Button>
+              </div>
+              <form className="flex items-center gap-2" onSubmit={onConfirmEmail}>
+                <Input
+                  value={confirmToken}
+                  onChange={(e) => setConfirmToken(e.target.value)}
+                  placeholder="Confirmation code"
+                  autoComplete="one-time-code"
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={confirmEmail.isPending}
+                >
+                  Confirm
+                </Button>
+              </form>
+              {confirmMsg && <p className="text-xs text-success-deep">{confirmMsg}</p>}
+              {confirmErr && <p className="text-xs text-danger">{confirmErr}</p>}
+            </div>
+          )}
+
+          <form className="space-y-2 border-t border-subtle pt-4" onSubmit={onUpdateEmail}>
+            <span className="mb-1 block text-sm font-medium text-secondary">
+              Change email
+            </span>
+            {emailConfirmed && !emailTokenRequested && (
+              <Button variant="secondary" onClick={onSendEmailUpdateCode} disabled={requestEmailUpdate.isPending}>
+                {requestEmailUpdate.isPending ? 'Sending…' : 'Send verification code'}
+              </Button>
+            )}
+            {!emailConfirmed && (
+              <p className="text-xs text-muted">
+                Your email is not confirmed. You can change it directly.
+              </p>
+            )}
+            <Input
+              type="email"
+              value={emailUpdate}
+              onChange={(e) => setEmailUpdate(e.target.value)}
+              placeholder="new@example.com"
+              autoComplete="email"
+            />
+            {tokenRequired && (
+              <Input
+                value={emailUpdateToken}
+                onChange={(e) => setEmailUpdateToken(e.target.value)}
+                placeholder="Verification code"
+                autoComplete="one-time-code"
+              />
+            )}
             <div className="flex items-center gap-2">
-              <Button variant="secondary" onClick={onSendConfirmCode} disabled={requestEmailConfirmation.isPending}>
-                {requestEmailConfirmation.isPending ? 'Sending…' : 'Send confirmation code'}
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={updateEmail.isPending}
+              >
+                {updateEmail.isPending ? 'Updating…' : 'Update email'}
               </Button>
             </div>
-            <form className="flex items-center gap-2" onSubmit={onConfirmEmail}>
-              <Input value={confirmToken} onChange={(e) => setConfirmToken(e.target.value)} placeholder="Confirmation code" autoComplete="one-time-code" />
-              <Button type="submit" variant="primary" disabled={confirmEmail.isPending}>Confirm</Button>
-            </form>
-            {confirmMsg && <p className="text-xs text-success-deep">{confirmMsg}</p>}
-            {confirmErr && <p className="text-xs text-danger">{confirmErr}</p>}
-          </div>
-        </Card>
-      )}
+            {emailMsg && <p className="text-xs text-success-deep">{emailMsg}</p>}
+            {emailErr && <p className="text-xs text-danger">{emailErr}</p>}
+          </form>
+        </div>
+      </Card>
 
       <Card>
         <CardHeader title="Edit profile" subtitle="Update your pending profile information" />

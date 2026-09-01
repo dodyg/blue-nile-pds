@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { usePendingAdminList, usePendingApprove, usePendingReject } from '../hooks/useAdminPending';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
@@ -50,7 +51,14 @@ export default function Approvals() {
             <tbody>
               {items.map((item) => (
                 <Tr key={item.id}>
-                  <Td className="font-mono text-xs">{item.handle}</Td>
+                  <Td className="font-mono text-xs">
+                    <Link
+                      to={`/admin/approvals/${item.id}`}
+                      className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                    >
+                      {item.handle}
+                    </Link>
+                  </Td>
                   <Td className="font-mono text-xs">{item.email}</Td>
                   <Td>{item.location || '—'}</Td>
                   <Td>{item.accountType || 'individual'}</Td>
@@ -63,7 +71,7 @@ export default function Approvals() {
                       <Button variant="ghost" size="sm" onClick={() => setRejectId(item.id)} disabled={approve.isPending || reject.isPending}>
                         Reject
                       </Button>
-                      {item.emailConfirmedAt == null && <Badge tone="warning">unconfirmed</Badge>}
+                      {(item.emailConfirmed === false || item.emailConfirmedAt == null) && <Badge tone="warning">unconfirmed</Badge>}
                     </div>
                   </Td>
                 </Tr>

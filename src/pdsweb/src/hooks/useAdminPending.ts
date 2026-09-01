@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApiGet, adminApiPost } from '../api/adminClient';
 import { pendingKeys } from '../api/queryKeys';
 
@@ -10,8 +10,27 @@ export interface PendingAdminItem {
   location?: string;
   accountType?: string;
   displayName?: string;
+  description?: string;
+  inviteCode?: string;
   createdAt: string;
+  updatedAt?: string;
+  emailConfirmed?: boolean;
   emailConfirmedAt?: string;
+}
+
+export interface PendingAdminDetail {
+  id: number;
+  email: string;
+  handle: string;
+  status: string;
+  displayName?: string;
+  description?: string;
+  location?: string;
+  accountType?: string;
+  inviteCode?: string;
+  emailConfirmed: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PendingAdminListResponse {
@@ -26,6 +45,14 @@ export function usePendingAdminList() {
       adminApiGet<PendingAdminListResponse>('pending/list', pageParam ? { cursor: pageParam, limit: '20' } : { limit: '20' }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor,
+  });
+}
+
+export function usePendingAdminDetail(id: number | null) {
+  return useQuery({
+    queryKey: [...pendingKeys.list(), 'detail', id],
+    queryFn: () => adminApiGet<PendingAdminDetail>(`pending/${id}`),
+    enabled: id != null,
   });
 }
 

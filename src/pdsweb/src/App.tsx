@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import ProfileView from './pages/ProfileView';
 import PendingProfile from './pages/PendingProfile';
 import Approvals from './pages/Approvals';
+import ApprovalDetail from './pages/ApprovalDetail';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Accounts from './pages/Accounts';
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="invites" element={<InviteCodes />} />
             <Route path="subjects" element={<SubjectStatus />} />
             <Route path="approvals" element={<Approvals />} />
+            <Route path="approvals/:id" element={<ApprovalDetail />} />
             <Route path="backup" element={<Backup />} />
             <Route path="repo/resync" element={<RepoResync />} />
           </Route>

@@ -195,12 +195,40 @@ public class PendingAccountService
                 Location = p?.Location,
                 AccountType = p?.AccountType,
                 DisplayName = p?.DisplayName,
+                Description = p?.Description,
+                InviteCode = r.InviteCode,
                 CreatedAt = r.CreatedAt,
+                UpdatedAt = r.UpdatedAt,
                 EmailConfirmed = r.EmailConfirmedAt != null
             };
         }).ToList();
 
         return new AdminListResult(items, hasMore ? registrations.Last().Id.ToString() : null);
+    }
+
+    public async Task<PendingAdminDetailView?> GetAdminDetailViewAsync(int id)
+    {
+        var registration = await _pendingDb.PendingRegistrations.FindAsync(id);
+        if (registration == null) return null;
+
+        var profile = await _pendingDb.PendingProfiles
+            .FirstOrDefaultAsync(p => p.PendingRegistrationId == id);
+
+        return new PendingAdminDetailView
+        {
+            Id = registration.Id,
+            Email = registration.Email,
+            Handle = registration.Handle,
+            Status = registration.Status.ToString(),
+            DisplayName = profile?.DisplayName,
+            Description = profile?.Description,
+            Location = profile?.Location,
+            AccountType = profile?.AccountType,
+            InviteCode = registration.InviteCode,
+            EmailConfirmed = registration.EmailConfirmedAt != null,
+            CreatedAt = registration.CreatedAt,
+            UpdatedAt = registration.UpdatedAt,
+        };
     }
 
     public async Task<ApproveResult> ApproveAsync(int pendingRegistrationId)
@@ -382,6 +410,25 @@ public class PendingAdminViewItem
     public string? Location { get; set; }
     public string? AccountType { get; set; }
     public string? DisplayName { get; set; }
+    public string? Description { get; set; }
+    public string? InviteCode { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
     public bool EmailConfirmed { get; set; }
+}
+
+public class PendingAdminDetailView
+{
+    public int Id { get; set; }
+    public string Email { get; set; } = "";
+    public string Handle { get; set; } = "";
+    public string Status { get; set; } = "";
+    public string? DisplayName { get; set; }
+    public string? Description { get; set; }
+    public string? Location { get; set; }
+    public string? AccountType { get; set; }
+    public string? InviteCode { get; set; }
+    public bool EmailConfirmed { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

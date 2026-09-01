@@ -13,9 +13,19 @@ public static class PendingAdminEndpoints
     public static RouteGroupBuilder MapPendingAdminEndpoints(this RouteGroupBuilder group)
     {
         group.MapGet("/pending/list", ListPendingAsync).WithMetadata(new AdminTokenAttribute());
+        group.MapGet("/pending/{id:int}", GetPendingDetailAsync).WithMetadata(new AdminTokenAttribute());
         group.MapPost("/pending/approve", ApproveAsync).WithMetadata(new AdminTokenAttribute());
         group.MapPost("/pending/reject", RejectAsync).WithMetadata(new AdminTokenAttribute());
         return group;
+    }
+
+    private static async Task<IResult> GetPendingDetailAsync(
+        int id,
+        PendingAccountService pendingAccountService)
+    {
+        var result = await pendingAccountService.GetAdminDetailViewAsync(id);
+        if (result == null) return Results.NotFound();
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> ListPendingAsync(

@@ -407,10 +407,15 @@ export default function Profile() {
             <span className="mb-1 block text-sm font-medium text-secondary">
               Change email
             </span>
-            {!emailTokenRequested && (
+            {session.emailConfirmed && !emailTokenRequested && (
               <Button variant="secondary" onClick={onSendEmailUpdateCode}>
                 {requestEmailUpdate.isPending ? 'Sending…' : 'Send verification code'}
               </Button>
+            )}
+            {!session.emailConfirmed && (
+              <p className="text-xs text-muted">
+                Your email is not confirmed. You can change it directly.
+              </p>
             )}
             <Input
               type="email"

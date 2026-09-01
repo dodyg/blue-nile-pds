@@ -15,6 +15,7 @@ export interface PendingProfileResponse {
   displayName?: string;
   description?: string;
   status: string;
+  emailConfirmed?: boolean;
   emailConfirmedAt?: string;
   createdAt: string;
 }
@@ -94,6 +95,22 @@ export function usePendingConfirmEmail() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: { token: string }) => pendingPost<void>('confirmEmail', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pendingKeys.profile });
+    },
+  });
+}
+
+export function usePendingRequestEmailUpdate() {
+  return useMutation({
+    mutationFn: () => pendingPost<{ tokenRequired: boolean }>('requestEmailUpdate', {}),
+  });
+}
+
+export function usePendingUpdateEmail() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { email: string; token?: string }) => pendingPost<void>('updateEmail', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: pendingKeys.profile });
     },
