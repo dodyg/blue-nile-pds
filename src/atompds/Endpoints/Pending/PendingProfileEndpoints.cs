@@ -1,8 +1,8 @@
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using PendingAccounts.Services;
 
-namespace atompds.Endpoints.Pending;
+namespace BlueNilePds.Endpoints.Pending;
 
 public static class PendingProfileEndpoints
 {

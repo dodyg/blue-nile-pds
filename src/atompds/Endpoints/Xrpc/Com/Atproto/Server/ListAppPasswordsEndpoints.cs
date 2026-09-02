@@ -1,7 +1,7 @@
 using AccountManager.Db;
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class ListAppPasswordsEndpoints
 {

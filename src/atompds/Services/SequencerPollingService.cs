@@ -5,7 +5,7 @@ using Sequencer;
 using Sequencer.Db;
 using Sequencer.Types;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class SequencerPollingService : BackgroundService, ISequencerEventSource
 {

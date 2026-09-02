@@ -3,9 +3,9 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
-using atompds.Config;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Config;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using CarpaNet;
 using CarpaNet.Json;
 using CID;
@@ -18,7 +18,7 @@ using Repo;
 using Sequencer;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Repo;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 
 public static class ApplyWritesEndpoints
 {

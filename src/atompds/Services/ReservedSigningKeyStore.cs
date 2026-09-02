@@ -1,6 +1,6 @@
 ﻿using Crypto.Secp256k1;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class ReservedSigningKeyStore
 {

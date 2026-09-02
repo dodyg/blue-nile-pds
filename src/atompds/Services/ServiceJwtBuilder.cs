@@ -5,7 +5,7 @@ using Config;
 using Crypto;
 using Jose;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class ServiceJwtBuilder
 {

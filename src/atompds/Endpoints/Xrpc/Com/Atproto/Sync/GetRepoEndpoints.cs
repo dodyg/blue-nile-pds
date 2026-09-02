@@ -5,7 +5,7 @@ using Repo.Car;
 using Xrpc;
 using RepoUtil = Repo.Util;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Sync;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
 
 public static class GetRepoEndpoints
 {

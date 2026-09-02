@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 using AccountManager;
-using atompds.Services;
+using BlueNilePds.Services;
 using Config;
 
-namespace atompds.Endpoints;
+namespace BlueNilePds.Endpoints;
 
 public static class WellKnownEndpoints
 {

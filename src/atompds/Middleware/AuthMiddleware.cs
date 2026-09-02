@@ -1,6 +1,6 @@
 ﻿using Xrpc;
 
-namespace atompds.Middleware;
+namespace BlueNilePds.Middleware;
 
 public class AuthMiddleware
 {

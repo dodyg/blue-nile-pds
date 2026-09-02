@@ -1,4 +1,4 @@
-﻿namespace atompds;
+﻿namespace BlueNilePds;
 
 public class StaticConfig
 {

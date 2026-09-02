@@ -1,9 +1,9 @@
-using atompds.Config;
-using atompds.Tests.Infrastructure;
+using BlueNilePds.Config;
+using BlueNilePds.Tests.Infrastructure;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
 
-namespace atompds.Tests;
+namespace BlueNilePds.Tests;
 
 public class ServerConfigTests
 {

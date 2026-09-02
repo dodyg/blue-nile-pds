@@ -1,10 +1,10 @@
 using System.Net;
 using System.Text.Json;
-using atompds.Tests.Infrastructure;
+using BlueNilePds.Tests.Infrastructure;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
 
-namespace atompds.Tests;
+namespace BlueNilePds.Tests;
 
 public class ServerTests
 {

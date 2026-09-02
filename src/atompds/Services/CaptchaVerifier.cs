@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Xrpc;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class CaptchaVerifier
 {

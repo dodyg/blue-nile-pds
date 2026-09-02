@@ -3,8 +3,8 @@ using AccountManager;
 using ActorStore;
 using ActorStore.Repo;
 using AfricaBsky;
-using atompds.Config;
-using atompds.Middleware;
+using BlueNilePds.Config;
+using BlueNilePds.Middleware;
 using CarpaNet;
 using CID;
 using Config;
@@ -12,7 +12,7 @@ using Repo;
 using Sequencer;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Africa.Bsky;
+namespace BlueNilePds.Endpoints.Xrpc.Africa.Bsky;
 
 public static class SetAccountProfileEndpoints
 {

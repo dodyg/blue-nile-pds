@@ -6,7 +6,7 @@ using CarpaNet;
 using Config;
 using DevNomadlife.Blog;
 
-namespace atompds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
+namespace BlueNilePds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 
 public static class BlogViewBuilder
 {

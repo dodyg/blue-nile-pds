@@ -2,12 +2,12 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using atompds.Services;
-using atompds.Services.OAuth;
+using BlueNilePds.Services;
+using BlueNilePds.Services.OAuth;
 using Config;
 using Microsoft.AspNetCore.RateLimiting;
 
-namespace atompds.Endpoints.OAuth;
+namespace BlueNilePds.Endpoints.OAuth;
 
 public static class OAuthTokenEndpoints
 {

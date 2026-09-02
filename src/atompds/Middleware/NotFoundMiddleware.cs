@@ -1,4 +1,4 @@
-﻿namespace atompds.Middleware;
+﻿namespace BlueNilePds.Middleware;
 
 public static class NotFoundMiddlewareExtensions
 {

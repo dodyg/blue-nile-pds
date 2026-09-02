@@ -1,9 +1,9 @@
 using ActorStore;
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 using Config;
 using Crypto;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Identity;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
 
 public static class GetRecommendedDidCredentialsEndpoints
 {

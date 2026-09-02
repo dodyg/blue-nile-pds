@@ -1,10 +1,10 @@
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class CheckAccountStatusEndpoints
 {

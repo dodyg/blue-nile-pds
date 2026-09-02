@@ -2,8 +2,8 @@ using System.Security.Cryptography;
 using ActorStore;
 using ActorStore.Db;
 using ActorStore.Repo;
-using atompds.Config;
-using atompds.Middleware;
+using BlueNilePds.Config;
+using BlueNilePds.Middleware;
 using CarpaNet;
 using CID;
 using Config;
@@ -17,7 +17,7 @@ using Repo.MST;
 using Xrpc;
 using Cid = CID.Cid;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Repo;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 
 public static class ImportRepoEndpoints
 {

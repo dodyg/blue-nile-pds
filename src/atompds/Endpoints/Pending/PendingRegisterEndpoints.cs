@@ -1,9 +1,9 @@
-using atompds.Endpoints.Pending.Models;
-using atompds.Middleware;
+using BlueNilePds.Endpoints.Pending.Models;
+using BlueNilePds.Middleware;
 using Microsoft.AspNetCore.Mvc;
 using PendingAccounts.Services;
 
-namespace atompds.Endpoints.Pending;
+namespace BlueNilePds.Endpoints.Pending;
 
 public static class PendingRegisterEndpoints
 {

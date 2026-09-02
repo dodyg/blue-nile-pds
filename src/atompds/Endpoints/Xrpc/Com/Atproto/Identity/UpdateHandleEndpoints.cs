@@ -1,13 +1,13 @@
 using AccountManager;
 using AccountManager.Db;
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 using Config;
 using DidLib;
 using Handle;
 using Sequencer;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Identity;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
 
 public static class UpdateHandleEndpoints
 {

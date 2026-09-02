@@ -1,16 +1,16 @@
 using System.Text.Json.Serialization;
 using AccountManager.Db;
-using atompds.Config;
-using atompds.Endpoints;
-using atompds.ExceptionHandler;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Config;
+using BlueNilePds.Endpoints;
+using BlueNilePds.ExceptionHandler;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Config;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Logs;
 using Sequencer.Db;
 
-namespace atompds;
+namespace BlueNilePds;
 
 public class Program
 {

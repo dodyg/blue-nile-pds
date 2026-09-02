@@ -5,7 +5,7 @@ using CarpaNet;
 using ComAtproto.Repo;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Repo;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 
 public static class ListRecordsEndpoints
 {

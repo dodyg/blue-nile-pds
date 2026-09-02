@@ -2,12 +2,12 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using atompds.Tests.Infrastructure;
+using BlueNilePds.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
 
-namespace atompds.Tests;
+namespace BlueNilePds.Tests;
 
 public class PasswordTests
 {

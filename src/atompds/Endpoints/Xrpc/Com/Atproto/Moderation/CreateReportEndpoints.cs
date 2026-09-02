@@ -1,12 +1,12 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using atompds.Config;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Config;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Config;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Moderation;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Moderation;
 
 public static class CreateReportEndpoints
 {

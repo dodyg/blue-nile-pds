@@ -6,7 +6,7 @@ using Config;
 using Handle;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Identity;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
 
 public static class ResolveHandleEndpoints
 {

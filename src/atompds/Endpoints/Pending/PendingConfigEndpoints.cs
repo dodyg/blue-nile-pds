@@ -1,6 +1,6 @@
-using atompds.Config;
+using BlueNilePds.Config;
 
-namespace atompds.Endpoints.Pending;
+namespace BlueNilePds.Endpoints.Pending;
 
 public static class PendingConfigEndpoints
 {

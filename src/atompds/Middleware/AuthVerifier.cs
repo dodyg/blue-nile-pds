@@ -9,7 +9,7 @@ using Jose;
 using Microsoft.Extensions.Logging;
 using Xrpc;
 
-namespace atompds.Middleware;
+namespace BlueNilePds.Middleware;
 
 public record AuthVerifierConfig(
     string JwtKey,

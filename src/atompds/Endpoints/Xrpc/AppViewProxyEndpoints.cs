@@ -6,9 +6,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using ActorStore;
-using atompds.Config;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Config;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Config;
 using CommonWeb;
 using Crypto;
@@ -16,7 +16,7 @@ using Identity;
 using Jose;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc;
+namespace BlueNilePds.Endpoints.Xrpc;
 
 public static class AppViewProxyEndpoints
 {

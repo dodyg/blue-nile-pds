@@ -5,8 +5,8 @@ using System.Text;
 using System.Text.Json;
 using ActorStore;
 using ActorStore.Repo;
-using atompds.Services;
-using atompds.Tests.Infrastructure;
+using BlueNilePds.Services;
+using BlueNilePds.Tests.Infrastructure;
 using Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +14,7 @@ using PeterO.Cbor;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
 
-namespace atompds.Tests;
+namespace BlueNilePds.Tests;
 
 public class RepoResyncTests
 {

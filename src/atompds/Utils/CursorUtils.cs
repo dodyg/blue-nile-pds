@@ -1,6 +1,6 @@
 using System;
 
-namespace atompds.Utils;
+namespace BlueNilePds.Utils;
 
 public static class CursorUtils
 {

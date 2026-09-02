@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Xrpc;
 
-namespace atompds.Endpoints;
+namespace BlueNilePds.Endpoints;
 
 public static class ErrorEndpoints
 {

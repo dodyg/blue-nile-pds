@@ -3,7 +3,7 @@ using AccountManager.Db;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
-namespace atompds.Endpoints.Xrpc;
+namespace BlueNilePds.Endpoints.Xrpc;
 
 public static class HealthEndpoints
 {

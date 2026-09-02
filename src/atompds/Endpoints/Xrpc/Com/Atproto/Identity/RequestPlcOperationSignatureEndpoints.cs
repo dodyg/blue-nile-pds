@@ -1,10 +1,10 @@
 using AccountManager;
 using AccountManager.Db;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Identity;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
 
 public static class RequestPlcOperationSignatureEndpoints
 {

@@ -1,13 +1,13 @@
 using AccountManager;
-using atompds.Middleware;
-using atompds.Config;
-using atompds.Services;
-using atompds.Services.OAuth;
+using BlueNilePds.Middleware;
+using BlueNilePds.Config;
+using BlueNilePds.Services;
+using BlueNilePds.Services.OAuth;
 using Config;
 using Microsoft.AspNetCore.WebUtilities;
 using Xrpc;
 
-namespace atompds.Endpoints.OAuth;
+namespace BlueNilePds.Endpoints.OAuth;
 
 public static class OAuthAuthorizeEndpoints
 {

@@ -1,14 +1,14 @@
 using System.Buffers;
 using System.Net.Http.Headers;
 using System.Text;
-using atompds.Config;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Config;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Config;
 using Identity;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc;
+namespace BlueNilePds.Endpoints.Xrpc;
 
 public static class OzoneProxyEndpoints
 {

@@ -1,6 +1,6 @@
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Temp;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Temp;
 
 public static class CheckSignupQueueEndpoints
 {

@@ -1,10 +1,10 @@
 using System.Text.Json;
 using ActorStore;
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 using AppBsky.Actor;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.App.Bsky.Actor;
+namespace BlueNilePds.Endpoints.Xrpc.App.Bsky.Actor;
 
 public static class GetPreferencesEndpoints
 {

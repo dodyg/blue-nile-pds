@@ -1,8 +1,8 @@
 using System.Text.Json;
 using AccountManager;
 using AccountManager.Db;
-using atompds.Services;
-using atompds.Utils;
+using BlueNilePds.Services;
+using BlueNilePds.Utils;
 using CarpaNet;
 using CommonWeb;
 using ComAtproto.Server;
@@ -10,7 +10,7 @@ using Config;
 using Identity;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class CreateSessionEndpoints
 {

@@ -3,8 +3,8 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
-using atompds.Config;
-using atompds.Utils;
+using BlueNilePds.Config;
+using BlueNilePds.Utils;
 using Config;
 using Crypto.Secp256k1;
 using DidLib;
@@ -12,7 +12,7 @@ using Identity;
 using Repo;
 using Sequencer;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class PendingApprovalService
 {

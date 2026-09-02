@@ -1,9 +1,9 @@
-using atompds.Config;
+using BlueNilePds.Config;
 using CarpaNet;
 using ComAtproto.Server;
 using Config;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class DescribeServerEndpoints
 {

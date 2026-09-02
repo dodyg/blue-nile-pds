@@ -9,7 +9,7 @@ using Repo;
 using Repo.MST;
 using Xrpc;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public enum RepoResyncStatus
 {

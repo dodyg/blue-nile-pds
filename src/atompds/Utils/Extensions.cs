@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using CommonWeb;
 
-namespace atompds.Utils;
+namespace BlueNilePds.Utils;
 
 public static class Extensions
 {

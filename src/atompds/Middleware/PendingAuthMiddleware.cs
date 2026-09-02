@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using PendingAccounts;
 using PendingAccounts.Services;
 
-namespace atompds.Middleware;
+namespace BlueNilePds.Middleware;
 
 public class PendingAuthMiddleware
 {

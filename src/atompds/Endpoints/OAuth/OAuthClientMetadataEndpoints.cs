@@ -1,6 +1,6 @@
-using atompds.Services;
+using BlueNilePds.Services;
 
-namespace atompds.Endpoints.OAuth;
+namespace BlueNilePds.Endpoints.OAuth;
 
 public static class OAuthClientMetadataEndpoints
 {

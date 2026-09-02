@@ -3,7 +3,7 @@ using AccountManager.Db;
 using ActorStore;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Sync;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
 
 public static class GetRepoStatusEndpoints
 {

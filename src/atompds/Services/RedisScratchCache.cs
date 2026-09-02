@@ -1,6 +1,6 @@
 using StackExchange.Redis;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public sealed class RedisScratchCache : IScratchCache
 {

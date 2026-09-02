@@ -2,12 +2,12 @@ using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using atompds.Services;
-using atompds.Tests.Infrastructure;
+using BlueNilePds.Services;
+using BlueNilePds.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Xrpc;
 
-namespace atompds.Tests;
+namespace BlueNilePds.Tests;
 
 public class BackupTests
 {

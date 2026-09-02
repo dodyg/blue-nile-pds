@@ -1,4 +1,4 @@
-namespace atompds.Endpoints.Pending.Models;
+namespace BlueNilePds.Endpoints.Pending.Models;
 
 public class PendingRegisterRequest
 {

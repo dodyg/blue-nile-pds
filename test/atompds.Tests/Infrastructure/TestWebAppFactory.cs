@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace atompds.Tests.Infrastructure;
+namespace BlueNilePds.Tests.Infrastructure;
 
 public class TestWebAppFactory : WebApplicationFactory<Program>
 {

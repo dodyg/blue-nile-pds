@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Xrpc;
 
-namespace atompds.Endpoints;
+namespace BlueNilePds.Endpoints;
 
 public static class AdminApiEndpoints
 {

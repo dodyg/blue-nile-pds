@@ -1,7 +1,7 @@
-using atompds.Config;
+using BlueNilePds.Config;
 using Config;
 
-namespace atompds.Endpoints;
+namespace BlueNilePds.Endpoints;
 
 public static class RootEndpoints
 {

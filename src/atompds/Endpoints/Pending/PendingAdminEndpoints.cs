@@ -1,12 +1,12 @@
-using atompds.Config;
-using atompds.Endpoints.Pending.Models;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Config;
+using BlueNilePds.Endpoints.Pending.Models;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Microsoft.AspNetCore.Mvc;
 using PendingAccounts.Models;
 using PendingAccounts.Services;
 
-namespace atompds.Endpoints.Pending;
+namespace BlueNilePds.Endpoints.Pending;
 
 public static class PendingAdminEndpoints
 {

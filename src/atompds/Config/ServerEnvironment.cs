@@ -3,7 +3,7 @@
 
 using System.ComponentModel.DataAnnotations;
 
-namespace atompds.Config;
+namespace BlueNilePds.Config;
 
 public class ServerEnvironment
 {

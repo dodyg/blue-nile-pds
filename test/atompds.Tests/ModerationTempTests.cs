@@ -1,7 +1,7 @@
 using System.Net;
-using atompds.Tests.Infrastructure;
+using BlueNilePds.Tests.Infrastructure;
 
-namespace atompds.Tests;
+namespace BlueNilePds.Tests;
 
 public class ModerationTempTests
 {

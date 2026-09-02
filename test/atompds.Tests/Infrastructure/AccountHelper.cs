@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace atompds.Tests.Infrastructure;
+namespace BlueNilePds.Tests.Infrastructure;
 
 public static class AccountHelper
 {

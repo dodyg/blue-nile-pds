@@ -1,13 +1,13 @@
 using ActorStore;
 using ActorStore.Db;
-using atompds.Config;
-using atompds.Middleware;
+using BlueNilePds.Config;
+using BlueNilePds.Middleware;
 using CarpaNet.Blob;
 using CID;
 using Xrpc;
 using static ActorStore.Repo.BlobTransactor;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Repo;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 
 public static class BlobEndpoints
 {

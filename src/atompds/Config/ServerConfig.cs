@@ -3,9 +3,9 @@ using System.Threading.Channels;
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
-using atompds.Middleware;
-using atompds.Services;
-using atompds.Services.OAuth;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
+using BlueNilePds.Services.OAuth;
 using BlobStore;
 using Config;
 using Crypto.Secp256k1;
@@ -18,7 +18,7 @@ using Sequencer;
 using Sequencer.Db;
 using StackExchange.Redis;
 
-namespace atompds.Config;
+namespace BlueNilePds.Config;
 
 public record ServerConfig
 {
@@ -466,6 +466,6 @@ public record ServerConfig
                 sp.GetRequiredService<PendingAccounts.Services.PendingJwtService>(),
                 sp.GetRequiredService<PendingAccounts.Services.PendingEmailTokenStore>(),
                 config.Service.Did));
-        services.AddScoped<atompds.Services.PendingApprovalService>();
+        services.AddScoped<BlueNilePds.Services.PendingApprovalService>();
     }
 }

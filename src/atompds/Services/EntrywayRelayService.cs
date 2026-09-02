@@ -1,12 +1,12 @@
 using System.Net.Http.Headers;
-using atompds.Config;
+using BlueNilePds.Config;
 using System.Text;
 using Config;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Xrpc;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class EntrywayRelayService
 {

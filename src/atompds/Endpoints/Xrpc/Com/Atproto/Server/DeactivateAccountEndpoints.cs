@@ -1,9 +1,9 @@
 using AccountManager;
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 using ComAtproto.Server;
 using Sequencer;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class DeactivateAccountEndpoints
 {

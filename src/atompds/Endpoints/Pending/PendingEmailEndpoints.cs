@@ -1,10 +1,10 @@
-using atompds.Endpoints.Pending.Models;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Endpoints.Pending.Models;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Microsoft.AspNetCore.Mvc;
 using PendingAccounts.Services;
 
-namespace atompds.Endpoints.Pending;
+namespace BlueNilePds.Endpoints.Pending;
 
 public static class PendingEmailEndpoints
 {

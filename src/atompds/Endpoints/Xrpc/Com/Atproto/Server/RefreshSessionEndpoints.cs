@@ -1,7 +1,7 @@
 using AccountManager;
 using AccountManager.Db;
-using atompds.Middleware;
-using atompds.Utils;
+using BlueNilePds.Middleware;
+using BlueNilePds.Utils;
 using CarpaNet;
 using CommonWeb;
 using ComAtproto.Server;
@@ -9,7 +9,7 @@ using Config;
 using Identity;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class RefreshSessionEndpoints
 {

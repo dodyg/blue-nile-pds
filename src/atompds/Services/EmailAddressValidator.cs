@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Xrpc;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class EmailAddressValidator
 {

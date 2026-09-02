@@ -1,9 +1,9 @@
-using atompds.Endpoints.Admin.Models;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Endpoints.Admin.Models;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using Xrpc;
 
-namespace atompds.Endpoints.Admin;
+namespace BlueNilePds.Endpoints.Admin;
 
 public static class AdminResyncEndpoints
 {

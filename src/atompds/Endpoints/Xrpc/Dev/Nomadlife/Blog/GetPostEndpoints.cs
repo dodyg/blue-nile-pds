@@ -6,7 +6,7 @@ using Config;
 using DevNomadlife.Blog;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
+namespace BlueNilePds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 
 public static class GetPostEndpoints
 {

@@ -1,6 +1,6 @@
 using AccountManager;
 using AccountManager.Db;
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 using CarpaNet;
 using ComAtproto.Admin;
 using Config;
@@ -9,7 +9,7 @@ using Handle;
 using Sequencer;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Admin;
 
 public static class UpdateAccountHandleAdminEndpoints
 {

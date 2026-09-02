@@ -1,6 +1,6 @@
 using Mailer;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class BackgroundEmailDispatcher
 {

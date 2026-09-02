@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public interface IScratchCache
 {

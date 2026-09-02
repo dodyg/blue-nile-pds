@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
-namespace atompds.Services.OAuth;
+namespace BlueNilePds.Services.OAuth;
 
 public class OAuthSessionStore
 {

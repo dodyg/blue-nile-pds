@@ -6,7 +6,7 @@ using ComAtproto.Temp;
 using Handle;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Temp;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Temp;
 
 public static class CheckHandleAvailabilityEndpoints
 {

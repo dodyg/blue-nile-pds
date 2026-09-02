@@ -1,12 +1,12 @@
 using AccountManager;
 using AccountManager.Db;
-using atompds.Middleware;
-using atompds.Services;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
 using ComAtproto.Server;
 using Sequencer;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class DeleteAccountEndpoints
 {

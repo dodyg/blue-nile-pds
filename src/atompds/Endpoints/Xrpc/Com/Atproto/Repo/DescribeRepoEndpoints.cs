@@ -1,7 +1,7 @@
 using AccountManager;
 using AccountManager.Db;
 using ActorStore;
-using atompds.Utils;
+using BlueNilePds.Utils;
 using CarpaNet;
 using CommonWeb;
 using ComAtproto.Repo;
@@ -9,7 +9,7 @@ using Identity;
 using Xrpc;
 using DidDoc = CommonWeb.DidDoc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Repo;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 
 public static class DescribeRepoEndpoints
 {

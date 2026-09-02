@@ -3,13 +3,13 @@ using AccountManager.Db;
 using ActorStore;
 using CarpaNet;
 using ComAtproto.Repo;
-using atompds.Middleware;
+using BlueNilePds.Middleware;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using Repo;
 using Xrpc;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Admin;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Admin;
 
 public static class SubjectStatusEndpoints
 {

@@ -3,9 +3,9 @@ using AccountManager;
 using AccountManager.Db;
 using ActorStore;
 using ActorStore.Repo;
-using atompds.Middleware;
-using atompds.Services;
-using atompds.Utils;
+using BlueNilePds.Middleware;
+using BlueNilePds.Services;
+using BlueNilePds.Utils;
 using CarpaNet;
 using CommonWeb;
 using ComAtproto.Server;
@@ -20,7 +20,7 @@ using Sequencer;
 using Xrpc;
 using Operations = DidLib.Operations;
 
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class CreateAccountEndpoints
 {

@@ -4,7 +4,7 @@ using CID;
 using Microsoft.EntityFrameworkCore;
 using Repo;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public class BlobGarbageCollectionService : BackgroundService
 {

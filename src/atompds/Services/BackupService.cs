@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using Xrpc;
 
-namespace atompds.Services;
+namespace BlueNilePds.Services;
 
 public enum BackupStatus
 {
