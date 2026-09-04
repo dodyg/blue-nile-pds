@@ -1,4 +1,3 @@
-using System;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Transfer;
@@ -39,7 +38,7 @@ public class S3BlobStore : IBlobStore
             RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED
         };
 
-        // RegionEndpoint and ServiceURL are mutually exclusive properties. 
+        // RegionEndpoint and ServiceURL are mutually exclusive properties.
         // Whichever property is set last will cause the other to automatically be reset to null.
         if (!string.IsNullOrWhiteSpace(endpoint))
         {
@@ -59,7 +58,7 @@ public class S3BlobStore : IBlobStore
 
     private string GetStoredPath(Cid cid) =>
         $"blocks/{did}/{cid}";
-    
+
 
     private async Task PutObjectAsync(string key, Stream stream, CancellationToken ct)
     {
@@ -241,7 +240,7 @@ public class S3BlobStore : IBlobStore
     public async Task DeleteManyAsync(Cid[] cids)
     {
         var errors = new List<Exception>();
-        
+
         // S3 DeleteObjects supports up to 1000 keys per request
         foreach (var chunk in cids.Chunk(1000))
         {

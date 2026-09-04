@@ -1,4 +1,4 @@
-﻿namespace CommonWeb;
+﻿namespace BlueNilePds.Core.CommonWeb;
 
 public class Constants
 {

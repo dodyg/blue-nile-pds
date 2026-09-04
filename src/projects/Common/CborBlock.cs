@@ -1,10 +1,10 @@
 ﻿using System.Security.Cryptography;
-using CID;
+using BlueNilePds.Core.CID;
 using Multiformats.Codec;
 using Multiformats.Hash;
 using PeterO.Cbor;
 
-namespace Common;
+namespace BlueNilePds.Core.Common;
 
 public class CborBlock(CBORObject value, byte[] bytes, Cid cid)
 {

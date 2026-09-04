@@ -1,5 +1,4 @@
-﻿using System.Net.Http.Headers;
-using BlueNilePds.Core.CID;
+﻿using BlueNilePds.Core.CID;
 using BlueNilePds.Core.Repo;
 
 namespace BlueNilePds.Pds.BlobStore;
@@ -26,10 +25,10 @@ public class DiskBlobStore : IBlobStore
     {
         if (path.StartsWith("~/"))
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[2..]);
-        
+
         if (path == "~")
             return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        
+
         return path;
     }
 
@@ -136,7 +135,7 @@ public class DiskBlobStore : IBlobStore
             if (File.Exists(tempPath))
                 File.Delete(tempPath);
 
-            
+
             return;
         }
 
@@ -214,5 +213,5 @@ public class DiskBlobStore : IBlobStore
         }
     }
 
-    
+
 }

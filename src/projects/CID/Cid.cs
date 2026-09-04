@@ -4,7 +4,7 @@ using Multiformats.Hash;
 using PeterO.Cbor;
 using Exception = System.Exception;
 
-namespace CID;
+namespace BlueNilePds.Core.CID;
 
 public readonly record struct Cid
 {

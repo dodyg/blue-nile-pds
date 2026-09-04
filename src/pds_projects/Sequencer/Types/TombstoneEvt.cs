@@ -1,7 +1,7 @@
-﻿using Common;
+﻿using BlueNilePds.Core.Common;
 using PeterO.Cbor;
 
-namespace Sequencer.Types;
+namespace BlueNilePds.Pds.Sequencer.Types;
 
 public record TombstoneEvt : ICborEncodable<TombstoneEvt>
 {

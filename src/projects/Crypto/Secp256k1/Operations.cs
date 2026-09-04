@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace Crypto.Secp256k1;
+namespace BlueNilePds.Core.Crypto.Secp256k1;
 
 public class Operations
 {

@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
-using CID;
+using BlueNilePds.Core.CID;
 
-namespace Repo.MST;
+namespace BlueNilePds.Core.Repo.MST;
 
 public static class MSTDiff
 {

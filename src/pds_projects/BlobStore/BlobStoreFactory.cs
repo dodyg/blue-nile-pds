@@ -1,4 +1,3 @@
-using System;
 using BlueNilePds.Pds.Config;
 using BlueNilePds.Core.Repo;
 
@@ -8,7 +7,7 @@ public class BlobStoreFactory(
     BlobStoreConfig config
 )
 {
-    public IBlobStore Create(string did) => config switch 
+    public IBlobStore Create(string did) => config switch
     {
         DiskBlobstoreConfig diskConfig => new DiskBlobStore(
             did,

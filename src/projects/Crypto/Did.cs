@@ -1,7 +1,7 @@
-﻿using Crypto.Secp256k1;
+﻿using BlueNilePds.Core.Crypto.Secp256k1;
 using SimpleBase;
 
-namespace Crypto;
+namespace BlueNilePds.Core.Crypto;
 
 public class Did
 {

@@ -1,7 +1,7 @@
-﻿using CID;
+﻿using BlueNilePds.Core.CID;
 using PeterO.Cbor;
 
-namespace Repo;
+namespace BlueNilePds.Core.Repo;
 
 public interface IRepoStorage
 {

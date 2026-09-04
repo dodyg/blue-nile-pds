@@ -1,4 +1,4 @@
-﻿namespace Sequencer.Types;
+﻿namespace BlueNilePds.Pds.Sequencer.Types;
 
 public class TypedCommitEvt : ISeqEvt
 {

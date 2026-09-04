@@ -1,9 +1,9 @@
-﻿using CID;
-using Common;
+﻿using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
-using Repo.MST;
+using BlueNilePds.Core.Repo.MST;
 
-namespace Repo;
+namespace BlueNilePds.Core.Repo;
 
 public record CommitData(Cid Cid, string Rev, string? Since, Cid? Prev, BlockMap NewBlocks, CidSet RemovedCids, BlockMap? RelevantBlocks = null)
 {

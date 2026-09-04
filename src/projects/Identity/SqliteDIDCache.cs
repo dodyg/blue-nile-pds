@@ -1,9 +1,9 @@
 using System.Text.Json;
-using CommonWeb;
+using BlueNilePds.Core.CommonWeb;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
-namespace Identity;
+namespace BlueNilePds.Core.Identity;
 
 public class SqliteDIDCache : IDidCache, IDisposable
 {

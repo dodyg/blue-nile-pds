@@ -1,6 +1,6 @@
-using CID;
+using BlueNilePds.Core.CID;
 
-namespace Repo;
+namespace BlueNilePds.Core.Repo;
 
 public class RepoException : Exception
 {

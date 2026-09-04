@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace CommonWeb;
+namespace BlueNilePds.Core.CommonWeb;
 
 public class DidDocument
 {

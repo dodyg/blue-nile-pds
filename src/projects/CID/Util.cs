@@ -3,7 +3,7 @@ using System.Text;
 using Multiformats.Codec;
 using Multiformats.Hash;
 
-namespace CID;
+namespace BlueNilePds.Core.CID;
 
 public static class Util
 {

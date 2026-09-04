@@ -1,4 +1,4 @@
-﻿namespace CID;
+﻿namespace BlueNilePds.Core.CID;
 
 public enum Version
 {

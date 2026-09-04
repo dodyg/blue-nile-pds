@@ -1,13 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>preview</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
-    <ItemGroup>
+        <ItemGroup>
         <ProjectReference Include="..\..\pds_projects\Config\Config.csproj"/>
         <ProjectReference Include="..\..\pds_projects\Xrpc\Xrpc.csproj"/>
         <ProjectReference Include="..\Identity\Identity.csproj"/>

@@ -16,7 +16,6 @@
   <Folder Name="/projects/">
     <Project Path="src/projects/CID/CID.csproj" />
     <Project Path="src/projects/Common/Common.csproj" />
-    <Project Path="src/projects/CommonDb/CommonDb.csproj" />
     <Project Path="src/projects/CommonWeb/CommonWeb.csproj" />
     <Project Path="src/projects/Crypto/Crypto.csproj" />
     <Project Path="src/projects/DidLib/DidLib.csproj" />

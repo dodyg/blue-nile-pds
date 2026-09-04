@@ -1,10 +1,10 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using CID;
-using Common;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 
-namespace Repo.MST;
+namespace BlueNilePds.Core.Repo.MST;
 
 public static partial class Util
 {

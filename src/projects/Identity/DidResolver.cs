@@ -1,4 +1,4 @@
-﻿namespace Identity;
+﻿namespace BlueNilePds.Core.Identity;
 
 public class DidResolver : BaseResolver
 {

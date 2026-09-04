@@ -1,6 +1,6 @@
-﻿using CID;
+﻿using BlueNilePds.Core.CID;
 
-namespace Common;
+namespace BlueNilePds.Core.Common;
 
 public class Ipld
 {

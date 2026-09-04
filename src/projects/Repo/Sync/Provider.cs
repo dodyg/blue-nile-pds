@@ -1,8 +1,7 @@
-using System;
-using CID;
-using Repo.MST;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Repo.MST;
 
-namespace Repo.Sync;
+namespace BlueNilePds.Core.Repo.Sync;
 
 public class Provider
 {

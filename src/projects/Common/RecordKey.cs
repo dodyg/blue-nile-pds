@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Common;
+namespace BlueNilePds.Core.Common;
 
 public static partial class RecordKey
 {

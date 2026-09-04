@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using CommonWeb;
+using BlueNilePds.Core.CommonWeb;
 
-namespace Identity;
+namespace BlueNilePds.Core.Identity;
 
 public class MemoryCache : IDidCache
 {

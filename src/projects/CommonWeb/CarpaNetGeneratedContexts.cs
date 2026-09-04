@@ -1,7 +1,7 @@
 using CarpaNet.Cbor;
 using CarpaNet.Json;
 
-namespace CommonWeb.Generated;
+namespace BlueNilePds.Core.CommonWeb.Generated;
 
 public static class CarpaNetGeneratedContexts
 {

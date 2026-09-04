@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using PeterO.Cbor;
 
-namespace Common;
+namespace BlueNilePds.Core.Common;
 
 public static class CanonicalDagCbor
 {

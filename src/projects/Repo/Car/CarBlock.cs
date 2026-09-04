@@ -1,5 +1,5 @@
-﻿using CID;
+﻿using BlueNilePds.Core.CID;
 
-namespace Repo.Car;
+namespace BlueNilePds.Core.Repo.Car;
 
 public record CarBlock(Cid Cid, byte[] Bytes);

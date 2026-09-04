@@ -1,4 +1,4 @@
-﻿namespace Xrpc;
+﻿namespace BlueNilePds.Pds.Xrpc;
 
 public enum ResponseType
 {

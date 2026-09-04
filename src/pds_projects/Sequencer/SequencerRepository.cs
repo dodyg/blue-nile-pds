@@ -1,16 +1,16 @@
 ﻿using System.Threading.Channels;
-using AccountManager.Db;
-using CID;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Core.CID;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PeterO.Cbor;
-using Repo;
-using Repo.MST;
-using Sequencer.Db;
-using Sequencer.Types;
-using Util = Repo.Util;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Core.Repo.MST;
+using BlueNilePds.Pds.Sequencer.Db;
+using BlueNilePds.Pds.Sequencer.Types;
+using Util = BlueNilePds.Core.Repo.Util;
 
-namespace Sequencer;
+namespace BlueNilePds.Pds.Sequencer;
 
 public record CloseEvt;
 

@@ -1,10 +1,10 @@
 ﻿using System.Text;
-using CID;
-using Common;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
-using Repo.Car;
+using BlueNilePds.Core.Repo.Car;
 
-namespace Repo.MST;
+namespace BlueNilePds.Core.Repo.MST;
 
 public record MST : INodeEntry
 {

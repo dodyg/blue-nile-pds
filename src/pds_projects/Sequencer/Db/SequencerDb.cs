@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace Sequencer.Db;
+namespace BlueNilePds.Pds.Sequencer.Db;
 
 public class SequencerDb : DbContext
 {

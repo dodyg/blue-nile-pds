@@ -1,8 +1,8 @@
 ﻿using Ipfs;
 using PeterO.Cbor;
-using Cid = CID.Cid;
+using Cid = BlueNilePds.Core.CID.Cid;
 
-namespace Repo.Car;
+namespace BlueNilePds.Core.Repo.Car;
 
 public static class CarEncoder
 {

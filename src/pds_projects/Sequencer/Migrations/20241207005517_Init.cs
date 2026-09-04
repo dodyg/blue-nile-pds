@@ -1,9 +1,8 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Sequencer.Migrations
+namespace BlueNilePds.Pds.Sequencer.Migrations
 {
     /// <inheritdoc />
     public partial class Init : Migration

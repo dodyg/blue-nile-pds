@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace CommonWeb;
+namespace BlueNilePds.Core.CommonWeb;
 
 public static partial class Util
 {

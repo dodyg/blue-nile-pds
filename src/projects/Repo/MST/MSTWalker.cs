@@ -1,4 +1,4 @@
-﻿namespace Repo.MST;
+﻿namespace BlueNilePds.Core.Repo.MST;
 
 public interface IWalkerStatus
 {

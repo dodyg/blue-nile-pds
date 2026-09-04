@@ -1,8 +1,8 @@
-﻿using CID;
-using Common;
+﻿using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
 
-namespace Sequencer.Types;
+namespace BlueNilePds.Pds.Sequencer.Types;
 
 public record CommitEvtOp : ICborEncodable<CommitEvtOp>
 {
@@ -27,7 +27,7 @@ public record CommitEvtOp : ICborEncodable<CommitEvtOp>
         var actionTxt = cbor["action"].AsString().ToUpper();
         var action = Enum.Parse<CommitEvtAction>(actionTxt, true);
         var path = cbor["path"].AsString();
-        Cid? cid = cbor.ContainsKey("cid") && !cbor["cid"].IsNull ? CID.Cid.FromCBOR(cbor["cid"]) : null;
+        Cid? cid = cbor.ContainsKey("cid") && !cbor["cid"].IsNull ? BlueNilePds.Core.CID.Cid.FromCBOR(cbor["cid"]) : null;
         return new CommitEvtOp
         {
             Action = action,

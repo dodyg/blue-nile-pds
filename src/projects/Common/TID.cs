@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Common;
+namespace BlueNilePds.Core.Common;
 
 public class TID : IComparable<TID>
 {

@@ -1,4 +1,4 @@
-﻿namespace Handle;
+﻿namespace BlueNilePds.Core.Handle;
 
 public class Reserved
 {

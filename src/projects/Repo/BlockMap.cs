@@ -1,8 +1,8 @@
-﻿using CID;
-using Common;
+﻿using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
 
-namespace Repo;
+namespace BlueNilePds.Core.Repo;
 
 public class BlockMap
 {

@@ -3,11 +3,11 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Sequencer.Db;
+using BlueNilePds.Pds.Sequencer.Db;
 
 #nullable disable
 
-namespace Sequencer.Migrations
+namespace BlueNilePds.Pds.Sequencer.Migrations
 {
     [DbContext(typeof(SequencerDb))]
     partial class SequencerDbModelSnapshot : ModelSnapshot
@@ -17,7 +17,7 @@ namespace Sequencer.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
 
-            modelBuilder.Entity("Sequencer.Db.RepoSeq", b =>
+            modelBuilder.Entity("BlueNilePds.Pds.Sequencer.Db.RepoSeq", b =>
                 {
                     b.Property<int>("Seq")
                         .ValueGeneratedOnAdd()

@@ -1,10 +1,10 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
-using Crypto;
+using BlueNilePds.Core.Crypto;
 using PeterO.Cbor;
 using SimpleBase;
 
-namespace DidLib;
+namespace BlueNilePds.Core.Did;
 
 public static class Operations
 {

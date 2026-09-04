@@ -1,8 +1,8 @@
-﻿using AccountManager.Db;
-using Common;
+﻿using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
 
-namespace Sequencer.Types;
+namespace BlueNilePds.Pds.Sequencer.Types;
 
 public record AccountEvt : ICborEncodable<AccountEvt>
 {

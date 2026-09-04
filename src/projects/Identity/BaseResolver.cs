@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
-using CommonWeb;
-using Crypto;
+using BlueNilePds.Core.CommonWeb;
+using BlueNilePds.Core.Crypto;
 
-namespace Identity;
+namespace BlueNilePds.Core.Identity;
 
 public abstract class BaseResolver
 {

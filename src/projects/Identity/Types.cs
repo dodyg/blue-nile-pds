@@ -1,6 +1,6 @@
-﻿using CommonWeb;
+﻿using BlueNilePds.Core.CommonWeb;
 
-namespace Identity;
+namespace BlueNilePds.Core.Identity;
 
 public record AtprotoData(string Did, string SigningKey, string Handle, string Pds);
 

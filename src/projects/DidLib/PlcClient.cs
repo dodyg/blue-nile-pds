@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using System.Text.Json;
-using Common;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
 
-namespace DidLib;
+namespace BlueNilePds.Core.Did;
 
 public record PlcClientConfig(string Host);
 

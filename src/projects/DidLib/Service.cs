@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace DidLib;
+namespace BlueNilePds.Core.Did;
 
 public record Service
 {

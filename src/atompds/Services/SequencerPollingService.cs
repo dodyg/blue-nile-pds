@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using BlueNilePds.Pds.Sequencer;
 using BlueNilePds.Pds.Sequencer.Db;
 using BlueNilePds.Pds.Sequencer.Types;

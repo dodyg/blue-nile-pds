@@ -1,15 +1,14 @@
 using System.Security.Cryptography;
-using CID;
-using Common;
-using Crypto;
-using Crypto.Secp256k1;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
+using BlueNilePds.Core.Crypto.Secp256k1;
 using Multiformats.Codec;
 using Multiformats.Hash;
 using PeterO.Cbor;
-using Repo.Car;
-using Repo.MST;
+using BlueNilePds.Core.Repo.Car;
+using BlueNilePds.Core.Repo.MST;
 
-namespace Repo.Sync;
+namespace BlueNilePds.Core.Repo.Sync;
 
 public record CarHeader(List<Cid> Roots);
 
@@ -82,7 +81,7 @@ public static class Consumer
     /// <summary>
     /// Validate an incremental diff.
     /// </summary>
-    public static async Task VerifyDiffAsync(global::Repo.Repo repo, BlockMap blocks, Cid root, string? did = null, byte[]? key = null)
+    public static async Task VerifyDiffAsync(Repo repo, BlockMap blocks, Cid root, string? did = null, byte[]? key = null)
     {
         var currRoot = await repo.Data.GetPointerAsync();
 

@@ -7,7 +7,7 @@ using ConsoleAppFramework;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Debug;
 
-namespace pdsadmin;
+namespace BlueNilePds.Tools.PdsAdmin;
 
 public class AccountCommands
 {

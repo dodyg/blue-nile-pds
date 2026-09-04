@@ -1,4 +1,4 @@
-﻿namespace Crypto;
+﻿namespace BlueNilePds.Core.Crypto;
 
 public interface IKeyPair : ISigner, IDidable;
 

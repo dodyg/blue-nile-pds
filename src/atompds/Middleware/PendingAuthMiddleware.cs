@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
-using BlueNilePds.Pds.PendingAccounts;
 using BlueNilePds.Pds.PendingAccounts.Services;
 
 namespace BlueNilePds.Host.Middleware;

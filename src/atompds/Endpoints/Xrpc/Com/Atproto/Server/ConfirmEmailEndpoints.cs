@@ -1,7 +1,6 @@
 using BlueNilePds.Pds.AccountManager;
 using BlueNilePds.Pds.AccountManager.Db;
 using BlueNilePds.Host.Middleware;
-using BlueNilePds.Pds.Mailer;
 using BlueNilePds.Pds.Xrpc;
 
 namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;

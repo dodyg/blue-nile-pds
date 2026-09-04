@@ -1,8 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace BlueNilePds.Host.Services;
 

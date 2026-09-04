@@ -1,7 +1,7 @@
 using System.Buffers.Text;
 using SimpleBase;
 
-namespace Crypto;
+namespace BlueNilePds.Core.Crypto;
 
 public class Multibase
 {

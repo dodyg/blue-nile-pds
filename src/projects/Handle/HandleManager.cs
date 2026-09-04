@@ -1,10 +1,10 @@
 ﻿using System.Text.RegularExpressions;
-using CommonWeb;
-using Config;
-using Identity;
-using Xrpc;
+using BlueNilePds.Core.CommonWeb;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Identity;
+using BlueNilePds.Pds.Xrpc;
 
-namespace Handle;
+namespace BlueNilePds.Core.Handle;
 
 public partial class HandleManager
 {

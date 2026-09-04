@@ -1,6 +1,6 @@
 ﻿// ReSharper disable InconsistentNaming
 
-namespace Xrpc;
+namespace BlueNilePds.Pds.Xrpc;
 
 public class XRPCError : Exception
 {

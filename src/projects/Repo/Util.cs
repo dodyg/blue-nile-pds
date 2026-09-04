@@ -1,10 +1,10 @@
 ﻿using System.Runtime.CompilerServices;
-using Common;
-using Crypto;
-using Repo.Car;
-using Cid = CID.Cid;
+using BlueNilePds.Core.Common;
+using BlueNilePds.Core.Crypto;
+using BlueNilePds.Core.Repo.Car;
+using Cid = BlueNilePds.Core.CID.Cid;
 
-namespace Repo;
+namespace BlueNilePds.Core.Repo;
 
 public static class Util
 {

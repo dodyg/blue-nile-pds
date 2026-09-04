@@ -2,7 +2,7 @@
 using DnsClient;
 using Microsoft.Extensions.Logging;
 
-namespace Identity;
+namespace BlueNilePds.Core.Identity;
 
 public class HandleResolver
 {

@@ -1,6 +1,5 @@
 using System.Net;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 
 namespace BlueNilePds.Host.Middleware;
 
@@ -105,7 +104,7 @@ public static class RateLimitExtensions
 
     private static SlidingWindowRateLimiterOptions CreateSlidingWindowOptions(int permitLimit) =>
         new()
-    {
+        {
             PermitLimit = permitLimit,
             Window = TimeSpan.FromMinutes(1),
             SegmentsPerWindow = 4,

@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Web;
 
-namespace Identity;
+namespace BlueNilePds.Core.Identity;
 
 public class PlcResolver : BaseResolver
 {

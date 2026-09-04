@@ -1,9 +1,9 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using Common;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
 
-namespace DidLib;
+namespace BlueNilePds.Core.Did;
 
 public class SignedOp<T> : ICborEncodable<SignedOp<T>> where T : ICborEncodable<T>
 {

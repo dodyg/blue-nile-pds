@@ -1,8 +1,8 @@
-﻿using CID;
-using Common;
+﻿using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
 
-namespace Sequencer.Types;
+namespace BlueNilePds.Pds.Sequencer.Types;
 
 public record CommitEvt : ICborEncodable<CommitEvt>
 {

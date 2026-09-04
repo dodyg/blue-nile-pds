@@ -5,7 +5,6 @@ using BlueNilePds.Host.Middleware;
 using CarpaNet.Blob;
 using BlueNilePds.Core.CID;
 using BlueNilePds.Pds.Xrpc;
-using static BlueNilePds.Pds.ActorStore.Repo.BlobTransactor;
 
 namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Repo;
 
