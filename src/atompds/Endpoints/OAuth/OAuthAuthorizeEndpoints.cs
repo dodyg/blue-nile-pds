@@ -1,13 +1,13 @@
-using AccountManager;
-using BlueNilePds.Middleware;
-using BlueNilePds.Config;
-using BlueNilePds.Services;
-using BlueNilePds.Services.OAuth;
-using Config;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Host.Services.OAuth;
+using BlueNilePds.Pds.Config;
 using Microsoft.AspNetCore.WebUtilities;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.OAuth;
+namespace BlueNilePds.Host.Endpoints.OAuth;
 
 public static class OAuthAuthorizeEndpoints
 {

@@ -1,13 +1,13 @@
-using AccountManager;
-using AccountManager.Db;
-using BlueNilePds.Middleware;
-using Config;
-using DidLib;
-using Handle;
-using Sequencer;
-using Xrpc;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Did;
+using BlueNilePds.Core.Handle;
+using BlueNilePds.Pds.Sequencer;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Identity;
 
 public static class UpdateHandleEndpoints
 {

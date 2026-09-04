@@ -1,12 +1,12 @@
 using System.Text.Json;
-using AccountManager;
-using ActorStore;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.ActorStore;
 using CarpaNet;
-using Config;
+using BlueNilePds.Pds.Config;
 using DevNomadlife.Blog;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 
 public static class GetPostEndpoints
 {

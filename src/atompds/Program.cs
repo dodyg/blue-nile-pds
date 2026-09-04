@@ -1,16 +1,15 @@
 using System.Text.Json.Serialization;
-using AccountManager.Db;
-using BlueNilePds.Config;
-using BlueNilePds.Endpoints;
-using BlueNilePds.ExceptionHandler;
-using BlueNilePds.Middleware;
-using BlueNilePds.Services;
-using Config;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Endpoints;
+using BlueNilePds.Host.ExceptionHandler;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Pds.Config;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Logs;
-using Sequencer.Db;
-
-namespace BlueNilePds;
+using BlueNilePds.Pds.Sequencer.Db;
+using BlueNilePds.Pds.PendingAccounts;
+namespace BlueNilePds.Host;
 
 public class Program
 {
@@ -68,7 +67,7 @@ public class Program
             await seqDb.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000");
             await seqDb.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL");
 
-            var pendingDb = scope.ServiceProvider.GetRequiredService<PendingAccounts.PendingAccountsDb>();
+            var pendingDb = scope.ServiceProvider.GetRequiredService<PendingAccountsDb>();
             await pendingDb.Database.MigrateAsync();
             await pendingDb.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL");
             await pendingDb.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=5000");

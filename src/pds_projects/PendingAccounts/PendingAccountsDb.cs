@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using PendingAccounts.Models;
+using BlueNilePds.Pds.PendingAccounts.Models;
 
-namespace PendingAccounts;
+namespace BlueNilePds.Pds.PendingAccounts;
 
 public class PendingAccountsDb : DbContext
 {

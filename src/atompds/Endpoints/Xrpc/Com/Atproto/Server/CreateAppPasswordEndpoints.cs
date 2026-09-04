@@ -1,10 +1,10 @@
 using System.Security.Cryptography;
-using AccountManager;
-using AccountManager.Db;
-using BlueNilePds.Middleware;
-using Xrpc;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class CreateAppPasswordEndpoints
 {

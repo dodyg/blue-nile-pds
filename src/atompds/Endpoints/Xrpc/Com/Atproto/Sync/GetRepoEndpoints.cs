@@ -1,9 +1,8 @@
-using AccountManager;
-using ActorStore;
-using Repo;
-using Repo.Car;
-using Xrpc;
-using RepoUtil = Repo.Util;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Core.Repo.Car;
+using BlueNilePds.Pds.Xrpc;
+using RepoUtil = BlueNilePds.Core.Repo.Util;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
 
@@ -37,7 +36,7 @@ public static class GetRepoEndpoints
         var storage = actorRepo.Repo.Storage;
         var root = await storage.GetRootDetailedAsync();
 
-        var repo = await global::Repo.Repo.LoadAsync(storage, root.Cid);
+        var repo = await global::BlueNilePds.Core.Repo.Repo.LoadAsync(storage, root.Cid);
         var commitBytes = await storage.GetBytesAsync(root.Cid);
         var commitBlock = new CarBlock(root.Cid, commitBytes!);
         var carBlocks = PrependBlockAsync(commitBlock, repo.Data.CarBlockStreamAsync());

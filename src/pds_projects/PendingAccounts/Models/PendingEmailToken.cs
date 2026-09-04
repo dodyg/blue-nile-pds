@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace PendingAccounts.Models;
+namespace BlueNilePds.Pds.PendingAccounts.Models;
 
 public enum PendingEmailTokenPurpose
 {

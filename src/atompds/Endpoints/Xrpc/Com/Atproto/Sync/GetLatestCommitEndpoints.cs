@@ -1,5 +1,5 @@
-using ActorStore;
-using Xrpc;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.Xrpc;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
 

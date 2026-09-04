@@ -1,11 +1,10 @@
 using System.Text;
 using System.Text.Json;
-using ActorStore;
-using Config;
-using Crypto;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Core.Crypto;
 using Jose;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public class ServiceJwtBuilder
 {
@@ -31,7 +30,7 @@ public class ServiceJwtBuilder
     {
         var iat = payload.iat ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var exp = payload.exp ?? DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeSeconds();
-        var jti = Crypto.Utils.RandomHexString(16);
+        var jti = Core.Crypto.Utils.RandomHexString(16);
         var header = new
         {
             typ = "JWT",

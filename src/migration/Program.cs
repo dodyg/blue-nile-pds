@@ -1,7 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
-using ActorStore.Db;
-using Crypto;
+﻿using BlueNilePds.Pds.ActorStore.Db;
 using DurableTask.Core;
 using DurableTask.SqlServer;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +11,13 @@ string ExpandPath(string path)
 {
     if (string.IsNullOrEmpty(path))
         return path;
-    
+
     if (path.StartsWith("~/"))
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[2..]);
-    
+
     if (path == "~")
         return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    
+
     return path;
 }
 
@@ -84,14 +81,14 @@ await provider.CreateIfNotExistsAsync();
 
 
 TaskHubWorker hubWorker = await new TaskHubWorker(provider)
-    .AddTaskOrchestrations(typeof (MigrateOrchestration))
-    .AddTaskActivities(typeof (MigrateActivity))
+    .AddTaskOrchestrations(typeof(MigrateOrchestration))
+    .AddTaskActivities(typeof(MigrateActivity))
     .StartAsync();
 
 
 var client = new TaskHubClient(provider, loggerFactory: loggerFactory);
 
-var instance = await client.CreateOrchestrationInstanceAsync(typeof (MigrateOrchestration), 
+var instance = await client.CreateOrchestrationInstanceAsync(typeof(MigrateOrchestration),
     new OrchestrationInput(actorDbPaths.ToArray(), migrationNameToReverse));
 
 await client.WaitForOrchestrationAsync(instance, TimeSpan.FromHours(1));
@@ -116,7 +113,7 @@ public class MigrateOrchestration : TaskOrchestration<string, OrchestrationInput
                 var activityInput = new MigrationInput(dbPath, null);
                 var result = context.ScheduleTask<MigrationInput>(typeof(MigrateActivity), activityInput);
             }
-            catch(Exception)
+            catch (Exception)
             {
                 for (int j = i - 1; j >= 0; j--)
                 {
@@ -168,7 +165,7 @@ public class MigrateActivity : TaskActivity<MigrationInput, string>
         using var db = new ActorStoreDb(options);
 
         db.Database.Migrate();
-        Console.WriteLine($"Migration completed for actor at {input.DbPath}"); 
+        Console.WriteLine($"Migration completed for actor at {input.DbPath}");
 
         return $"Migrated actor at {input.DbPath}";
     }

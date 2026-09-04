@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace AccountManager.Db;
+namespace BlueNilePds.Pds.AccountManager.Db;
 
 [Table(TableName)]
 public class Account

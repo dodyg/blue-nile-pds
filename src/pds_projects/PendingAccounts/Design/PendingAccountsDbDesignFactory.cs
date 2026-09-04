@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace PendingAccounts.Design;
+namespace BlueNilePds.Pds.PendingAccounts.Design;
 
 public class PendingAccountsDbDesignFactory : IDesignTimeDbContextFactory<PendingAccountsDb>
 {

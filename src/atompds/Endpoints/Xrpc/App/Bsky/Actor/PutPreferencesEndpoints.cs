@@ -1,10 +1,9 @@
 using System.Text.Json;
-using ActorStore;
-using BlueNilePds.Middleware;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Host.Middleware;
 using AppBsky.Actor;
-using Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.App.Bsky.Actor;
+namespace BlueNilePds.Host.Endpoints.Xrpc.App.Bsky.Actor;
 
 public static class PutPreferencesEndpoints
 {

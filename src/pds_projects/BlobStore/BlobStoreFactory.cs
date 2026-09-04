@@ -1,8 +1,8 @@
 using System;
-using Config;
-using Repo;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Repo;
 
-namespace BlobStore;
+namespace BlueNilePds.Pds.BlobStore;
 
 public class BlobStoreFactory(
     BlobStoreConfig config

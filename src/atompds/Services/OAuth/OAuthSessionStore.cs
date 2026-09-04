@@ -1,8 +1,7 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using System.Text.Json.Serialization;
 
-namespace BlueNilePds.Services.OAuth;
+namespace BlueNilePds.Host.Services.OAuth;
 
 public class OAuthSessionStore
 {

@@ -1,8 +1,8 @@
 ﻿using System.Net.Http.Headers;
-using CID;
-using Repo;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Repo;
 
-namespace BlobStore;
+namespace BlueNilePds.Pds.BlobStore;
 
 public class DiskBlobStore : IBlobStore
 {

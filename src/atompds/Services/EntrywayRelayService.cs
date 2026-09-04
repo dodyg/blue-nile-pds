@@ -1,12 +1,10 @@
 using System.Net.Http.Headers;
-using BlueNilePds.Config;
+using BlueNilePds.Host.Configuration;
 using System.Text;
-using Config;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public class EntrywayRelayService
 {

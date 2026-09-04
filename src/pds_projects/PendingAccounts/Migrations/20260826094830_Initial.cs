@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace PendingAccounts.Migrations
+namespace BlueNilePds.Pds.PendingAccounts.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration

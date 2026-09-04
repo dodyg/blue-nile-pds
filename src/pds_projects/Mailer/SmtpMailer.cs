@@ -3,7 +3,7 @@ using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 
-namespace Mailer;
+namespace BlueNilePds.Pds.Mailer;
 
 public record SmtpMailerConfig(string Host, int Port, string? Username, string? Password, string FromAddress);
 

@@ -1,8 +1,8 @@
 ﻿using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace AccountManager.Db;
+namespace BlueNilePds.Pds.AccountManager.Db;
 
 public class InviteStore
 {

@@ -1,18 +1,15 @@
 using System.Text.Json;
-using AccountManager;
-using AccountManager.Db;
-using ActorStore;
-using ActorStore.Repo;
-using BlueNilePds.Config;
-using BlueNilePds.Utils;
-using Config;
-using Crypto.Secp256k1;
-using DidLib;
-using Identity;
-using Repo;
-using Sequencer;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Crypto.Secp256k1;
+using BlueNilePds.Core.Did;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Pds.Sequencer;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public class PendingApprovalService
 {
@@ -57,11 +54,11 @@ public class PendingApprovalService
 
         string[] rotationKeys = [_secretsConfig.PlcRotationKey.Did()];
         if (_identityConfig.RecoveryDidKey != null)
-            rotationKeys = [_identityConfig.RecoveryDidKey, ..rotationKeys];
+            rotationKeys = [_identityConfig.RecoveryDidKey, .. rotationKeys];
         if (_identityConfig.EntrywayPlcRotationKey != null)
-            rotationKeys = [_identityConfig.EntrywayPlcRotationKey, ..rotationKeys];
+            rotationKeys = [_identityConfig.EntrywayPlcRotationKey, .. rotationKeys];
 
-        var plcCreate = await DidLib.Operations.CreateOpAsync(signingKey.Did(), handle, _serviceConfig.PublicUrl, rotationKeys, _secretsConfig.PlcRotationKey);
+        var plcCreate = await Core.Did.Operations.CreateOpAsync(signingKey.Did(), handle, _serviceConfig.PublicUrl, rotationKeys, _secretsConfig.PlcRotationKey);
         var did = plcCreate.Did;
         var plcOp = plcCreate.Op;
 

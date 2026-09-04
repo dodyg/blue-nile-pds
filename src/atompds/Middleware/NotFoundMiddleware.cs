@@ -1,4 +1,4 @@
-﻿namespace BlueNilePds.Middleware;
+﻿namespace BlueNilePds.Host.Middleware;
 
 public static class NotFoundMiddlewareExtensions
 {

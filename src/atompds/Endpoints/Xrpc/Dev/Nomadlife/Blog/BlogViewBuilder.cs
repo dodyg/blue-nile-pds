@@ -1,12 +1,13 @@
 using System.Text.Json;
-using AccountManager;
-using ActorStore;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.ActorStore;
 using AppBsky.Actor;
 using CarpaNet;
-using Config;
+using BlueNilePds.Pds.Config;
 using DevNomadlife.Blog;
+using static BlueNilePds.Pds.ActorStore.Repo.RecordRepository;
 
-namespace BlueNilePds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Dev.Nomadlife.Blog;
 
 public static class BlogViewBuilder
 {
@@ -95,7 +96,7 @@ public static class BlogViewBuilder
     }
 
     public static DefsPostView BuildPostView(
-        ActorStore.Repo.RecordRepository.RecordForCollection record, string did, ServiceConfig serviceConfig,
+        RecordForCollection record, string did, ServiceConfig serviceConfig,
         DefsProfileViewDetailed profile)
     {
         var val = record.Value;

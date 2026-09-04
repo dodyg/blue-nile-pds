@@ -1,13 +1,14 @@
-using AccountManager;
-using AccountManager.Db;
-using ActorStore;
-using BlueNilePds.Utils;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Host.Utils;
 using CarpaNet;
-using CommonWeb;
+using BlueNilePds.Core.CommonWeb;
 using ComAtproto.Repo;
-using Identity;
-using Xrpc;
-using DidDoc = CommonWeb.DidDoc;
+using BlueNilePds.Core.Identity;
+using BlueNilePds.Host;
+using BlueNilePds.Pds.Xrpc;
+using DidDoc = BlueNilePds.Core.CommonWeb.DidDoc;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 

@@ -1,4 +1,4 @@
-namespace BlueNilePds.Endpoints.Pending;
+namespace BlueNilePds.Host.Endpoints.Pending;
 
 public static class PendingHelper
 {

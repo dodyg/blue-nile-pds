@@ -1,14 +1,14 @@
 ﻿using System.Runtime.CompilerServices;
-using ActorStore.Db;
-using CID;
+using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Core.CID;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PeterO.Cbor;
-using Repo;
-using Repo.Car;
-using Repo.MST;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Core.Repo.Car;
+using BlueNilePds.Core.Repo.MST;
 
-namespace ActorStore.Repo;
+namespace BlueNilePds.Pds.ActorStore.Repo;
 
 public record RevCursor(Cid Cid, string Rev);
 

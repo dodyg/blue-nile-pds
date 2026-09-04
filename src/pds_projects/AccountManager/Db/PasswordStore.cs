@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Scrypt;
 
-namespace AccountManager.Db;
+namespace BlueNilePds.Pds.AccountManager.Db;
 
 public class PasswordStore
 {

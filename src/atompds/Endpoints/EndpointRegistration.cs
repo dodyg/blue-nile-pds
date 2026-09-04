@@ -1,20 +1,22 @@
-using BlueNilePds.Config;
-using BlueNilePds.Endpoints.OAuth;
-using BlueNilePds.Endpoints.Xrpc;
-using BlueNilePds.Endpoints.Xrpc.App.Bsky.Actor;
-using BlueNilePds.Endpoints.Xrpc.Com.Atproto.Admin;
-using BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
-using BlueNilePds.Endpoints.Xrpc.Com.Atproto.Moderation;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Endpoints.OAuth;
+using BlueNilePds.Host.Endpoints.Xrpc;
+using BlueNilePds.Host.Endpoints.Xrpc.App.Bsky.Actor;
+using BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Admin;
+using BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Identity;
+using BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Moderation;
+using BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Repo;
+using BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;
+using BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Sync;
+using BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Temp;
+using BlueNilePds.Host.Endpoints.Xrpc.Dev.Nomadlife.Blog;
+using BlueNilePds.Host.Endpoints.Xrpc.Africa.Bsky;
+using BlueNilePds.Host.Endpoints.Pending;
+using BlueNilePds.Pds.Config;
 using BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
-using BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 using BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
-using BlueNilePds.Endpoints.Xrpc.Com.Atproto.Temp;
-using BlueNilePds.Endpoints.Xrpc.Dev.Nomadlife.Blog;
-using BlueNilePds.Endpoints.Xrpc.Africa.Bsky;
-using BlueNilePds.Endpoints.Pending;
-using Config;
 
-namespace BlueNilePds.Endpoints;
+namespace BlueNilePds.Host.Endpoints;
 
 public static class EndpointRegistration
 {

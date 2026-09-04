@@ -1,4 +1,4 @@
-﻿namespace AccountManager.Db;
+﻿namespace BlueNilePds.Pds.AccountManager.Db;
 
 public record ActorAccount(
     string Did,

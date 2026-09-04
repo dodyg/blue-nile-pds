@@ -1,7 +1,7 @@
-using ActorStore;
-using AccountManager;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.AccountManager;
 using Microsoft.EntityFrameworkCore;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 

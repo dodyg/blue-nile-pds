@@ -1,11 +1,11 @@
-﻿using AccountManager.Db;
-using CID;
-using Config;
+﻿using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Pds.Config;
 using Microsoft.Extensions.Logging;
 using Scrypt;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace AccountManager;
+namespace BlueNilePds.Pds.AccountManager;
 
 public class AuthScopes
 {

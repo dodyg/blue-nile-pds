@@ -1,11 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Config;
+using BlueNilePds.Pds.Config;
 using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Logging;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public enum BackupStatus
 {

@@ -1,12 +1,12 @@
-using ActorStore.Db;
+using BlueNilePds.Pds.ActorStore.Db;
 using CarpaNet;
-using CID;
-using Crypto;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Crypto;
 using Microsoft.EntityFrameworkCore;
-using Repo;
-using Xrpc;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Pds.Xrpc;
 
-namespace ActorStore.Repo;
+namespace BlueNilePds.Pds.ActorStore.Repo;
 
 // lol
 public class RepoRepository
@@ -40,7 +40,7 @@ public class RepoRepository
     public async Task<CommitData> CreateRepoAsync(PreparedCreate[] writes)
     {
         var writeOpts = writes.Select(x => x.CreateWriteToOp()).ToArray();
-        var commit = await global::Repo.Repo.FormatInitCommitAsync(Storage, _did, _keyPair, writeOpts);
+        var commit = await Core.Repo.Repo.FormatInitCommitAsync(Storage, _did, _keyPair, writeOpts);
 
         await InTransactionAsync(async () =>
         {
@@ -201,7 +201,7 @@ public class RepoRepository
             }
         }
 
-        var repo = await global::Repo.Repo.LoadAsync(Storage, currRoot.Cid);
+        var repo = await Core.Repo.Repo.LoadAsync(Storage, currRoot.Cid);
         var writeOps = writes.Select(WriteToOp).ToArray();
         var commit = await repo.FormatCommitAsync(writeOps, _keyPair);
 

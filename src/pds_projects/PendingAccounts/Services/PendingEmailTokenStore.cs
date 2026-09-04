@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
-using PendingAccounts.Models;
+using BlueNilePds.Pds.PendingAccounts.Models;
 
-namespace PendingAccounts.Services;
+namespace BlueNilePds.Pds.PendingAccounts.Services;
 
 public class PendingEmailTokenStore
 {

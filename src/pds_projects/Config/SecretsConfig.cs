@@ -1,6 +1,6 @@
-﻿using Crypto.Secp256k1;
+﻿using BlueNilePds.Core.Crypto.Secp256k1;
 
-namespace Config;
+namespace BlueNilePds.Pds.Config;
 
 public record SecretsConfig
 {

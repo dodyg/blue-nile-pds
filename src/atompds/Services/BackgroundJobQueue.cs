@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public interface IBackgroundJobQueue
 {

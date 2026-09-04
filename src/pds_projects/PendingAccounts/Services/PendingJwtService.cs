@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Jose;
 
-namespace PendingAccounts.Services;
+namespace BlueNilePds.Pds.PendingAccounts.Services;
 
 public class PendingJwtService
 {

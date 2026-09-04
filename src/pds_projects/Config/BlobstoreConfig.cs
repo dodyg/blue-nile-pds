@@ -1,4 +1,4 @@
-﻿namespace Config;
+﻿namespace BlueNilePds.Pds.Config;
 
 public record BlobStoreConfig {}
 public record DiskBlobstoreConfig : BlobStoreConfig

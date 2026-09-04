@@ -2,7 +2,7 @@ using System.Net;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 
-namespace BlueNilePds.Middleware;
+namespace BlueNilePds.Host.Middleware;
 
 public static class RateLimitExtensions
 {

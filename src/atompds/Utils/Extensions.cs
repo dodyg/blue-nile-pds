@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
-using CommonWeb;
+using BlueNilePds.Core.CommonWeb;
 
-namespace BlueNilePds.Utils;
+namespace BlueNilePds.Host.Utils;
 
 public static class Extensions
 {

@@ -1,12 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
-using AccountManager.Db;
+using BlueNilePds.Pds.AccountManager.Db;
 using Jose;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using RefreshToken = AccountManager.Db.RefreshToken;
+using RefreshToken = BlueNilePds.Pds.AccountManager.Db.RefreshToken;
 
-namespace AccountManager;
+namespace BlueNilePds.Pds.AccountManager;
 
 public class Auth
 {

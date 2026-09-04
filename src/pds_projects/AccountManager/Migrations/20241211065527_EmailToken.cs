@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace AccountManager.Migrations
+namespace BlueNilePds.Pds.AccountManager.Migrations
 {
     /// <inheritdoc />
     public partial class EmailToken : Migration

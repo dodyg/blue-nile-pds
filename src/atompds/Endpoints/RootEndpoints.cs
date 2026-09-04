@@ -1,7 +1,7 @@
-using BlueNilePds.Config;
-using Config;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Pds.Config;
 
-namespace BlueNilePds.Endpoints;
+namespace BlueNilePds.Host.Endpoints;
 
 public static class RootEndpoints
 {

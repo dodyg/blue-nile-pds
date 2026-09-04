@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Mailer;
+namespace BlueNilePds.Pds.Mailer;
 
 public class StubMailer : IMailer
 {

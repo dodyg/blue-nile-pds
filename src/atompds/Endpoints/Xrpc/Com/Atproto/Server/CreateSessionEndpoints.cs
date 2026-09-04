@@ -1,16 +1,16 @@
 using System.Text.Json;
-using AccountManager;
-using AccountManager.Db;
-using BlueNilePds.Services;
-using BlueNilePds.Utils;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Host.Utils;
 using CarpaNet;
-using CommonWeb;
+using BlueNilePds.Core.CommonWeb;
 using ComAtproto.Server;
-using Config;
-using Identity;
-using Xrpc;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Identity;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class CreateSessionEndpoints
 {

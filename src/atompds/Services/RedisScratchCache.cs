@@ -1,6 +1,6 @@
 using StackExchange.Redis;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public sealed class RedisScratchCache : IScratchCache
 {

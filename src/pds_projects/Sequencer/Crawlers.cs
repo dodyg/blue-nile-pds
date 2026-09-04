@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 
-namespace Sequencer;
+namespace BlueNilePds.Pds.Sequencer;
 
 public record CrawlersConfig(string Hostname, string[] Crawlers);
 

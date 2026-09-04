@@ -5,18 +5,17 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using ActorStore;
-using BlueNilePds.Config;
-using BlueNilePds.Middleware;
-using BlueNilePds.Services;
-using Config;
-using CommonWeb;
-using Crypto;
-using Identity;
-using Jose;
-using Xrpc;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.CommonWeb;
+using BlueNilePds.Core.Crypto;
+using BlueNilePds.Core.Identity;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc;
+namespace BlueNilePds.Host.Endpoints.Xrpc;
 
 public static class AppViewProxyEndpoints
 {

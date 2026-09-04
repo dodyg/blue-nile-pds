@@ -1,8 +1,7 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public class CaptchaVerifier
 {

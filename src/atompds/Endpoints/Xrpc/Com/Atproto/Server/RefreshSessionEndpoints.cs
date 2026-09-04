@@ -1,15 +1,15 @@
-using AccountManager;
-using AccountManager.Db;
-using BlueNilePds.Middleware;
-using BlueNilePds.Utils;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Utils;
 using CarpaNet;
-using CommonWeb;
+using BlueNilePds.Core.CommonWeb;
 using ComAtproto.Server;
-using Config;
-using Identity;
-using Xrpc;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Identity;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class RefreshSessionEndpoints
 {

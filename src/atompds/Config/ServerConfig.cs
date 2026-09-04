@@ -1,24 +1,26 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Threading.Channels;
-using AccountManager;
-using AccountManager.Db;
-using ActorStore;
-using BlueNilePds.Middleware;
-using BlueNilePds.Services;
-using BlueNilePds.Services.OAuth;
-using BlobStore;
-using Config;
-using Crypto.Secp256k1;
-using DidLib;
-using Handle;
-using Identity;
-using Mailer;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Host.Services.OAuth;
+using BlueNilePds.Pds.BlobStore;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Crypto.Secp256k1;
+using BlueNilePds.Core.Did;
+using BlueNilePds.Core.Handle;
+using BlueNilePds.Core.Identity;
+using BlueNilePds.Pds.Mailer;
 using Microsoft.EntityFrameworkCore;
-using Sequencer;
-using Sequencer.Db;
+using BlueNilePds.Pds.Sequencer;
+using BlueNilePds.Pds.Sequencer.Db;
 using StackExchange.Redis;
+using BlueNilePds.Pds.PendingAccounts.Services;
+using BlueNilePds.Pds.PendingAccounts;
 
-namespace BlueNilePds.Config;
+namespace BlueNilePds.Host.Configuration;
 
 public record ServerConfig
 {
@@ -391,11 +393,11 @@ public record ServerConfig
         // Sequencer
         services.AddDbContextFactory<SequencerDb>(x => x.UseSqlite($"Data Source={config.Db.SequencerDbLoc}"));
         services.AddScoped<SequencerRepository>();
-        services.AddSingleton<Services.SequencerPollingService>();
-        services.AddSingleton<Sequencer.ISequencerEventSource>(sp => sp.GetRequiredService<Services.SequencerPollingService>());
-        services.AddHostedService(sp => sp.GetRequiredService<Services.SequencerPollingService>());
-        services.AddSingleton<Services.BlobGarbageCollectionService>();
-        services.AddHostedService(sp => sp.GetRequiredService<Services.BlobGarbageCollectionService>());
+        services.AddSingleton<SequencerPollingService>();
+        services.AddSingleton<ISequencerEventSource>(sp => sp.GetRequiredService<SequencerPollingService>());
+        services.AddHostedService(sp => sp.GetRequiredService<SequencerPollingService>());
+        services.AddSingleton<BlobGarbageCollectionService>();
+        services.AddHostedService(sp => sp.GetRequiredService<BlobGarbageCollectionService>());
         services.AddSingleton<Crawlers>();
         services.AddSingleton(x => new CrawlersConfig(config.Service.Hostname, config.Crawlers));
 
@@ -447,25 +449,25 @@ public record ServerConfig
         services.AddSingleton<RepoResyncService>();
 
         // Pending accounts
-        services.AddDbContext<PendingAccounts.PendingAccountsDb>(x =>
+        services.AddDbContext<PendingAccountsDb>(x =>
         {
             x.UseSqlite($"Data Source={config.Db.PendingDbLoc}");
 #if DEBUG
             x.EnableSensitiveDataLogging();
 #endif
         });
-        services.AddScoped<PendingAccounts.Services.PendingEmailTokenStore>();
-        services.AddSingleton(sp => new PendingAccounts.Services.PendingJwtService(
+        services.AddScoped<PendingEmailTokenStore>();
+        services.AddSingleton(sp => new PendingJwtService(
             config.SecretsConfig.JwtSecret, config.Service.Did));
-        services.AddScoped<PendingAccounts.Services.PendingAccountService>(sp =>
-            new PendingAccounts.Services.PendingAccountService(
-                sp.GetRequiredService<PendingAccounts.PendingAccountsDb>(),
+        services.AddScoped<PendingAccountService>(sp =>
+            new PendingAccountService(
+                sp.GetRequiredService<PendingAccountsDb>(),
                 sp.GetRequiredService<AccountManagerDb>(),
                 sp.GetRequiredService<AccountRepository>(),
                 sp.GetRequiredService<InviteStore>(),
-                sp.GetRequiredService<PendingAccounts.Services.PendingJwtService>(),
-                sp.GetRequiredService<PendingAccounts.Services.PendingEmailTokenStore>(),
+                sp.GetRequiredService<PendingJwtService>(),
+                sp.GetRequiredService<PendingEmailTokenStore>(),
                 config.Service.Did));
-        services.AddScoped<BlueNilePds.Services.PendingApprovalService>();
+        services.AddScoped<PendingApprovalService>();
     }
 }

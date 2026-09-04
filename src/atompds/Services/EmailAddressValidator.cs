@@ -1,10 +1,9 @@
 using System.Net.Mail;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public class EmailAddressValidator
 {

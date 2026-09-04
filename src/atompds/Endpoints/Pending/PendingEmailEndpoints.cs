@@ -1,10 +1,10 @@
-using BlueNilePds.Endpoints.Pending.Models;
-using BlueNilePds.Middleware;
-using BlueNilePds.Services;
+using BlueNilePds.Host.Endpoints.Pending.Models;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Services;
 using Microsoft.AspNetCore.Mvc;
-using PendingAccounts.Services;
+using BlueNilePds.Pds.PendingAccounts.Services;
 
-namespace BlueNilePds.Endpoints.Pending;
+namespace BlueNilePds.Host.Endpoints.Pending;
 
 public static class PendingEmailEndpoints
 {

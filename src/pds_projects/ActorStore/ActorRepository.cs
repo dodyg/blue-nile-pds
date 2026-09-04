@@ -1,14 +1,13 @@
-using ActorStore.Db;
-using ActorStore.Repo;
-using BlobStore;
-using Crypto;
+using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Core.Crypto;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Repo;
+using BlueNilePds.Core.Repo;
 using System.Text.Json;
 
-namespace ActorStore;
+namespace BlueNilePds.Pds.ActorStore;
 
 public class ActorRepository : IDisposable, IAsyncDisposable
 {

@@ -1,6 +1,6 @@
-using BlueNilePds.Services;
+using BlueNilePds.Host.Services;
 
-namespace BlueNilePds.Endpoints.OAuth;
+namespace BlueNilePds.Host.Endpoints.OAuth;
 
 public static class OAuthClientMetadataEndpoints
 {

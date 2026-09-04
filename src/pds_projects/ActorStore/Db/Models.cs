@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ActorStore.Db;
+namespace BlueNilePds.Pds.ActorStore.Db;
 
 [Table(TableName)]
 public class AccountPref

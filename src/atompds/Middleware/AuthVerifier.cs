@@ -1,15 +1,14 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using AccountManager;
-using AccountManager.Db;
-using Crypto;
-using Identity;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Core.Crypto;
+using BlueNilePds.Core.Identity;
 using Jose;
-using Microsoft.Extensions.Logging;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Middleware;
+namespace BlueNilePds.Host.Middleware;
 
 public record AuthVerifierConfig(
     string JwtKey,

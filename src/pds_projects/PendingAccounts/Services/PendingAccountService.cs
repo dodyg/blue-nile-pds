@@ -1,10 +1,10 @@
-using AccountManager;
-using AccountManager.Db;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
 using Microsoft.EntityFrameworkCore;
-using PendingAccounts.Models;
+using BlueNilePds.Pds.PendingAccounts.Models;
 using Scrypt;
 
-namespace PendingAccounts.Services;
+namespace BlueNilePds.Pds.PendingAccounts.Services;
 
 public class PendingAccountService
 {

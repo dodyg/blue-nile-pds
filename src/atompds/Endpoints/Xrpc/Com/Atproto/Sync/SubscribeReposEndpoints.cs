@@ -1,9 +1,10 @@
 using System.Net.WebSockets;
-using Config;
+using BlueNilePds.Pds.Config;
 using PeterO.Cbor;
-using Sequencer;
-using Sequencer.Types;
-using Xrpc;
+using BlueNilePds.Pds.Sequencer;
+using BlueNilePds.Pds.Sequencer.Types;
+using BlueNilePds.Host;
+using BlueNilePds.Pds.Xrpc;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
 
@@ -22,7 +23,7 @@ public static class SubscribeReposEndpoints
         HttpContext context,
         SubscriptionConfig subscriptionConfig,
         SequencerRepository sequencer,
-        Sequencer.ISequencerEventSource eventSource,
+        ISequencerEventSource eventSource,
         ILogger<Program> logger,
         ILoggerFactory loggerFactory,
         int? cursor,

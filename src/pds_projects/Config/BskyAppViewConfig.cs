@@ -1,4 +1,4 @@
-﻿namespace Config;
+﻿namespace BlueNilePds.Pds.Config;
 
 public interface IBskyAppViewConfig;
 public record DisabledBskyAppViewConfig : IBskyAppViewConfig;

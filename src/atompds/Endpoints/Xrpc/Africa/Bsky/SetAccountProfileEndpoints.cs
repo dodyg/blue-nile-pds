@@ -1,18 +1,17 @@
 using System.Text.Json;
-using AccountManager;
-using ActorStore;
-using ActorStore.Repo;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.ActorStore.Repo;
 using AfricaBsky;
-using BlueNilePds.Config;
-using BlueNilePds.Middleware;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Middleware;
 using CarpaNet;
-using CID;
-using Config;
-using Repo;
-using Sequencer;
-using Xrpc;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Pds.Sequencer;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Africa.Bsky;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Africa.Bsky;
 
 public static class SetAccountProfileEndpoints
 {

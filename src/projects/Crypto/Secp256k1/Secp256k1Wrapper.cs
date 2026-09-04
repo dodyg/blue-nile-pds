@@ -1,6 +1,4 @@
-using Secp256k1Net;
-
-namespace Crypto.Secp256k1;
+namespace BlueNilePds.Core.Crypto.Secp256k1;
 
 public static class Secp256k1Wrapper
 {

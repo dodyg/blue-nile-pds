@@ -1,6 +1,6 @@
-using Mailer;
+using BlueNilePds.Pds.Mailer;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public class BackgroundEmailDispatcher
 {

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace ActorStore.Migrations
+namespace BlueNilePds.Pds.ActorStore.Migrations
 {
     /// <inheritdoc />
     public partial class Init : Migration

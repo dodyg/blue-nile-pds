@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace AccountManager.Db;
+namespace BlueNilePds.Pds.AccountManager.Db;
 
 public class AccountManagerDb : DbContext
 {

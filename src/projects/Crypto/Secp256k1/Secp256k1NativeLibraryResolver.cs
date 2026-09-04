@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Crypto.Secp256k1;
+namespace BlueNilePds.Core.Crypto.Secp256k1;
 
 internal static class Secp256k1NativeLibraryResolver
 {

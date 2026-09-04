@@ -1,9 +1,9 @@
-using AccountManager;
-using BlueNilePds.Middleware;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Host.Middleware;
 using ComAtproto.Server;
-using Sequencer;
+using BlueNilePds.Pds.Sequencer;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class DeactivateAccountEndpoints
 {

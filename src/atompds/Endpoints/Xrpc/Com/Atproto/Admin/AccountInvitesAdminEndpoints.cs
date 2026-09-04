@@ -1,10 +1,8 @@
-using AccountManager;
-using BlueNilePds.Middleware;
-using CarpaNet;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Host.Middleware;
 using ComAtproto.Admin;
-using Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Admin;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Admin;
 
 public static class AccountInvitesAdminEndpoints
 {

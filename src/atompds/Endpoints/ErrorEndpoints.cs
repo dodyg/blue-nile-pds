@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints;
+namespace BlueNilePds.Host.Endpoints;
 
 public static class ErrorEndpoints
 {

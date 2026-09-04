@@ -4,16 +4,16 @@ using System.Text.Json;
 using AppBsky.Actor;
 using AppBsky.Feed;
 using CarpaNet;
-using CID;
-using Common;
-using Handle;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
+using BlueNilePds.Core.Handle;
 using Multiformats.Codec;
 using Multiformats.Hash;
 using PeterO.Cbor;
-using Repo;
-using Xrpc;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Pds.Xrpc;
 
-namespace ActorStore.Repo;
+namespace BlueNilePds.Pds.ActorStore.Repo;
 
 public class Prepare
 {

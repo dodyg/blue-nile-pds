@@ -1,10 +1,9 @@
-using System;
-using ActorStore.Db;
-using CID;
+using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Core.CID;
 using Microsoft.EntityFrameworkCore;
-using Repo;
+using BlueNilePds.Core.Repo;
 
-namespace ActorStore.Repo;
+namespace BlueNilePds.Pds.ActorStore.Repo;
 
 public class BlobTransactor
 {
@@ -78,8 +77,8 @@ public class BlobTransactor
     {
         var stream = await BlobStore.GetTempStreamAsync(tempKey);
 
-        
-        var cid = await CID.Util.CidForBlobsAsync(stream);
+
+        var cid = await Core.CID.Util.CidForBlobsAsync(stream);
 
         // let the blob store handle figuring out the size
         // don't try to read the stream length here as it might not be seekable, so it will throw not supported exception
@@ -133,13 +132,13 @@ public class BlobTransactor
             .SelectMany(pw => pw.Blobs)
             .Select(b => b.Cid.ToString())
             .ToHashSet();
-        
+
         var existingBlobs = await Db.Blobs
             .Where(b => newBlobCids.Contains(b.Cid))
             .Select(b => b.Cid)
             .Distinct()
             .ToHashSetAsync();
-        
+
         var difference = newBlobCids.Except(existingBlobs);
 
         if (difference.Any())
@@ -171,7 +170,7 @@ public class BlobTransactor
         await Db.Blobs
             .Where(b => newBlobCids.Contains(b.Cid) && b.Status == BlobStatus.Temporary)
             .ExecuteUpdateAsync(b => b.SetProperty(b => b.Status, BlobStatus.Permanent));
-    
+
         await Db.SaveChangesAsync();
         if (ownsTx)
         {
@@ -179,7 +178,7 @@ public class BlobTransactor
         }
 
 
-        // now make changes to the blob store 
+        // now make changes to the blob store
         // what if blob store operation fails? it might get out of sync with db
 
         // do sequentially for now
@@ -199,7 +198,7 @@ public class BlobTransactor
         var deletes = preparedWrites.Where(pw => pw is PreparedDelete).ToArray();
         var updates = preparedWrites.Where(pw => pw is PreparedUpdate).ToArray();
 
-        string[] uris = [..deletes.Select(d => d.Uri.ToString()), ..updates.Select(u => u.Uri.ToString())];
+        string[] uris = [.. deletes.Select(d => d.Uri.ToString()), .. updates.Select(u => u.Uri.ToString())];
 
         if (uris.Length == 0)
             return [];

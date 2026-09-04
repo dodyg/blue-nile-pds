@@ -1,9 +1,7 @@
-using System;
-using Config;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace ActorStore.Db;
+namespace BlueNilePds.Pds.ActorStore.Db;
 
 public class ActorDbDesignFactory : IDesignTimeDbContextFactory<ActorStoreDb>
 {

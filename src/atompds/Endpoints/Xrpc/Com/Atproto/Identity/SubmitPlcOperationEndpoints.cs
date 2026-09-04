@@ -1,10 +1,10 @@
 using System.Text.Json;
-using BlueNilePds.Middleware;
-using DidLib;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Core.Did;
 using PeterO.Cbor;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Identity;
 
 public static class SubmitPlcOperationEndpoints
 {

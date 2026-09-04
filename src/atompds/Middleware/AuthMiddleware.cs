@@ -1,6 +1,6 @@
-﻿using Xrpc;
+﻿using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Middleware;
+namespace BlueNilePds.Host.Middleware;
 
 public class AuthMiddleware
 {

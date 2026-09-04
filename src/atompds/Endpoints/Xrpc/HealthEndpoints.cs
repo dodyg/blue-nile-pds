@@ -1,9 +1,7 @@
 using System.Text.Json.Serialization;
-using AccountManager.Db;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
+using BlueNilePds.Pds.AccountManager.Db;
 
-namespace BlueNilePds.Endpoints.Xrpc;
+namespace BlueNilePds.Host.Endpoints.Xrpc;
 
 public static class HealthEndpoints
 {

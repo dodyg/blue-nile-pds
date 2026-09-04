@@ -1,10 +1,10 @@
-using AccountManager;
-using ActorStore;
-using CID;
-using Repo;
-using Repo.Sync;
-using Xrpc;
-using RepoUtil = Repo.Util;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Core.Repo.Sync;
+using BlueNilePds.Pds.Xrpc;
+using RepoUtil = BlueNilePds.Core.Repo.Util;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
 

@@ -1,6 +1,6 @@
-using BlueNilePds.Config;
+using BlueNilePds.Host.Configuration;
 
-namespace BlueNilePds.Endpoints.Pending;
+namespace BlueNilePds.Host.Endpoints.Pending;
 
 public static class PendingConfigEndpoints
 {

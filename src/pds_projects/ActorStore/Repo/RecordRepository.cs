@@ -1,14 +1,14 @@
 ﻿using System.Text.Json;
-using ActorStore.Db;
+using BlueNilePds.Pds.ActorStore.Db;
 using CarpaNet;
-using CID;
-using Crypto;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Crypto;
 using Microsoft.EntityFrameworkCore;
 using PeterO.Cbor;
-using Repo;
-using Util = CommonWeb.Util;
+using BlueNilePds.Core.Repo;
+using Util = BlueNilePds.Core.CommonWeb.Util;
 
-namespace ActorStore.Repo;
+namespace BlueNilePds.Pds.ActorStore.Repo;
 
 public class RecordRepository
 {

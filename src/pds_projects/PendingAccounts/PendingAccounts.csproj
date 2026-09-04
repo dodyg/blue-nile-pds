@@ -1,13 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <LangVersion>preview</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
-    <ItemGroup>
+        <ItemGroup>
         <PackageReference Include="jose-jwt" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
             <PrivateAssets>all</PrivateAssets>
@@ -17,7 +10,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\projects\CommonDb\CommonDb.csproj" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
         <ProjectReference Include="..\Config\Config.csproj" />
         <ProjectReference Include="..\AccountManager\AccountManager.csproj" />
     </ItemGroup>

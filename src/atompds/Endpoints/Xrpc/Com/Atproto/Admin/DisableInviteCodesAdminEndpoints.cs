@@ -1,8 +1,7 @@
-using AccountManager.Db;
-using BlueNilePds.Middleware;
-using ComAtproto.Admin;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Middleware;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Admin;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Admin;
 
 public static class DisableInviteCodesAdminEndpoints
 {

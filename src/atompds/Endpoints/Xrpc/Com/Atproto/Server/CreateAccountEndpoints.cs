@@ -1,26 +1,26 @@
 using System.Text.Json;
-using AccountManager;
-using AccountManager.Db;
-using ActorStore;
-using ActorStore.Repo;
-using BlueNilePds.Middleware;
-using BlueNilePds.Services;
-using BlueNilePds.Utils;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Host.Utils;
 using CarpaNet;
-using CommonWeb;
+using BlueNilePds.Core.CommonWeb;
 using ComAtproto.Server;
-using Config;
-using Crypto.Secp256k1;
-using DidLib;
-using Handle;
-using Identity;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Crypto.Secp256k1;
+using BlueNilePds.Core.Did;
+using BlueNilePds.Core.Handle;
+using BlueNilePds.Core.Identity;
 using Microsoft.Data.Sqlite;
-using Repo;
-using Sequencer;
-using Xrpc;
-using Operations = DidLib.Operations;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Pds.Sequencer;
+using BlueNilePds.Pds.Xrpc;
+using Operations = BlueNilePds.Core.Did.Operations;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class CreateAccountEndpoints
 {
@@ -280,11 +280,11 @@ public static class CreateAccountEndpoints
     {
         string[] rotationKeys = [secretsConfig.PlcRotationKey.Did()];
         if (identityConfig.RecoveryDidKey != null)
-            rotationKeys = [identityConfig.RecoveryDidKey, ..rotationKeys];
+            rotationKeys = [identityConfig.RecoveryDidKey, .. rotationKeys];
         if (identityConfig.EntrywayPlcRotationKey != null)
-            rotationKeys = [identityConfig.EntrywayPlcRotationKey, ..rotationKeys];
+            rotationKeys = [identityConfig.EntrywayPlcRotationKey, .. rotationKeys];
         if (createAccountInput.RecoveryKey != null)
-            rotationKeys = [createAccountInput.RecoveryKey, ..rotationKeys];
+            rotationKeys = [createAccountInput.RecoveryKey, .. rotationKeys];
 
         var plcCreate = await Operations.CreateOpAsync(signingKey.Did(), handle, serviceConfig.PublicUrl, rotationKeys, secretsConfig.PlcRotationKey);
         return (plcCreate.Did, plcCreate.Op);

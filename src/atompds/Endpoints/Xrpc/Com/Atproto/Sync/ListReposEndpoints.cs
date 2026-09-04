@@ -1,7 +1,7 @@
-using AccountManager.Db;
-using BlueNilePds.Utils;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Utils;
 using Microsoft.EntityFrameworkCore;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
 

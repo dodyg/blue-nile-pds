@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace ActorStore.Db;
+namespace BlueNilePds.Pds.ActorStore.Db;
 
 public class ActorStoreDb : DbContext
 {

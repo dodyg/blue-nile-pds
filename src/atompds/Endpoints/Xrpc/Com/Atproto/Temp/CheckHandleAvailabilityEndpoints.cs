@@ -1,12 +1,12 @@
 using System.Net.Mail;
-using AccountManager;
-using AccountManager.Db;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
 using CarpaNet;
 using ComAtproto.Temp;
-using Handle;
-using Xrpc;
+using BlueNilePds.Core.Handle;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Temp;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Temp;
 
 public static class CheckHandleAvailabilityEndpoints
 {

@@ -1,9 +1,8 @@
-using BlueNilePds.Endpoints.Admin.Models;
-using BlueNilePds.Middleware;
-using BlueNilePds.Services;
-using Xrpc;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Admin;
+namespace BlueNilePds.Host.Endpoints.Admin;
 
 public static class AdminResyncEndpoints
 {

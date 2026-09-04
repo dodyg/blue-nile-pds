@@ -1,13 +1,13 @@
-﻿using ActorStore.Db;
-using BlobStore;
-using Config;
-using Crypto;
-using Crypto.Secp256k1;
+﻿using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Pds.BlobStore;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Crypto;
+using BlueNilePds.Core.Crypto.Secp256k1;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace ActorStore;
+namespace BlueNilePds.Pds.ActorStore;
 
 public class ActorRepositoryProvider
 {

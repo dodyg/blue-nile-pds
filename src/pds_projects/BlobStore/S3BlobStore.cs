@@ -2,10 +2,10 @@ using System;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Transfer;
-using CID;
-using Repo;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Repo;
 
-namespace BlobStore;
+namespace BlueNilePds.Pds.BlobStore;
 
 public class S3BlobStore : IBlobStore
 {

@@ -1,13 +1,13 @@
-using ActorStore;
-using ActorStore.Db;
-using BlueNilePds.Config;
-using BlueNilePds.Middleware;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Middleware;
 using CarpaNet.Blob;
-using CID;
-using Xrpc;
-using static ActorStore.Repo.BlobTransactor;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Pds.Xrpc;
+using static BlueNilePds.Pds.ActorStore.Repo.BlobTransactor;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Repo;
 
 public static class BlobEndpoints
 {

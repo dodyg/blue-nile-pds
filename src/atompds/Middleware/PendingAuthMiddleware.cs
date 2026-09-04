@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
-using PendingAccounts;
-using PendingAccounts.Services;
+using BlueNilePds.Pds.PendingAccounts;
+using BlueNilePds.Pds.PendingAccounts.Services;
 
-namespace BlueNilePds.Middleware;
+namespace BlueNilePds.Host.Middleware;
 
 public class PendingAuthMiddleware
 {

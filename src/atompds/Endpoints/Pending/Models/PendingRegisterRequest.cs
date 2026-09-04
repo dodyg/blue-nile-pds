@@ -1,4 +1,4 @@
-namespace BlueNilePds.Endpoints.Pending.Models;
+namespace BlueNilePds.Host.Endpoints.Pending.Models;
 
 public class PendingRegisterRequest
 {

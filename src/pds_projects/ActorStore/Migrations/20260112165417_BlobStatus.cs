@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace ActorStore.Migrations
+namespace BlueNilePds.Pds.ActorStore.Migrations
 {
     /// <inheritdoc />
     public partial class BlobStatus : Migration

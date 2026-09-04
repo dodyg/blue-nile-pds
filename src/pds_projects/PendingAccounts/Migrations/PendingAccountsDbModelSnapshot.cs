@@ -3,11 +3,11 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using PendingAccounts;
+using BlueNilePds.Pds.PendingAccounts;
 
 #nullable disable
 
-namespace PendingAccounts.Migrations
+namespace BlueNilePds.Pds.PendingAccounts.Migrations
 {
     [DbContext(typeof(PendingAccountsDb))]
     partial class PendingAccountsDbModelSnapshot : ModelSnapshot
@@ -17,7 +17,7 @@ namespace PendingAccounts.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
 
-            modelBuilder.Entity("PendingAccounts.Models.PendingEmailToken", b =>
+            modelBuilder.Entity("BlueNilePds.Pds.PendingAccounts.Models.PendingEmailToken", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -48,7 +48,7 @@ namespace PendingAccounts.Migrations
                     b.ToTable("PendingEmailTokens");
                 });
 
-            modelBuilder.Entity("PendingAccounts.Models.PendingProfile", b =>
+            modelBuilder.Entity("BlueNilePds.Pds.PendingAccounts.Models.PendingProfile", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -91,7 +91,7 @@ namespace PendingAccounts.Migrations
                     b.ToTable("PendingProfiles");
                 });
 
-            modelBuilder.Entity("PendingAccounts.Models.PendingRegistration", b =>
+            modelBuilder.Entity("BlueNilePds.Pds.PendingAccounts.Models.PendingRegistration", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -148,9 +148,9 @@ namespace PendingAccounts.Migrations
                     b.ToTable("PendingRegistrations");
                 });
 
-            modelBuilder.Entity("PendingAccounts.Models.PendingProfile", b =>
+            modelBuilder.Entity("BlueNilePds.Pds.PendingAccounts.Models.PendingProfile", b =>
                 {
-                    b.HasOne("PendingAccounts.Models.PendingRegistration", "PendingRegistration")
+                    b.HasOne("BlueNilePds.Pds.PendingAccounts.Models.PendingRegistration", "PendingRegistration")
                         .WithMany()
                         .HasForeignKey("PendingRegistrationId")
                         .OnDelete(DeleteBehavior.Cascade)

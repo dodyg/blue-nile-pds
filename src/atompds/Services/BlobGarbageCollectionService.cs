@@ -1,10 +1,9 @@
-using ActorStore.Db;
-using ActorStore.Repo;
-using CID;
+using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Core.CID;
 using Microsoft.EntityFrameworkCore;
-using Repo;
+using BlueNilePds.Core.Repo;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public class BlobGarbageCollectionService : BackgroundService
 {

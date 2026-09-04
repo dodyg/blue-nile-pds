@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace BlueNilePds.Endpoints.Admin.Models;
+namespace BlueNilePds.Host.Endpoints.Admin.Models;
 
 public record BackupCreateOutput
 {

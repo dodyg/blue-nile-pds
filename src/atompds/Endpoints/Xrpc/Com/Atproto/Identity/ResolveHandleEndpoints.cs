@@ -1,12 +1,12 @@
 using System.Text.Json;
-using AccountManager;
+using BlueNilePds.Pds.AccountManager;
 using CarpaNet;
 using ComAtproto.Identity;
-using Config;
-using Handle;
-using Xrpc;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Handle;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Identity;
 
 public static class ResolveHandleEndpoints
 {

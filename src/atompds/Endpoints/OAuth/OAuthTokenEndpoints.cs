@@ -2,12 +2,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using BlueNilePds.Services;
-using BlueNilePds.Services.OAuth;
-using Config;
-using Microsoft.AspNetCore.RateLimiting;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Host.Services.OAuth;
+using BlueNilePds.Pds.Config;
 
-namespace BlueNilePds.Endpoints.OAuth;
+namespace BlueNilePds.Host.Endpoints.OAuth;
 
 public static class OAuthTokenEndpoints
 {

@@ -1,7 +1,7 @@
-using AccountManager.Db;
-using BlueNilePds.Middleware;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Middleware;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class ListAppPasswordsEndpoints
 {

@@ -1,15 +1,13 @@
-using AccountManager;
-using AccountManager.Db;
-using ActorStore;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Pds.ActorStore;
 using CarpaNet;
-using ComAtproto.Repo;
-using BlueNilePds.Middleware;
+using BlueNilePds.Host.Middleware;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
-using Repo;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Admin;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Admin;
 
 public static class SubjectStatusEndpoints
 {
@@ -75,51 +73,51 @@ public static class SubjectStatusEndpoints
         switch (subject)
         {
             case RepoSubjectInput repoSubject:
-            {
-                await GetRequiredAccountAsync(repoSubject.Did, accountRepository);
-
-                if (request.Takedown != null)
-                    await accountRepository.UpdateTakedownRefAsync(repoSubject.Did, request.Takedown.Applied ? request.Takedown.Ref ?? DefaultTakedownRef : null);
-
-                if (request.Deactivated != null)
                 {
-                    if (request.Deactivated.Applied)
-                        await accountRepository.DeactivateAccountAsync(repoSubject.Did, null);
-                    else
-                        await accountRepository.ActivateAccountAsync(repoSubject.Did);
+                    await GetRequiredAccountAsync(repoSubject.Did, accountRepository);
+
+                    if (request.Takedown != null)
+                        await accountRepository.UpdateTakedownRefAsync(repoSubject.Did, request.Takedown.Applied ? request.Takedown.Ref ?? DefaultTakedownRef : null);
+
+                    if (request.Deactivated != null)
+                    {
+                        if (request.Deactivated.Applied)
+                            await accountRepository.DeactivateAccountAsync(repoSubject.Did, null);
+                        else
+                            await accountRepository.ActivateAccountAsync(repoSubject.Did);
+                    }
+
+                    var account = await GetRequiredAccountAsync(repoSubject.Did, accountRepository);
+                    return Results.Ok(new UpdateSubjectStatusOutput
+                    {
+                        Subject = new RepoRefSubject { Did = account.Did },
+                        Takedown = ToStatusAttr(account.TakedownRef)
+                    });
                 }
-
-                var account = await GetRequiredAccountAsync(repoSubject.Did, accountRepository);
-                return Results.Ok(new UpdateSubjectStatusOutput
-                {
-                    Subject = new RepoRefSubject { Did = account.Did },
-                    Takedown = ToStatusAttr(account.TakedownRef)
-                });
-            }
             case RecordSubjectInput recordSubject:
-            {
-                if (request.Deactivated != null)
-                    throw InvalidRequest("deactivated can only be set for repo subjects");
-
-                var updatedRecord = await UpdateRecordStatusAsync(recordSubject, request.Takedown, accountRepository, actorRepositoryProvider);
-                return Results.Ok(new UpdateSubjectStatusOutput
                 {
-                    Subject = new StrongRefSubject { Uri = updatedRecord.Uri, Cid = updatedRecord.Cid },
-                    Takedown = ToStatusAttr(updatedRecord.TakedownRef)
-                });
-            }
+                    if (request.Deactivated != null)
+                        throw InvalidRequest("deactivated can only be set for repo subjects");
+
+                    var updatedRecord = await UpdateRecordStatusAsync(recordSubject, request.Takedown, accountRepository, actorRepositoryProvider);
+                    return Results.Ok(new UpdateSubjectStatusOutput
+                    {
+                        Subject = new StrongRefSubject { Uri = updatedRecord.Uri, Cid = updatedRecord.Cid },
+                        Takedown = ToStatusAttr(updatedRecord.TakedownRef)
+                    });
+                }
             case BlobSubjectInput blobSubject:
-            {
-                if (request.Deactivated != null)
-                    throw InvalidRequest("deactivated can only be set for repo subjects");
-
-                var updatedBlob = await UpdateBlobStatusAsync(blobSubject, request.Takedown, accountRepository, actorRepositoryProvider);
-                return Results.Ok(new UpdateSubjectStatusOutput
                 {
-                    Subject = new RepoBlobRefSubject { Did = updatedBlob.Did, Cid = updatedBlob.Cid, RecordUri = updatedBlob.RecordUri },
-                    Takedown = ToStatusAttr(updatedBlob.TakedownRef)
-                });
-            }
+                    if (request.Deactivated != null)
+                        throw InvalidRequest("deactivated can only be set for repo subjects");
+
+                    var updatedBlob = await UpdateBlobStatusAsync(blobSubject, request.Takedown, accountRepository, actorRepositoryProvider);
+                    return Results.Ok(new UpdateSubjectStatusOutput
+                    {
+                        Subject = new RepoBlobRefSubject { Did = updatedBlob.Did, Cid = updatedBlob.Cid, RecordUri = updatedBlob.RecordUri },
+                        Takedown = ToStatusAttr(updatedBlob.TakedownRef)
+                    });
+                }
             default:
                 throw InvalidRequest("unsupported subject");
         }

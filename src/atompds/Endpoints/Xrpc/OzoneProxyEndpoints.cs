@@ -1,14 +1,12 @@
 using System.Buffers;
 using System.Net.Http.Headers;
-using System.Text;
-using BlueNilePds.Config;
-using BlueNilePds.Middleware;
-using BlueNilePds.Services;
-using Config;
-using Identity;
-using Xrpc;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc;
+namespace BlueNilePds.Host.Endpoints.Xrpc;
 
 public static class OzoneProxyEndpoints
 {

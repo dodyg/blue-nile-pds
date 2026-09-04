@@ -1,6 +1,6 @@
-using BlueNilePds.Services;
+using BlueNilePds.Host.Services;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class ReserveSigningKeyEndpoints
 {

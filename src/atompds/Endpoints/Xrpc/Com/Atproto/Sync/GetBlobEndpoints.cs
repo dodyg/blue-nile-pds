@@ -1,10 +1,10 @@
-using AccountManager;
-using ActorStore;
-using ActorStore.Db;
-using BlobStore;
-using Xrpc;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Pds.BlobStore;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Sync;
 
 public static class GetBlobEndpoints
 {
@@ -32,7 +32,7 @@ public static class GetBlobEndpoints
         if (account.DeactivatedAt is not null)
             throw new XRPCError(new InvalidRequestErrorDetail($"account for did: {did} is deactivated"));
 
-        var cidObject = CID.Cid.FromString(cid);
+        var cidObject = BlueNilePds.Core.CID.Cid.FromString(cid);
 
         Blob? blob = null;
         Stream? blobStream = null;

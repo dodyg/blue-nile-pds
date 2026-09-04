@@ -1,15 +1,11 @@
-using AccountManager;
-using AccountManager.Db;
-using BlueNilePds.Middleware;
-using CarpaNet;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Host.Middleware;
 using ComAtproto.Admin;
-using Config;
-using DidLib;
-using Handle;
-using Sequencer;
-using Xrpc;
+using BlueNilePds.Core.Handle;
+using BlueNilePds.Pds.Sequencer;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Admin;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Admin;
 
 public static class UpdateAccountHandleAdminEndpoints
 {

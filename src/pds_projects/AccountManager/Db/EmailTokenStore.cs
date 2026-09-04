@@ -1,9 +1,9 @@
-﻿using Crypto;
+﻿using BlueNilePds.Core.Crypto;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace AccountManager.Db;
+namespace BlueNilePds.Pds.AccountManager.Db;
 
 public class EmailTokenStore
 {

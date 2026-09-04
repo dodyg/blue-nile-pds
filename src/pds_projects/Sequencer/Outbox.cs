@@ -3,10 +3,10 @@ using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
-using Sequencer.Types;
-using Xrpc;
+using BlueNilePds.Pds.Sequencer.Types;
+using BlueNilePds.Pds.Xrpc;
 
-namespace Sequencer;
+namespace BlueNilePds.Pds.Sequencer;
 
 public interface ISequencerEventSource
 {

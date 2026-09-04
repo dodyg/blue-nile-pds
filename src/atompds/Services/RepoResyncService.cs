@@ -1,15 +1,14 @@
-using ActorStore;
-using ActorStore.Repo;
-using CID;
-using Common;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 using PeterO.Cbor;
-using Repo;
-using Repo.MST;
-using Xrpc;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Core.Repo.MST;
+using BlueNilePds.Pds.Xrpc;
+using BlueNilePds.Pds.AccountManager;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public enum RepoResyncStatus
 {
@@ -97,7 +96,7 @@ public class RepoResyncService
         try
         {
             var provider = sp.GetRequiredService<ActorRepositoryProvider>();
-            var accountRepository = sp.GetRequiredService<AccountManager.AccountRepository>();
+            var accountRepository = sp.GetRequiredService<AccountRepository>();
 
             if (!provider.Exists(did))
             {
@@ -107,7 +106,7 @@ public class RepoResyncService
             await using var actorStore = provider.Open(did);
 
             var (oldRootCid, _) = await actorStore.Repo.Storage.GetRootDetailedAsync();
-            var oldRepo = await global::Repo.Repo.LoadAsync(actorStore.Repo.Storage, oldRootCid);
+            var oldRepo = await Repo.LoadAsync(actorStore.Repo.Storage, oldRootCid);
 
             // collect CIDs reachable from the old root so unreferenced blocks can be GC'd afterwards
             var oldReachable = new HashSet<Cid> { oldRootCid };
@@ -127,7 +126,7 @@ public class RepoResyncService
             var rewritten = 0;
             await foreach (var leaf in oldRepo.Data.ReachableLeavesAsync())
             {
-                var (collection, rkey) = Repo.MST.Util.ParseDataKey(leaf.Key);
+                var (collection, rkey) = Core.Repo.MST.Util.ParseDataKey(leaf.Key);
                 var bytes = await actorStore.Repo.Storage.GetBytesAsync(leaf.Value);
                 if (bytes == null)
                 {
@@ -146,7 +145,7 @@ public class RepoResyncService
             }
 
             var keyPair = provider.KeyPair(did);
-            var commit = await global::Repo.Repo.FormatInitCommitAsync(actorStore.Repo.Storage, did, keyPair, ops.ToArray());
+            var commit = await Repo.FormatInitCommitAsync(actorStore.Repo.Storage, did, keyPair, ops.ToArray());
 
             Cid[] toDelete = [];
             await actorStore.TransactRepoAsync(async repoRef =>
@@ -154,7 +153,7 @@ public class RepoResyncService
                 await repoRef.Repo.Storage.ApplyCommitAsync(commit);
                 await repoRef.Record.ReindexResyncAsync(commit.Rev, ops);
 
-                var newRepo = await global::Repo.Repo.LoadAsync(repoRef.Repo.Storage, commit.Cid);
+                var newRepo = await Repo.LoadAsync(repoRef.Repo.Storage, commit.Cid);
                 var newReachable = new HashSet<Cid> { commit.Cid };
                 await foreach (var node in newRepo.Data.WalkReachableAsync())
                 {

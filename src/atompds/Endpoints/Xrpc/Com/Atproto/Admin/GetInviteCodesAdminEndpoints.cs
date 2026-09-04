@@ -1,10 +1,10 @@
-using AccountManager.Db;
-using BlueNilePds.Middleware;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Host.Middleware;
 using CarpaNet;
 using ComAtproto.Admin;
 using ComAtproto.Server;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Admin;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Admin;
 
 public static class GetInviteCodesAdminEndpoints
 {

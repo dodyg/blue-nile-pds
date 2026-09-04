@@ -1,6 +1,4 @@
-using System;
-
-namespace BlueNilePds.Utils;
+namespace BlueNilePds.Host.Utils;
 
 public static class CursorUtils
 {
@@ -18,7 +16,7 @@ public static class CursorUtils
         return (parts[0], parts[1]);
     }
 
-    public static string? Pack((string primary, string secondary)? cursor, string separator = SEPARATOR) => cursor switch 
+    public static string? Pack((string primary, string secondary)? cursor, string separator = SEPARATOR) => cursor switch
     {
         null => null,
         (var p, var s) => p + separator + s

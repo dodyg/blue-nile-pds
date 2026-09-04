@@ -1,7 +1,7 @@
-using AccountManager;
-using AccountManager.Db;
-using ActorStore;
-using Xrpc;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.Xrpc;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Sync;
 

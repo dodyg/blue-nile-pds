@@ -1,6 +1,6 @@
-﻿using Crypto.Secp256k1;
+﻿using BlueNilePds.Core.Crypto.Secp256k1;
 
-namespace BlueNilePds.Services;
+namespace BlueNilePds.Host.Services;
 
 public class ReservedSigningKeyStore
 {

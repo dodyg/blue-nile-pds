@@ -1,12 +1,10 @@
 using System.Text.Json;
-using BlueNilePds.Middleware;
-using Config;
-using Crypto;
-using DidLib;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Pds.Config;
 using PeterO.Cbor;
-using Xrpc;
+using BlueNilePds.Pds.Xrpc;
 
-namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Identity;
+namespace BlueNilePds.Host.Endpoints.Xrpc.Com.Atproto.Identity;
 
 public static class SignPlcOperationEndpoints
 {

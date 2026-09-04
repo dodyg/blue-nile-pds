@@ -1,4 +1,4 @@
-namespace Mailer;
+namespace BlueNilePds.Pds.Mailer;
 
 public interface IMailer
 {

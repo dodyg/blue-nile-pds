@@ -1,21 +1,22 @@
 using System.Security.Cryptography;
-using ActorStore;
-using ActorStore.Db;
-using ActorStore.Repo;
-using BlueNilePds.Config;
-using BlueNilePds.Middleware;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Middleware;
 using CarpaNet;
-using CID;
-using Config;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Pds.Config;
 using Microsoft.EntityFrameworkCore;
 using Multiformats.Codec;
 using Multiformats.Hash;
 using PeterO.Cbor;
-using Repo;
-using Repo.Car;
-using Repo.MST;
-using Xrpc;
-using Cid = CID.Cid;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Core.Repo.Car;
+using BlueNilePds.Core.Repo.MST;
+using BlueNilePds.Host;
+using BlueNilePds.Pds.Xrpc;
+using Cid = BlueNilePds.Core.CID.Cid;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 

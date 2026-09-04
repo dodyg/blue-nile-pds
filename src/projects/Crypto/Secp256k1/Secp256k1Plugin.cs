@@ -1,4 +1,4 @@
-﻿namespace Crypto.Secp256k1;
+﻿namespace BlueNilePds.Core.Crypto.Secp256k1;
 
 public class Secp256k1Plugin : IDidKeyPlugin
 {

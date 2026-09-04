@@ -1,22 +1,20 @@
 using System.Text.Json;
-using AccountManager;
-using AccountManager.Db;
-using ActorStore;
-using ActorStore.Repo;
-using BlueNilePds.Config;
-using BlueNilePds.Middleware;
-using BlueNilePds.Services;
+using BlueNilePds.Pds.AccountManager;
+using BlueNilePds.Pds.AccountManager.Db;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Middleware;
+using BlueNilePds.Host.Services;
 using CarpaNet;
 using CarpaNet.Json;
-using CID;
+using BlueNilePds.Core.CID;
 using ComAtproto.Repo;
-using Config;
-using DidLib;
-using Handle;
-using Identity;
-using Repo;
-using Sequencer;
-using Xrpc;
+using BlueNilePds.Pds.Config;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Pds.Sequencer;
+using BlueNilePds.Host;
+using BlueNilePds.Pds.Xrpc;
 
 namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Repo;
 
@@ -220,33 +218,33 @@ public static class ApplyWritesEndpoints
             switch (write)
             {
                 case ApplyWritesCreate create:
-                {
-                    if (string.IsNullOrWhiteSpace(create.Collection) || create.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
-                        throw new XRPCError(new InvalidRequestErrorDetail("Invalid create."));
-                    var tolerance = TimeSpan.FromMilliseconds(env.PDS_RECORD_CREATED_AT_FUTURE_TOLERANCE_MS);
-                    var preparedCreate = Prepare.PrepareCreate(did, create.Collection, create.Rkey, null, create.Value, validate, tolerance);
-                    writes.Add(preparedCreate);
-                    break;
-                }
+                    {
+                        if (string.IsNullOrWhiteSpace(create.Collection) || create.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+                            throw new XRPCError(new InvalidRequestErrorDetail("Invalid create."));
+                        var tolerance = TimeSpan.FromMilliseconds(env.PDS_RECORD_CREATED_AT_FUTURE_TOLERANCE_MS);
+                        var preparedCreate = Prepare.PrepareCreate(did, create.Collection, create.Rkey, null, create.Value, validate, tolerance);
+                        writes.Add(preparedCreate);
+                        break;
+                    }
                 case ApplyWritesUpdate update:
-                {
-                    if (string.IsNullOrWhiteSpace(update.Collection) || string.IsNullOrWhiteSpace(update.Rkey) ||
-                        update.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
-                        throw new XRPCError(new InvalidRequestErrorDetail("Invalid update."));
-                    Cid? swapRecordCid = swapRecord != null ? Cid.FromString(swapRecord) : null;
-                    var tolerance = TimeSpan.FromMilliseconds(env.PDS_RECORD_CREATED_AT_FUTURE_TOLERANCE_MS);
-                    var preparedUpdate = Prepare.PrepareUpdate(did, update.Collection, update.Rkey, swapRecordCid, update.Value, validate, tolerance);
-                    writes.Add(preparedUpdate);
-                    break;
-                }
+                    {
+                        if (string.IsNullOrWhiteSpace(update.Collection) || string.IsNullOrWhiteSpace(update.Rkey) ||
+                            update.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+                            throw new XRPCError(new InvalidRequestErrorDetail("Invalid update."));
+                        Cid? swapRecordCid = swapRecord != null ? Cid.FromString(swapRecord) : null;
+                        var tolerance = TimeSpan.FromMilliseconds(env.PDS_RECORD_CREATED_AT_FUTURE_TOLERANCE_MS);
+                        var preparedUpdate = Prepare.PrepareUpdate(did, update.Collection, update.Rkey, swapRecordCid, update.Value, validate, tolerance);
+                        writes.Add(preparedUpdate);
+                        break;
+                    }
                 case ApplyWritesDelete delete:
-                {
-                    if (string.IsNullOrWhiteSpace(delete.Collection) || string.IsNullOrWhiteSpace(delete.Rkey))
-                        throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete."));
-                    var preparedDelete = Prepare.PrepareDelete(did, delete.Collection, delete.Rkey, swapRecord != null ? Cid.FromString(swapRecord) : null);
-                    writes.Add(preparedDelete);
-                    break;
-                }
+                    {
+                        if (string.IsNullOrWhiteSpace(delete.Collection) || string.IsNullOrWhiteSpace(delete.Rkey))
+                            throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete."));
+                        var preparedDelete = Prepare.PrepareDelete(did, delete.Collection, delete.Rkey, swapRecord != null ? Cid.FromString(swapRecord) : null);
+                        writes.Add(preparedDelete);
+                        break;
+                    }
                 default:
                     throw new XRPCError(new InvalidRequestErrorDetail("Action not supported."));
             }
