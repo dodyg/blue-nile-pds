@@ -1,9 +1,7 @@
-using BlueNilePds.Config;
-using BlueNilePds.Tests.Infrastructure;
-using TUnit.Assertions;
-using TUnit.Assertions.Extensions;
+using BlueNilePds.Host.Configuration;
+using BlueNilePds.Host.Tests.Infrastructure;
 
-namespace BlueNilePds.Tests;
+namespace BlueNilePds.Host.Tests;
 
 public class ServerConfigTests
 {

@@ -1,9 +1,8 @@
-﻿using CID;
+﻿using BlueNilePds.Core.CID;
 using Multiformats.Base;
 using PeterO.Cbor;
-using System.Threading.Tasks;
 
-namespace Common.Tests;
+namespace BlueNilePds.Core.Common.Tests;
 
 public class CborTest
 {

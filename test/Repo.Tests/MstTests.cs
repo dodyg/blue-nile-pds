@@ -1,8 +1,8 @@
-using CID;
-using Common;
-using Repo.MST;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
+using BlueNilePds.Core.Repo.MST;
 
-namespace Repo.Tests;
+namespace BlueNilePds.Core.Repo.Tests;
 
 public class MstTests
 {

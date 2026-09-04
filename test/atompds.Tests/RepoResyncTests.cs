@@ -3,18 +3,15 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using ActorStore;
-using ActorStore.Repo;
-using BlueNilePds.Services;
-using BlueNilePds.Tests.Infrastructure;
-using Common;
+using BlueNilePds.Pds.ActorStore;
+using BlueNilePds.Host.Services;
+using BlueNilePds.Host.Tests.Infrastructure;
+using BlueNilePds.Core.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using PeterO.Cbor;
-using TUnit.Assertions;
-using TUnit.Assertions.Extensions;
 
-namespace BlueNilePds.Tests;
+namespace BlueNilePds.Host.Tests;
 
 public class RepoResyncTests
 {

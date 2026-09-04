@@ -2,13 +2,12 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace BlueNilePds.Tests.Infrastructure;
+namespace BlueNilePds.Host.Tests.Infrastructure;
 
 public class TestWebAppFactory : WebApplicationFactory<Program>
 {

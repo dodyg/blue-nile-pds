@@ -1,10 +1,8 @@
-﻿using System.IO;
-using Ipfs;
+﻿using Ipfs;
 using Multiformats.Base;
 using Multiformats.Codec;
-using System.Threading.Tasks;
 
-namespace CID.Tests;
+namespace BlueNilePds.Core.CID.Tests;
 
 public class CidTests
 {

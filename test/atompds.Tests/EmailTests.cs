@@ -1,12 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using BlueNilePds.Tests.Infrastructure;
+using BlueNilePds.Host.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using TUnit.Assertions;
-using TUnit.Assertions.Extensions;
 
-namespace BlueNilePds.Tests;
+namespace BlueNilePds.Host.Tests;
 
 public class EmailTests
 {
@@ -27,11 +25,11 @@ public class EmailTests
         var account = await CreateAccountAsync();
 
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AccountManager.Db.AccountManagerDb>();
+        var db = scope.ServiceProvider.GetRequiredService<BlueNilePds.Pds.AccountManager.Db.AccountManagerDb>();
         var token = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
             .FirstOrDefaultAsync(db.EmailTokens.Where(t =>
                 t.Did == account.Did &&
-                t.Purpose == AccountManager.Db.EmailToken.EmailTokenPurpose.confirm_email));
+                t.Purpose == BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose.confirm_email));
 
         if (token != null)
         {
@@ -87,11 +85,11 @@ public class EmailTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AccountManager.Db.AccountManagerDb>();
+        var db = scope.ServiceProvider.GetRequiredService<BlueNilePds.Pds.AccountManager.Db.AccountManagerDb>();
         var token = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
             .FirstOrDefaultAsync(db.EmailTokens.Where(t =>
                 t.Did == account.Did &&
-                t.Purpose == AccountManager.Db.EmailToken.EmailTokenPurpose.confirm_email));
+                t.Purpose == BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose.confirm_email));
 
         await Assert.That(token).IsNotNull();
         await Assert.That(System.Text.RegularExpressions.Regex.IsMatch(token!.Token, "^[a-z2-7]{5}-[a-z2-7]{5}$")).IsTrue();
@@ -119,11 +117,11 @@ public class EmailTests
         await Client.SendAsync(updateRequest);
 
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AccountManager.Db.AccountManagerDb>();
+        var db = scope.ServiceProvider.GetRequiredService<BlueNilePds.Pds.AccountManager.Db.AccountManagerDb>();
         var token = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
             .FirstOrDefaultAsync(db.EmailTokens.Where(t =>
                 t.Did == account.Did &&
-                t.Purpose == AccountManager.Db.EmailToken.EmailTokenPurpose.update_email));
+                t.Purpose == BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose.update_email));
 
         if (token != null)
         {

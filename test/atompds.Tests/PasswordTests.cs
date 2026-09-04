@@ -1,13 +1,10 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using BlueNilePds.Tests.Infrastructure;
+using BlueNilePds.Host.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using TUnit.Assertions;
-using TUnit.Assertions.Extensions;
 
-namespace BlueNilePds.Tests;
+namespace BlueNilePds.Host.Tests;
 
 public class PasswordTests
 {
@@ -48,11 +45,11 @@ public class PasswordTests
         await Client.SendAsync(resetRequest);
 
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AccountManager.Db.AccountManagerDb>();
+        var db = scope.ServiceProvider.GetRequiredService<BlueNilePds.Pds.AccountManager.Db.AccountManagerDb>();
         var token = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
             .FirstOrDefaultAsync(db.EmailTokens.Where(t =>
                 t.Did == account.Did &&
-                t.Purpose == AccountManager.Db.EmailToken.EmailTokenPurpose.reset_password));
+                t.Purpose == BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose.reset_password));
 
         var body = new Dictionary<string, object?>
         {
@@ -95,11 +92,11 @@ public class PasswordTests
         await Client.SendAsync(resetRequest);
 
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AccountManager.Db.AccountManagerDb>();
+        var db = scope.ServiceProvider.GetRequiredService<BlueNilePds.Pds.AccountManager.Db.AccountManagerDb>();
         var token = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
             .FirstOrDefaultAsync(db.EmailTokens.Where(t =>
                 t.Did == account.Did &&
-                t.Purpose == AccountManager.Db.EmailToken.EmailTokenPurpose.reset_password));
+                t.Purpose == BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose.reset_password));
 
         var body = new Dictionary<string, object?>
         {
@@ -160,11 +157,11 @@ public class PasswordTests
         await Client.SendAsync(resetRequest);
 
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AccountManager.Db.AccountManagerDb>();
+        var db = scope.ServiceProvider.GetRequiredService<BlueNilePds.Pds.AccountManager.Db.AccountManagerDb>();
         var token = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
             .FirstOrDefaultAsync(db.EmailTokens.Where(t =>
                 t.Did == account.Did &&
-                t.Purpose == AccountManager.Db.EmailToken.EmailTokenPurpose.reset_password));
+                t.Purpose == BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose.reset_password));
 
         var body1 = new Dictionary<string, object?>
         {

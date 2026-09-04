@@ -1,7 +1,7 @@
 using System.Net;
-using BlueNilePds.Tests.Infrastructure;
+using BlueNilePds.Host.Tests.Infrastructure;
 
-namespace BlueNilePds.Tests;
+namespace BlueNilePds.Host.Tests;
 
 public class RepoTests
 {

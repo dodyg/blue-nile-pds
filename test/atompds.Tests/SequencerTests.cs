@@ -1,13 +1,10 @@
-using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using BlueNilePds.Tests.Infrastructure;
+using BlueNilePds.Host.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TUnit.Assertions;
-using TUnit.Assertions.Extensions;
 
-namespace BlueNilePds.Tests;
+namespace BlueNilePds.Host.Tests;
 
 public class SequencerTests
 {
@@ -44,10 +41,10 @@ public class SequencerTests
         response.EnsureSuccessStatusCode();
     }
 
-    private async Task<List<Sequencer.Db.RepoSeq>> GetSequencerEventsAsync()
+    private async Task<List<BlueNilePds.Pds.Sequencer.Db.RepoSeq>> GetSequencerEventsAsync()
     {
         using var scope = Factory.Services.CreateScope();
-        var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<Sequencer.Db.SequencerDb>>();
+        var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<BlueNilePds.Pds.Sequencer.Db.SequencerDb>>();
         using var db = await factory.CreateDbContextAsync();
         return await db.RepoSeqs.OrderBy(e => e.Seq).ToListAsync();
     }
@@ -67,7 +64,7 @@ public class SequencerTests
         await CreateAccountAsync();
 
         var events = await GetSequencerEventsAsync();
-        var accountEvents = events.Where(e => e.EventType == Sequencer.Db.RepoSeqEventType.Account).ToList();
+        var accountEvents = events.Where(e => e.EventType == BlueNilePds.Pds.Sequencer.Db.RepoSeqEventType.Account).ToList();
         await Assert.That(accountEvents.Count).IsGreaterThan(0);
     }
 
@@ -78,7 +75,7 @@ public class SequencerTests
         await CreatePostAsync(account);
 
         var events = await GetSequencerEventsAsync();
-        var commitEvents = events.Where(e => e.EventType == Sequencer.Db.RepoSeqEventType.Append).ToList();
+        var commitEvents = events.Where(e => e.EventType == BlueNilePds.Pds.Sequencer.Db.RepoSeqEventType.Append).ToList();
         await Assert.That(commitEvents.Count).IsGreaterThan(0);
     }
 
@@ -88,7 +85,7 @@ public class SequencerTests
         await CreateAccountAsync();
 
         var events = await GetSequencerEventsAsync();
-        var identityEvents = events.Where(e => e.EventType == Sequencer.Db.RepoSeqEventType.Identity).ToList();
+        var identityEvents = events.Where(e => e.EventType == BlueNilePds.Pds.Sequencer.Db.RepoSeqEventType.Identity).ToList();
         await Assert.That(identityEvents.Count).IsGreaterThan(0);
     }
 

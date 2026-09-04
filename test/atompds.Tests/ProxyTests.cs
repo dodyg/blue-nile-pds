@@ -1,11 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text.Json;
-using BlueNilePds.Tests.Infrastructure;
-using TUnit.Assertions;
-using TUnit.Assertions.Extensions;
+using BlueNilePds.Host.Tests.Infrastructure;
 
-namespace BlueNilePds.Tests;
+namespace BlueNilePds.Host.Tests;
 
 public class ProxyTests
 {

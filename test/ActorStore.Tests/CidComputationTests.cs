@@ -1,9 +1,9 @@
 using System.Text.Json;
-using ActorStore.Repo;
-using CID;
-using Common;
+using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 
-namespace ActorStore.Tests;
+namespace BlueNilePds.Pds.ActorStore.Tests;
 
 public class CidComputationTests
 {

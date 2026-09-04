@@ -1,10 +1,9 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using BlueNilePds.Tests.Infrastructure;
 using Jose;
 
-namespace BlueNilePds.Tests.Infrastructure;
+namespace BlueNilePds.Host.Tests.Infrastructure;
 
 public static class AuthTestHelper
 {

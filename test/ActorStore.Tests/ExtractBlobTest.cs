@@ -1,16 +1,15 @@
-﻿using ActorStore.Repo;
-using CID;
+﻿using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Core.CID;
 using Multiformats.Base;
 using Multiformats.Codec;
 using Multiformats.Hash;
-using System.Threading.Tasks;
 
-namespace ActorStore.Tests;
+namespace BlueNilePds.Pds.ActorStore.Tests;
 
 // !These tests are written by AI
 public class ExtractBlobTests
 {
-    private static string GetValidCid() => 
+    private static string GetValidCid() =>
         Cid.Create("test data", MultibaseEncoding.Base32Lower).ToString();
 
     private static string CreateBlobJson(string cid, string mimeType = "image/png", long size = 1024) => $$"""
@@ -358,12 +357,12 @@ public class ExtractBlobTests
         var sb = new System.Text.StringBuilder();
         for (int i = 0; i < depth; i++)
             sb.Append($"{{ \"l{i}\": ");
-        
+
         sb.Append($$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""");
-        
+
         for (int i = 0; i < depth; i++)
             sb.Append(" }");
-        
+
         return sb.ToString();
     }
 
@@ -552,10 +551,10 @@ public class ExtractBlobTests
     {
         var cid = GetValidCid();
         var json = $$"""
-        { 
-            "$type": "blob", 
-            "mimeType": "image/png", 
-            "size": 100, 
+        {
+            "$type": "blob",
+            "mimeType": "image/png",
+            "size": 100,
             "ref": { "$link": "{{cid}}" },
             "extra": "ignored",
             "another": 123
@@ -572,10 +571,10 @@ public class ExtractBlobTests
     {
         var cid = GetValidCid();
         var json = $$"""
-        { 
-            "$type": "blob", 
-            "mimeType": "image/png", 
-            "size": 100, 
+        {
+            "$type": "blob",
+            "mimeType": "image/png",
+            "size": 100,
             "ref": { "$link": "{{cid}}", "extra": "data" }
         }
         """;
@@ -652,7 +651,7 @@ public class ExtractBlobTests
     public async Task LargeArrayOfBlobs_FindsAllAsync()
     {
         var cid = GetValidCid();
-        var blobs = string.Join(",", Enumerable.Range(0, 100).Select(_ => 
+        var blobs = string.Join(",", Enumerable.Range(0, 100).Select(_ =>
             $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }"""));
         var json = $"{{ \"images\": [{blobs}] }}";
 
@@ -695,11 +694,11 @@ public class ExtractBlobTests
         // ref should be { "$link": "cid" }, not nested objects
         var cid = GetValidCid();
         var json = $$"""
-        { 
-            "$type": "blob", 
-            "mimeType": "image/png", 
-            "size": 100, 
-            "ref": { 
+        {
+            "$type": "blob",
+            "mimeType": "image/png",
+            "size": 100,
+            "ref": {
                 "nested": { "$link": "{{cid}}" }
             }
         }
@@ -800,7 +799,7 @@ public class ExtractBlobTests
         var cids = Enumerable.Range(0, 4)
             .Select(i => Cid.Create($"image{i}", MultibaseEncoding.Base32Lower).ToString())
             .ToArray();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.feed.post",
@@ -828,7 +827,7 @@ public class ExtractBlobTests
     {
         var videoCid = GetValidCid();
         var thumbCid = Cid.Create("thumbnail", MultibaseEncoding.Base32Lower).ToString();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.feed.post",
@@ -859,7 +858,7 @@ public class ExtractBlobTests
     {
         var avatarCid = Cid.Create("avatar-image", MultibaseEncoding.Base32Lower).ToString();
         var bannerCid = Cid.Create("banner-image", MultibaseEncoding.Base32Lower).ToString();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.actor.profile",
@@ -892,7 +891,7 @@ public class ExtractBlobTests
     public async Task AppBskyActorProfile_OnlyAvatar_FindsOneBlobAsync()
     {
         var avatarCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.actor.profile",
@@ -935,7 +934,7 @@ public class ExtractBlobTests
         var cids = Enumerable.Range(0, 4)
             .Select(i => Cid.Create($"image-{i}", MultibaseEncoding.Base32Lower).ToString())
             .ToArray();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.images",
@@ -974,7 +973,7 @@ public class ExtractBlobTests
     public async Task AppBskyEmbedImages_SingleImage_FindsOneAsync()
     {
         var cid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.images",
@@ -998,7 +997,7 @@ public class ExtractBlobTests
     public async Task AppBskyEmbedVideo_VideoOnly_FindsVideoBlobAsync()
     {
         var videoCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.video",
@@ -1025,7 +1024,7 @@ public class ExtractBlobTests
         var videoCid = Cid.Create("video-content", MultibaseEncoding.Base32Lower).ToString();
         var captionEnCid = Cid.Create("caption-en", MultibaseEncoding.Base32Lower).ToString();
         var captionEsCid = Cid.Create("caption-es", MultibaseEncoding.Base32Lower).ToString();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.video",
@@ -1064,10 +1063,10 @@ public class ExtractBlobTests
         var captionCids = Enumerable.Range(0, 20)
             .Select(i => Cid.Create($"caption-{i}", MultibaseEncoding.Base32Lower).ToString())
             .ToArray();
-        
-        var captionsJson = string.Join(",\n", captionCids.Select((cid, i) => 
+
+        var captionsJson = string.Join(",\n", captionCids.Select((cid, i) =>
             $$"""{ "lang": "lang{{i}}", "file": { "$type": "blob", "mimeType": "text/vtt", "size": 1000, "ref": { "$link": "{{cid}}" } } }"""));
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.video",
@@ -1086,7 +1085,7 @@ public class ExtractBlobTests
     public async Task AppBskyEmbedExternal_WithThumb_FindsThumbnailBlobAsync()
     {
         var thumbCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.external",
@@ -1134,7 +1133,7 @@ public class ExtractBlobTests
     public async Task AppBskyEmbedRecordWithMedia_ImagesMedia_FindsImageBlobsAsync()
     {
         var imageCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.recordWithMedia",
@@ -1167,7 +1166,7 @@ public class ExtractBlobTests
     public async Task AppBskyEmbedRecordWithMedia_VideoMedia_FindsVideoBlobAsync()
     {
         var videoCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.recordWithMedia",
@@ -1196,7 +1195,7 @@ public class ExtractBlobTests
     public async Task AppBskyEmbedRecordWithMedia_ExternalWithThumb_FindsThumbBlobAsync()
     {
         var thumbCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.embed.recordWithMedia",
@@ -1229,7 +1228,7 @@ public class ExtractBlobTests
     public async Task AppBskyFeedGenerator_WithAvatar_FindsAvatarBlobAsync()
     {
         var avatarCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.feed.generator",
@@ -1275,7 +1274,7 @@ public class ExtractBlobTests
     public async Task AppBskyGraphList_WithAvatar_FindsAvatarBlobAsync()
     {
         var avatarCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.graph.list",
@@ -1302,7 +1301,7 @@ public class ExtractBlobTests
     public async Task AppBskyGraphList_ModerationList_WithAvatarAsync()
     {
         var avatarCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.graph.list",
@@ -1331,7 +1330,7 @@ public class ExtractBlobTests
         var imageCids = Enumerable.Range(0, 2)
             .Select(i => Cid.Create($"post-image-{i}", MultibaseEncoding.Base32Lower).ToString())
             .ToArray();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.feed.post",
@@ -1379,7 +1378,7 @@ public class ExtractBlobTests
     public async Task AppBskyFeedPost_ReplyWithVideo_FindsVideoBlobAsync()
     {
         var videoCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.feed.post",
@@ -1415,7 +1414,7 @@ public class ExtractBlobTests
         var imageCids = Enumerable.Range(0, 3)
             .Select(i => Cid.Create($"quote-image-{i}", MultibaseEncoding.Base32Lower).ToString())
             .ToArray();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.feed.post",
@@ -1473,7 +1472,7 @@ public class ExtractBlobTests
     public async Task AppBskyFeedPost_ExternalLinkWithThumb_FindsThumbBlobAsync()
     {
         var thumbCid = GetValidCid();
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.feed.post",
@@ -1507,7 +1506,7 @@ public class ExtractBlobTests
             Cid.Create("caption-es", MultibaseEncoding.Base32Lower).ToString(),
             Cid.Create("caption-fr", MultibaseEncoding.Base32Lower).ToString()
         };
-        
+
         var json = $$"""
         {
             "$type": "app.bsky.feed.post",
@@ -1988,10 +1987,10 @@ public class ExtractBlobTests
     {
         var cid = GetValidCid();
         var json = $$"""
-        { 
-            "$type": "blob", 
-            "mimeType": "image/png", 
-            "size": 100, 
+        {
+            "$type": "blob",
+            "mimeType": "image/png",
+            "size": 100,
             "ref": { "$link": "{{cid}}" },
             "extra": "ignored",
             "anotherField": 123,
@@ -2007,10 +2006,10 @@ public class ExtractBlobTests
     {
         var cid = GetValidCid();
         var json = $$"""
-        { 
-            "$type": "blob", 
-            "mimeType": "image/png", 
-            "size": 100, 
+        {
+            "$type": "blob",
+            "mimeType": "image/png",
+            "size": 100,
             "ref": { "$link": "{{cid}}", "extra": "data", "$other": true }
         }
         """;
@@ -2150,7 +2149,7 @@ public class ExtractBlobTests
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cid.ToString());
     }
@@ -2161,12 +2160,12 @@ public class ExtractBlobTests
         // CID with dag-cbor codec (0x71) - NOT valid for blobs, only for data objects
         var hash = await Task.Run(() => Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("test data")));
         var dagCborCid = Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash, MultibaseEncoding.Base32Lower);
-        
+
         await Assert.That(dagCborCid.Codec).IsEqualTo((ulong)MulticodecCode.MerkleDAGCBOR);
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{dagCborCid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).IsEmpty();
     }
 
@@ -2176,12 +2175,12 @@ public class ExtractBlobTests
         // CID with dag-pb codec (0x70) - NOT valid for blobs
         var hash = await Task.Run(() => Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("test data")));
         var dagPbCid = Cid.NewV1(Cid.DAG_PB, hash, MultibaseEncoding.Base32Lower);
-        
+
         await Assert.That(dagPbCid.Codec).IsEqualTo(Cid.DAG_PB);
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{dagPbCid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).IsEmpty();
     }
 
@@ -2192,11 +2191,11 @@ public class ExtractBlobTests
         // CIDv1 with raw codec is the standard for blobs
         var cid = Cid.Create("v1 test", MultibaseEncoding.Base32Lower);
         var cidString = cid.ToString();
-        await Assert.That(cid.Version).IsEqualTo(CID.Version.V1);
+        await Assert.That(cid.Version).IsEqualTo(BlueNilePds.Core.CID.Version.V1);
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
     }
@@ -2207,10 +2206,10 @@ public class ExtractBlobTests
         // CIDv0 uses dag-pb codec which is not valid for blobs
         // CIDv0 starts with "Qm" and is base58btc encoded
         var cidV0 = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
-        
+
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cidV0}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         // CIDv0 uses dag-pb (0x70) codec, not raw, so should be invalid
         await Assert.That(result).IsEmpty();
     }
@@ -2225,7 +2224,7 @@ public class ExtractBlobTests
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
     }
@@ -2239,7 +2238,7 @@ public class ExtractBlobTests
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
     }
@@ -2253,7 +2252,7 @@ public class ExtractBlobTests
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
     }
@@ -2267,7 +2266,7 @@ public class ExtractBlobTests
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
     }
@@ -2278,10 +2277,10 @@ public class ExtractBlobTests
     {
         var originalCid = Cid.Create("encoding preservation test", MultibaseEncoding.Base32Lower);
         var cidString = originalCid.ToString();
-        
+
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cidString}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         // The CID should be parseable and have correct codec
         await Assert.That(result[0].Cid.Codec).IsEqualTo((ulong)MulticodecCode.Raw);
@@ -2296,13 +2295,13 @@ public class ExtractBlobTests
         var content = "same content different encoding";
         var cid32 = Cid.Create(content, MultibaseEncoding.Base32Lower);
         var cid58 = Cid.Create(content, MultibaseEncoding.Base58Btc);
-        
+
         var json32 = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid32}}" } }""";
         var json58 = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid58}}" } }""";
-        
+
         var result32 = Prepare.ExtractBlobReferences(json32);
         var result58 = Prepare.ExtractBlobReferences(json58);
-        
+
         await Assert.That(result32).HasSingleItem();
         await Assert.That(result58).HasSingleItem();
         // Both should produce the same underlying CID (same hash)
@@ -2320,7 +2319,7 @@ public class ExtractBlobTests
 
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{cid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
     }
@@ -2331,10 +2330,10 @@ public class ExtractBlobTests
     {
         var validCid = Cid.Create("test", MultibaseEncoding.Base32Lower).ToString();
         var truncatedCid = validCid[..10]; // Truncate the CID
-        
+
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{truncatedCid}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).IsEmpty();
     }
 
@@ -2343,7 +2342,7 @@ public class ExtractBlobTests
     {
         var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "bafynotarealcidatall" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).IsEmpty();
     }
 
@@ -2352,7 +2351,7 @@ public class ExtractBlobTests
     {
         var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).IsEmpty();
     }
 
@@ -2361,7 +2360,7 @@ public class ExtractBlobTests
     {
         var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "b" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).IsEmpty();
     }
 
@@ -2371,7 +2370,7 @@ public class ExtractBlobTests
         // '!' is not a valid multibase prefix
         var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "!invalidprefix" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).IsEmpty();
     }
 
@@ -2381,7 +2380,7 @@ public class ExtractBlobTests
         // 'b' is base32lower prefix but content is invalid
         var json = """{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "b0123456789" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).IsEmpty();
     }
 
@@ -2392,10 +2391,10 @@ public class ExtractBlobTests
         var cid = Cid.Create("ipfs url test", MultibaseEncoding.Base32Lower);
         var cidString = cid.ToString();
         var ipfsUrl = $"/ipfs/{cid}";
-        
+
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{ipfsUrl}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
     }
@@ -2406,10 +2405,10 @@ public class ExtractBlobTests
         var cid = Cid.Create("ipfs with path", MultibaseEncoding.Base32Lower);
         var cidString = cid.ToString();
         var ipfsUrl = $"https://ipfs.io/ipfs/{cid}";
-        
+
         var json = $$"""{ "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{ipfsUrl}}" } }""";
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
     }
@@ -2432,9 +2431,9 @@ public class ExtractBlobTests
             }
         }
         """;
-        
+
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.Codec).IsEqualTo((ulong)MulticodecCode.Raw);
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(cidString);
@@ -2447,7 +2446,7 @@ public class ExtractBlobTests
         var cid2 = Cid.Create("blob2", MultibaseEncoding.Base58Btc);
         var cid3 = Cid.Create("blob3", MultibaseEncoding.Base64);
         var cidStrings = new[] { cid1.ToString(), cid2.ToString(), cid3.ToString() };
-        
+
         var json = $$"""
         {
             "images": [
@@ -2457,9 +2456,9 @@ public class ExtractBlobTests
             ]
         }
         """;
-        
+
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         await Assert.That(result.Length).IsEqualTo(3);
         foreach (var blob in result)
         {
@@ -2477,16 +2476,16 @@ public class ExtractBlobTests
         var rawCid = Cid.Create("raw codec", MultibaseEncoding.Base32Lower);
         var hash = await Task.Run(() => Multihash.Sum(HashType.SHA2_256, System.Text.Encoding.UTF8.GetBytes("dag-cbor codec")));
         var dagCborCid = Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash, MultibaseEncoding.Base32Lower);
-        
+
         var json = $$"""
         {
             "validBlob": { "$type": "blob", "mimeType": "image/png", "size": 100, "ref": { "$link": "{{rawCid}}" } },
             "invalidBlob": { "$type": "blob", "mimeType": "image/jpeg", "size": 200, "ref": { "$link": "{{dagCborCid}}" } }
         }
         """;
-        
+
         var result = Prepare.ExtractBlobReferences(json);
-        
+
         // Should only find the blob with raw codec
         await Assert.That(result).HasSingleItem();
         await Assert.That(result[0].Cid.ToString()).IsEqualTo(rawCid.ToString());

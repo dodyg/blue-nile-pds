@@ -1,6 +1,6 @@
-using Crypto.Secp256k1;
+using BlueNilePds.Core.Crypto.Secp256k1;
 
-namespace Crypto.Tests;
+namespace BlueNilePds.Core.Crypto.Tests;
 
 public class VerifyTests
 {
@@ -11,7 +11,7 @@ public class VerifyTests
         byte[] data = "test data for signing"u8.ToArray();
         var sig = kp.Sign(data);
 
-        var result = Crypto.Verify.VerifySignature(kp.Did(), data, sig, null, "ES256K");
+        var result = BlueNilePds.Core.Crypto.Verify.VerifySignature(kp.Did(), data, sig, null, "ES256K");
 
         await Assert.That(result).IsTrue();
     }
@@ -23,7 +23,7 @@ public class VerifyTests
         byte[] data = "some data"u8.ToArray();
         var sig = kp.Sign(data);
 
-        var result = Crypto.Verify.VerifySignature(kp.Did(), data, sig, null, null);
+        var result = BlueNilePds.Core.Crypto.Verify.VerifySignature(kp.Did(), data, sig, null, null);
 
         await Assert.That(result).IsTrue();
     }
@@ -36,7 +36,7 @@ public class VerifyTests
         var sig = kp.Sign(data);
 
         byte[] wrongData = "wrong data"u8.ToArray();
-        var result = Crypto.Verify.VerifySignature(kp.Did(), wrongData, sig, null, "ES256K");
+        var result = BlueNilePds.Core.Crypto.Verify.VerifySignature(kp.Did(), wrongData, sig, null, "ES256K");
 
         await Assert.That(result).IsFalse();
     }
@@ -50,7 +50,7 @@ public class VerifyTests
 
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            Crypto.Verify.VerifySignature(kp.Did(), data, sig, null, "ES256");
+            BlueNilePds.Core.Crypto.Verify.VerifySignature(kp.Did(), data, sig, null, "ES256");
         });
     }
 
@@ -62,7 +62,7 @@ public class VerifyTests
         byte[] data = "test data"u8.ToArray();
         var sig = kp1.Sign(data);
 
-        var result = Crypto.Verify.VerifySignature(kp2.Did(), data, sig, null, "ES256K");
+        var result = BlueNilePds.Core.Crypto.Verify.VerifySignature(kp2.Did(), data, sig, null, "ES256K");
 
         await Assert.That(result).IsFalse();
     }
@@ -75,7 +75,7 @@ public class VerifyTests
         var sig = kp.Sign(data);
 
         var did = kp.Did();
-        var result = Crypto.Verify.VerifySignature(did, data, sig, null, "ES256K");
+        var result = BlueNilePds.Core.Crypto.Verify.VerifySignature(did, data, sig, null, "ES256K");
 
         await Assert.That(result).IsTrue();
     }
@@ -90,7 +90,7 @@ public class VerifyTests
         byte[] data = "imported key test"u8.ToArray();
         var sig = imported.Sign(data);
 
-        var result = Crypto.Verify.VerifySignature(imported.Did(), data, sig, null, "ES256K");
+        var result = BlueNilePds.Core.Crypto.Verify.VerifySignature(imported.Did(), data, sig, null, "ES256K");
 
         await Assert.That(result).IsTrue();
     }
