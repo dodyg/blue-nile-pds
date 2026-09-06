@@ -28,7 +28,7 @@ Not implemented. `com.atproto.sync.getLatestCommit` exists as a near-equivalent 
 ## P2 — Not-Started Features (from GAPS-TODO.md)
 
 ### [T-07] subscribeRepos verified mode
-**File:** `src/atompds/Endpoints/Xrpc/Com/Atproto/Sync/SubscribeReposEndpoints.cs`
+**File:** `src/Host/Endpoints/Xrpc/Com/Atproto/Sync/SubscribeReposEndpoints.cs`
 No commit validation or content verification on the subscriber side. Events streamed as-is from sequencer.
 
 ### [T-08] rebaseRepo

@@ -6,19 +6,19 @@ _Last reviewed: 2026-04-29_
 
 `blue-nile-pds` is split into three layers:
 
-1. **Host layer** — `src/atompds/`
-2. **PDS service layer** — `src/pds_projects/`
-3. **Core/shared libraries** — `src/projects/`
+1. **Host layer** — `src/Host/`
+2. **PDS service layer** — `src/Pds/`
+3. **Core/shared libraries** — `src/Core/`
 
 ## Host layer
 
 The host is an ASP.NET Core Minimal API application.
 
 Key files:
-- `src/atompds/Program.cs`
-- `src/atompds/Config/ServerConfig.cs`
-- `src/atompds/Config/ServerEnvironment.cs`
-- `src/atompds/Endpoints/EndpointRegistration.cs`
+- `src/Host/Program.cs`
+- `src/Host/Config/ServerConfig.cs`
+- `src/Host/Config/ServerEnvironment.cs`
+- `src/Host/Endpoints/EndpointRegistration.cs`
 
 Responsibilities:
 - bind configuration
@@ -70,7 +70,7 @@ The server exposes Minimal API endpoints under:
 - AppView proxy endpoints
 
 Endpoint registration is centralized in:
-- `src/atompds/Endpoints/EndpointRegistration.cs`
+- `src/Host/Endpoints/EndpointRegistration.cs`
 
 ## Middleware order
 

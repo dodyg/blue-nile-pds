@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../pds_projects/ActorStore/ActorStore.csproj" />
+    <ProjectReference Include="../../Pds/ActorStore/ActorStore.csproj" />
   </ItemGroup>
 
 </Project>

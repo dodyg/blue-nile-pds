@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-    <ProjectReference Include="../Config/Config.csproj" />
-    <ProjectReference Include="../../projects/Repo/Repo.csproj" />
+    <ProjectReference Include="../Pds.Config/Config.csproj" />
+    <ProjectReference Include="../../Core/Repo/Repo.csproj" />
   </ItemGroup>
 
   <ItemGroup>

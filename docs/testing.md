@@ -16,7 +16,7 @@ Patterns used in tests:
 - `test/CID.Tests/`
 - `test/Common.Tests/`
 - `test/ActorStore.Tests/`
-- `test/atompds.Tests/`
+- `test/Host.Tests/`
 - `test/SubscribeTester/` (manual utility, not an automated test project)
 
 ## Current passing totals
@@ -30,7 +30,7 @@ Current passing automated tests:
 Validated with:
 
 ```bash
-dotnet test --solution atompds.slnx
+dotnet test --solution BlueNilePds.slnx
 ```
 
 ## Important integration-test behavior
@@ -44,20 +44,20 @@ The test host fakes responses for:
 - crawler callback requests
 
 This behavior lives in:
-- `test/atompds.Tests/Infrastructure/TestWebAppFactory.cs`
+- `test/Host.Tests/Infrastructure/TestWebAppFactory.cs`
 
 ## Useful commands
 
 Run all automated tests:
 
 ```bash
-dotnet test --solution atompds.slnx
+dotnet test --solution BlueNilePds.slnx
 ```
 
 Run only the server integration tests:
 
 ```bash
-dotnet test --project test/atompds.Tests/atompds.Tests.csproj
+dotnet test --project test/Host.Tests/atompds.Tests.csproj
 ```
 
 Run a focused library test project:
@@ -71,7 +71,7 @@ dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
 The solution currently builds cleanly with zero compiler warnings:
 
 ```bash
-dotnet build atompds.slnx
+dotnet build BlueNilePds.slnx
 ```
 
 ## Notes for contributors

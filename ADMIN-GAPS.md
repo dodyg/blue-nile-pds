@@ -1,6 +1,6 @@
 # ADMIN-GAPS.md — Admin Features vs ATProto Lexicons
 
-Comparison of admin features in `blue-nile-pds` (CLI `src/pdsadmin-cli/` and Web UI `src/pdsweb/` admin area) against ATProto Lexicon specs for `com.atproto.admin.*` and `com.atproto.server.*`.
+Comparison of admin features in `blue-nile-pds` (CLI `src/Tools/PdsAdmin.Cli/` and Web UI `src/Web/` admin area) against ATProto Lexicon specs for `com.atproto.admin.*` and `com.atproto.server.*`.
 
 ---
 

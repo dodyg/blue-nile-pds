@@ -2,13 +2,13 @@
 
         <ItemGroup>
         <ProjectReference Include="../BlobStore/BlobStore.csproj" />
-        <ProjectReference Include="..\..\projects\CID\CID.csproj" />
+        <ProjectReference Include="..\..\Core\Cid\CID.csproj" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-        <ProjectReference Include="..\..\projects\DidLib\DidLib.csproj" />
-        <ProjectReference Include="..\..\projects\Handle\Handle.csproj" />
-        <ProjectReference Include="..\..\projects\Repo\Repo.csproj" />
-        <ProjectReference Include="..\Config\Config.csproj" />
-        <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
+        <ProjectReference Include="..\..\Core\Did\DidLib.csproj" />
+        <ProjectReference Include="..\..\Core\Handle\Handle.csproj" />
+        <ProjectReference Include="..\..\Core\Repo\Repo.csproj" />
+        <ProjectReference Include="..\Pds.Config\Config.csproj" />
+        <ProjectReference Include="..\Pds.Xrpc\Xrpc.csproj" />
     </ItemGroup>
 
     <ItemGroup>

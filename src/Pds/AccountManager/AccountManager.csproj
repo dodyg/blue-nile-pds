@@ -10,10 +10,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\projects\CID\CID.csproj" />
+        <ProjectReference Include="..\..\Core\Cid\CID.csproj" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-        <ProjectReference Include="..\Config\Config.csproj" />
-        <ProjectReference Include="..\Xrpc\Xrpc.csproj" />
+        <ProjectReference Include="..\Pds.Config\Config.csproj" />
+        <ProjectReference Include="..\Pds.Xrpc\Xrpc.csproj" />
     </ItemGroup>
 
 </Project>

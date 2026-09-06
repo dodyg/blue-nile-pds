@@ -11,7 +11,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-        <ProjectReference Include="..\Config\Config.csproj" />
+        <ProjectReference Include="..\Pds.Config\Config.csproj" />
         <ProjectReference Include="..\AccountManager\AccountManager.csproj" />
     </ItemGroup>
 

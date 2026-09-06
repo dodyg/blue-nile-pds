@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
         <ItemGroup>
-        <ProjectReference Include="..\..\projects\Crypto\Crypto.csproj"/>
+        <ProjectReference Include="..\..\Core\Crypto\Crypto.csproj"/>
     </ItemGroup>
 
 </Project>
