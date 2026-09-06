@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
         <ItemGroup>
-        <ProjectReference Include="..\..\pds_projects\Config\Config.csproj"/>
-        <ProjectReference Include="..\..\pds_projects\Xrpc\Xrpc.csproj"/>
+        <ProjectReference Include="..\..\Pds\Pds.Config\Config.csproj"/>
+        <ProjectReference Include="..\..\Pds\Pds.Xrpc\Xrpc.csproj"/>
         <ProjectReference Include="..\Identity\Identity.csproj"/>
     </ItemGroup>
 

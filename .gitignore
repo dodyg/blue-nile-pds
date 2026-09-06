@@ -11,5 +11,5 @@ riderModule.iml
 
 **/atompds/appsettings.*.json
 **/atompds/data/*
-**/atompds/wwwroot/*
+**/Host/wwwroot/*
 .vs/

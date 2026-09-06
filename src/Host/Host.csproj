@@ -24,16 +24,20 @@
         <PackageReference Include="StackExchange.Redis" />
     </ItemGroup>
 
+    <PropertyGroup>
+        <AssemblyName>BlueNilePds.Host</AssemblyName>
+    </PropertyGroup>
+
     <ItemGroup>
-        <ProjectReference Include="../pds_projects/BlobStore/BlobStore.csproj" />
-        <ProjectReference Include="../projects/Repo/Repo.csproj" />
-        <ProjectReference Include="..\pds_projects\AccountManager\AccountManager.csproj" />
-        <ProjectReference Include="..\pds_projects\ActorStore\ActorStore.csproj" />
-        <ProjectReference Include="..\pds_projects\Config\Config.csproj" />
-        <ProjectReference Include="..\pds_projects\Mailer\Mailer.csproj" />
-        <ProjectReference Include="..\pds_projects\Sequencer\Sequencer.csproj" />
-        <ProjectReference Include="..\pds_projects\Xrpc\Xrpc.csproj" />
-        <ProjectReference Include="..\pds_projects\PendingAccounts\PendingAccounts.csproj" />
+        <ProjectReference Include="../Pds/BlobStore/BlobStore.csproj" />
+        <ProjectReference Include="../Core/Repo/Repo.csproj" />
+        <ProjectReference Include="../Pds/AccountManager/AccountManager.csproj" />
+        <ProjectReference Include="../Pds/ActorStore/ActorStore.csproj" />
+        <ProjectReference Include="../Pds/Pds.Config/Config.csproj" />
+        <ProjectReference Include="../Pds/Mailer/Mailer.csproj" />
+        <ProjectReference Include="../Pds/Sequencer/Sequencer.csproj" />
+        <ProjectReference Include="../Pds/Pds.Xrpc/Xrpc.csproj" />
+        <ProjectReference Include="../Pds/PendingAccounts/PendingAccounts.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -41,7 +45,7 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <SpaRoot>../pdsweb</SpaRoot>
+        <SpaRoot>../Web</SpaRoot>
         <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
     </PropertyGroup>
 

@@ -20,7 +20,7 @@
     <Import Project="..\..\..\libs\CarpaNet\src\CarpaNet\build\CarpaNet.targets" />
 
     <ItemGroup>
-        <ProjectReference Include="..\..\pds_projects\Xrpc\Xrpc.csproj" />
+        <ProjectReference Include="..\..\Pds\Pds.Xrpc\Xrpc.csproj" />
     </ItemGroup>
 
 </Project>

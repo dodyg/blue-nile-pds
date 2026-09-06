@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
         <ItemGroup>
-        <ProjectReference Include="..\CID\CID.csproj"/>
+        <ProjectReference Include="..\Cid\CID.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

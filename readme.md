@@ -14,12 +14,12 @@ This repository is **not production-ready**. Treat it as a protocol-learning and
 
 ## What is in the repo?
 
-- `src/atompds/` — web host, middleware, endpoint registration, startup
-- `src/pds_projects/` — PDS-specific services such as account management, actor storage, sequencing, blob storage, mail, and XRPC errors
-- `src/projects/` — lower-level shared libraries such as CID, crypto, DID, identity, handle validation, and repo/MST logic
-- `src/pdsadmin-cli/` — admin CLI
-- `src/pdsweb/` — single React SPA (public site at `/`, admin UI at `/admin/*`)
-- `src/migration/` — actor-store migration utility
+- `src/Host/` — web host, middleware, endpoint registration, startup
+- `src/Pds/` — PDS-specific services such as account management, actor storage, sequencing, blob storage, mail, and XRPC errors
+- `src/Core/` — lower-level shared libraries such as CID, crypto, DID, identity, handle validation, and repo/MST logic
+- `src/Tools/PdsAdmin.Cli/` — admin CLI
+- `src/Web/` — single React SPA (public site at `/`, admin UI at `/admin/*`)
+- `src/Tools/Migration/` — actor-store migration utility
 - `test/` — unit and integration tests
 
 See also:
@@ -42,7 +42,7 @@ The repo pins the SDK in `global.json`.
 From the repository root:
 
 ```bash
-dotnet build atompds.slnx
+dotnet build BlueNilePds.slnx
 ```
 
 ## Test
@@ -50,32 +50,32 @@ dotnet build atompds.slnx
 Run all tests:
 
 ```bash
-dotnet test --solution atompds.slnx
+dotnet test --solution BlueNilePds.slnx
 ```
 
 Run the main integration suite only:
 
 ```bash
-dotnet test --project test/atompds.Tests/atompds.Tests.csproj
+dotnet test --project test/Host.Tests/atompds.Tests.csproj
 ```
 
 ## Run the server
 
 ```bash
-dotnet run --project src/atompds/atompds.csproj
+dotnet run --project src/Host/Host.csproj
 ```
 
 ## Run the admin CLI
 
 ```bash
-dotnet run --project src/pdsadmin-cli/pdsadmin-cli.csproj
+dotnet run --project src/Tools/PdsAdmin.Cli/pdsadmin-cli.csproj
 ```
 
 ## Local configuration
 
 Start from:
 
-- `src/atompds/appsettings.Development.json.example`
+- `src/Host/appsettings.Development.json.example`
 
 Create a local `appsettings.Development.json` and fill in at least:
 

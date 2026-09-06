@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/',
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: '../atompds/wwwroot',
+    outDir: '../Host/wwwroot',
     emptyOutDir: true,
   },
   server: {
