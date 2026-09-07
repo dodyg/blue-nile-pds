@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+        <ItemGroup>
+        <ProjectReference Include="../BlobStore/BlobStore.csproj" />
+        <ProjectReference Include="..\..\Core\Cid\CID.csproj" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+        <ProjectReference Include="..\..\Core\Did\DidLib.csproj" />
+        <ProjectReference Include="..\..\Core\Handle\Handle.csproj" />
+        <ProjectReference Include="..\..\Core\Repo\Repo.csproj" />
+        <ProjectReference Include="..\Pds.Config\Config.csproj" />
+        <ProjectReference Include="..\Pds.Xrpc\Xrpc.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+</Project>

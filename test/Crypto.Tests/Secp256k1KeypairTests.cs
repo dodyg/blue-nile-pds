@@ -1,6 +1,6 @@
-using Crypto.Secp256k1;
+using BlueNilePds.Core.Crypto.Secp256k1;
 
-namespace Crypto.Tests;
+namespace BlueNilePds.Core.Crypto.Tests;
 
 public class Secp256k1KeypairTests
 {

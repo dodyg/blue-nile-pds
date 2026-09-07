@@ -1,0 +1,41 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Pds/">
+    <Project Path="src/Pds/AccountManager/AccountManager.csproj" />
+    <Project Path="src/Pds/ActorStore/ActorStore.csproj" />
+    <Project Path="src/Pds/BlobStore/BlobStore.csproj" />
+    <Project Path="src/Pds/Pds.Config/Config.csproj" />
+    <Project Path="src/Pds/Mailer/Mailer.csproj" />
+    <Project Path="src/Pds/PendingAccounts/PendingAccounts.csproj" />
+    <Project Path="src/Pds/Sequencer/Sequencer.csproj" />
+    <Project Path="src/Pds/Pds.Xrpc/Xrpc.csproj" />
+  </Folder>
+  <Folder Name="/Core/">
+    <Project Path="src/Core/Cid/CID.csproj" />
+    <Project Path="src/Core/Common/Common.csproj" />
+    <Project Path="src/Core/CommonWeb/CommonWeb.csproj" />
+    <Project Path="src/Core/Crypto/Crypto.csproj" />
+    <Project Path="src/Core/Did/DidLib.csproj" />
+    <Project Path="src/Core/Handle/Handle.csproj" />
+    <Project Path="src/Core/Identity/Identity.csproj" />
+    <Project Path="src/Core/Repo/Repo.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Host.Tests/Host.Tests.csproj" />
+    <Project Path="test/Crypto.Tests/Crypto.Tests.csproj" />
+    <Project Path="test/Repo.Tests/Repo.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="test/ActorStore.Tests/ActorStore.Tests.csproj" />
+    <Project Path="test/Cid.Tests/CID.Tests.csproj" />
+    <Project Path="test/Common.Tests/Common.Tests.csproj" />
+    <Project Path="src/Tools/SubscribeTester/SubscribeTester.csproj" />
+  </Folder>
+  <Project Path="src/Host/Host.csproj" />
+  <Project Path="src/Tools/Migration/migration.csproj" />
+  <Project Path="src/Tools/PdsAdmin.Cli/PdsAdmin.Cli.csproj" />
+</Solution>

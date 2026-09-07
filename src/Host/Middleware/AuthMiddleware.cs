@@ -1,0 +1,216 @@
+﻿using BlueNilePds.Pds.Xrpc;
+
+namespace BlueNilePds.Host.Middleware;
+
+public class AuthMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public AuthMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var endpoint = context.GetEndpoint();
+        if (endpoint == null)
+        {
+            await _next(context);
+            return;
+        }
+
+        var verifier = context.RequestServices.GetRequiredService<AuthVerifier>();
+        var adminToken = endpoint.Metadata.GetMetadata<AdminTokenAttribute>();
+        if (adminToken != null)
+        {
+            var output = await adminToken.HandleAsync(verifier, context);
+            context.Items["AuthOutput"] = output;
+        }
+
+        var accessStandard = endpoint.Metadata.GetMetadata<AccessStandardAttribute>();
+        if (accessStandard != null)
+        {
+            var output = await accessStandard.HandleAsync(verifier, context);
+            context.Items["AuthOutput"] = output;
+        }
+
+        var optionalAccessStandard = endpoint.Metadata.GetMetadata<OptionalAccessStandardAttribute>();
+        if (optionalAccessStandard != null)
+        {
+            var output = await optionalAccessStandard.HandleAsync(verifier, context);
+            if (output != null)
+            {
+                context.Items["AuthOutput"] = output;
+            }
+        }
+
+        var accessFull = endpoint.Metadata.GetMetadata<AccessFullAttribute>();
+        if (accessFull != null)
+        {
+            var output = await accessFull.HandleAsync(verifier, context);
+            context.Items["AuthOutput"] = output;
+        }
+
+        var accessPrivileged = endpoint.Metadata.GetMetadata<AccessPrivilegedAttribute>();
+        if (accessPrivileged != null)
+        {
+            var output = await accessPrivileged.HandleAsync(verifier, context);
+            context.Items["AuthOutput"] = output;
+        }
+
+        var refresh = endpoint.Metadata.GetMetadata<RefreshAttribute>();
+        if (refresh != null)
+        {
+            var output = await refresh.HandleAsync(verifier, context);
+            context.Items["AuthOutput"] = output;
+        }
+
+        var moderator = endpoint.Metadata.GetMetadata<ModeratorTokenAttribute>();
+        if (moderator != null)
+        {
+            var output = await moderator.HandleAsync(verifier, context);
+            context.Items["AuthOutput"] = output;
+        }
+
+        await _next(context);
+    }
+}
+
+public static class AuthMiddlewareExtensions
+{
+    public static IApplicationBuilder UseAuthMiddleware(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<AuthMiddleware>();
+    }
+
+    public static AuthVerifier.AccessOutput GetAuthOutput(this HttpContext context)
+    {
+        if (!context.Items.TryGetValue("AuthOutput", out var item))
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
+        }
+
+        if (item is not AuthVerifier.AccessOutput output)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
+        }
+
+        return output;
+    }
+
+    public static AuthVerifier.RefreshOutput GetRefreshOutput(this HttpContext context)
+    {
+        if (!context.Items.TryGetValue("AuthOutput", out var item))
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
+        }
+
+        if (item is not AuthVerifier.RefreshOutput output)
+        {
+            throw new XRPCError(new AuthRequiredErrorDetail("Auth Required"));
+        }
+
+        return output;
+    }
+}
+
+public class AdminTokenAttribute : Attribute
+{
+    public Task<AuthVerifier.AdminOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return verifier.AdminTokenAsync(context);
+    }
+}
+
+public class AccessStandardAttribute : Attribute
+{
+    private readonly bool _checkDeactivated;
+    private readonly bool _checkTakenDown;
+    private readonly bool _checkSuspended;
+
+    public AccessStandardAttribute(bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
+    {
+        _checkTakenDown = checkTakenDown;
+        _checkDeactivated = checkDeactivated;
+        _checkSuspended = checkSuspended;
+    }
+
+    public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return verifier.AccessStandardAsync(context, _checkTakenDown, _checkDeactivated, _checkSuspended);
+    }
+}
+
+public class OptionalAccessStandardAttribute : Attribute
+{
+    private readonly bool _checkDeactivated;
+    private readonly bool _checkTakenDown;
+    private readonly bool _checkSuspended;
+
+    public OptionalAccessStandardAttribute(bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
+    {
+        _checkTakenDown = checkTakenDown;
+        _checkDeactivated = checkDeactivated;
+        _checkSuspended = checkSuspended;
+    }
+
+    public Task<AuthVerifier.AccessOutput?> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return verifier.OptionalAccessStandardAsync(context, _checkTakenDown, _checkDeactivated, _checkSuspended);
+    }
+}
+
+public class AccessFullAttribute : Attribute
+{
+    private readonly bool _checkDeactivated;
+    private readonly bool _checkTakenDown;
+    private readonly bool _checkSuspended;
+
+    public AccessFullAttribute(bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
+    {
+        _checkTakenDown = checkTakenDown;
+        _checkDeactivated = checkDeactivated;
+        _checkSuspended = checkSuspended;
+    }
+
+    public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return verifier.AccessFullAsync(context, _checkTakenDown, _checkDeactivated, _checkSuspended);
+    }
+}
+
+public class AccessPrivilegedAttribute : Attribute
+{
+    private readonly bool _checkDeactivated;
+    private readonly bool _checkTakenDown;
+    private readonly bool _checkSuspended;
+
+    public AccessPrivilegedAttribute(bool checkTakenDown = false, bool checkDeactivated = false, bool checkSuspended = false)
+    {
+        _checkTakenDown = checkTakenDown;
+        _checkDeactivated = checkDeactivated;
+        _checkSuspended = checkSuspended;
+    }
+
+    public Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return verifier.AccessPrivilegedAsync(context, _checkTakenDown, _checkDeactivated, _checkSuspended);
+    }
+}
+
+public class RefreshAttribute : Attribute
+{
+    public Task<AuthVerifier.RefreshOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return Task.FromResult(verifier.Refresh(context));
+    }
+}
+
+public class ModeratorTokenAttribute : Attribute
+{
+    public async Task<AuthVerifier.AccessOutput> HandleAsync(AuthVerifier verifier, HttpContext context)
+    {
+        return await verifier.ModeratorAsync(context);
+    }
+}

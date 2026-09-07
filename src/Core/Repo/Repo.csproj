@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <ProjectReference Include="..\Cid\CID.csproj" />
+        <ProjectReference Include="..\CommonWeb\CommonWeb.csproj" />
+        <ProjectReference Include="..\Common\Common.csproj" />
+        <ProjectReference Include="..\Crypto\Crypto.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Ipfs.Core" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Sync/" />
+    </ItemGroup>
+
+</Project>

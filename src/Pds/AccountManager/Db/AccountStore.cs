@@ -1,0 +1,425 @@
+﻿using BlueNilePds.Pds.Config;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Scrypt;
+using BlueNilePds.Pds.Xrpc;
+
+namespace BlueNilePds.Pds.AccountManager.Db;
+
+public class AccountStore
+{
+
+    public enum AccountStatus
+    {
+        Active,
+        Takendown,
+        Suspended,
+        Deleted,
+        Deactivated
+    }
+
+    private readonly Auth _auth;
+    private readonly AccountManagerDb _db;
+    private readonly InviteStore _inviteStore;
+    private readonly ILogger<AccountStore> _logger;
+    private readonly SecretsConfig _secretsConfig;
+    private readonly ServiceConfig _serviceConfig;
+    public AccountStore(AccountManagerDb db,
+        Auth auth,
+        SecretsConfig secretsConfig,
+        ServiceConfig serviceConfig,
+        InviteStore inviteStore,
+        ILogger<AccountStore> logger)
+    {
+        _db = db;
+        _auth = auth;
+        _secretsConfig = secretsConfig;
+        _serviceConfig = serviceConfig;
+        _inviteStore = inviteStore;
+        _logger = logger;
+    }
+
+    private IQueryable<Account> SelectAccountQb(AvailabilityFlags? flags)
+    {
+        flags ??= new AvailabilityFlags();
+        var accounts = _db.Accounts
+            .Include(a => a.Actor)
+            .AsQueryable();
+        accounts = accounts.Where(x => x.Actor != null);
+
+        if (!flags.IncludeTakenDown)
+        {
+            accounts = accounts.Where(x => x.Actor!.TakedownRef == null);
+        }
+
+        if (!flags.IncludeDeactivated)
+        {
+            accounts = accounts.Where(x => x.Actor!.DeactivatedAt == null);
+        }
+
+        return accounts;
+    }
+
+    public async Task<ActorAccount?> GetAccountAsync(string handleOrDid, AvailabilityFlags? flags = null)
+    {
+        var accounts = SelectAccountQb(flags);
+        if (handleOrDid.StartsWith("did:"))
+        {
+            accounts = accounts.Where(x => x.Actor!.Did == handleOrDid);
+        }
+        else
+        {
+            accounts = accounts.Where(x => x.Actor!.Handle == handleOrDid);
+        }
+
+        var result = await accounts.FirstOrDefaultAsync();
+        return ActorAccount.From(result?.Actor, result);
+    }
+
+    public async Task<Dictionary<string, ActorAccount>> GetAccountsAsync(string[] dids, AvailabilityFlags? flags = null)
+    {
+        var actors = SelectAccountQb(flags);
+        actors = actors.Where(x => dids.Contains(x.Actor!.Did));
+        var results = await actors.ToArrayAsync();
+
+        return results.ToDictionary(x => x.Actor!.Did, x => ActorAccount.From(x.Actor!, x)!);
+    }
+
+    public async Task<ActorAccount?> GetAccountByEmailAsync(string email, AvailabilityFlags? flags = null)
+    {
+        var accounts = SelectAccountQb(flags);
+        email = email.ToLower();
+        accounts = accounts
+            .Where(x => x.Email == email);
+
+        var result = await accounts.FirstOrDefaultAsync();
+        return ActorAccount.From(result?.Actor, result);
+    }
+
+    public async Task<bool> IsAccountActivatedAsync(string did)
+    {
+        var account = await GetAccountAsync(did, new AvailabilityFlags(true));
+        if (account == null)
+        {
+            return false;
+        }
+
+        return account.DeactivatedAt == null;
+    }
+
+    public async Task<string?> GetDidForActorAsync(string handle)
+    {
+        var account = await GetAccountAsync(handle);
+        return account?.Did;
+    }
+
+    public async Task<AccountStatus> GetAccountStatusAsync(string did)
+    {
+        var account = await GetAccountAsync(did, new AvailabilityFlags(true, true));
+        if (account == null)
+        {
+            return AccountStatus.Deleted;
+        }
+        if (account.TakedownRef != null)
+        {
+            return AccountStatus.Takendown;
+        }
+        if (account.SuspendedAt != null)
+        {
+            return AccountStatus.Suspended;
+        }
+        if (account.DeactivatedAt != null)
+        {
+            return AccountStatus.Deactivated;
+        }
+        return AccountStatus.Active;
+    }
+
+    public async Task RegisterActorAsync(string did, string handle, bool? deactivated, bool? suspended = null)
+    {
+        var createdAt = DateTime.UtcNow;
+        try
+        {
+            var actorObj = new Actor
+            {
+                Did = did,
+                Handle = handle,
+                CreatedAt = createdAt,
+                DeactivatedAt = deactivated == true ? createdAt : null,
+                DeleteAfter = deactivated == true ? createdAt.AddDays(3) : null,
+                TakedownRef = null,
+                SuspendedAt = suspended == true ? createdAt : null
+            };
+            _db.Actors.Add(actorObj);
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException e)
+        {
+            _logger.LogError(e, "Failed to register actor");
+            throw new XRPCError(new InvalidRequestErrorDetail("User already exists"));
+        }
+    }
+
+    public async Task RegisterAccountAsync(string did, string email, string passwordScrypt, string? location = null, string? accountType = null)
+    {
+        try
+        {
+            var accountObj = new Account
+            {
+                Did = did,
+                Email = email.ToLower(),
+                PasswordSCrypt = passwordScrypt,
+                EmailConfirmedAt = null,
+                InvitesDisabled = false,
+                Location = location,
+                AccountType = accountType
+            };
+            _db.Accounts.Add(accountObj);
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException e)
+        {
+            _logger.LogError(e, "Failed to register account");
+            throw new XRPCError(new InvalidRequestErrorDetail("Account already exists"));
+        }
+    }
+
+    public async Task SetEmailConfirmedAtAsync(string did, DateTime confirmedAt)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account == null)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("AccountNotFound", "Account not found."));
+        }
+
+        account.EmailConfirmedAt = confirmedAt;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAccountAsync(string did)
+    {
+        await _db.RepoRoots.Where(x => x.Did == did).ExecuteDeleteAsync();
+        await _db.RefreshTokens.Where(x => x.Did == did).ExecuteDeleteAsync();
+        await _db.Accounts.Where(x => x.Did == did).ExecuteDeleteAsync();
+        await _db.Actors.Where(x => x.Did == did).ExecuteDeleteAsync();
+        _logger.LogWarning("Account data deleted from store: {Did}", did);
+    }
+    public static (bool Active, AccountStore.AccountStatus Status) FormatAccountStatus(ActorAccount? account)
+    {
+        if (account == null)
+        {
+            return (false, AccountStore.AccountStatus.Deleted);
+        }
+
+        if (account.TakedownRef != null)
+        {
+            return (false, AccountStore.AccountStatus.Takendown);
+        }
+
+        if (account.SuspendedAt != null)
+        {
+            return (false, AccountStore.AccountStatus.Suspended);
+        }
+
+        if (account.DeactivatedAt != null)
+        {
+            return (false, AccountStore.AccountStatus.Deactivated);
+        }
+
+        return (true, AccountStore.AccountStatus.Active);
+    }
+
+    public async Task ActivateAccountAsync(string did)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.DeactivatedAt = null;
+            actor.DeleteAfter = null;
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Account activated: {Did}", did);
+        }
+    }
+
+    public async Task DeactivateAccountAsync(string did, DateTimeOffset? deleteAfter)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.DeactivatedAt = DateTime.UtcNow;
+            actor.DeleteAfter = deleteAfter?.UtcDateTime;
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Account deactivated: {Did}", did);
+        }
+    }
+
+    public async Task UpdateHandleAsync(string did, string handle)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.Handle = handle;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task ConfirmEmailAsync(string did)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.EmailConfirmedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateEmailAsync(string did, string email)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            var oldEmail = account.Email;
+            account.Email = email.ToLower();
+            account.EmailConfirmedAt = null;
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Email changed for {Did}: {OldEmail} -> {NewEmail}", did, oldEmail, email.ToLower());
+        }
+    }
+
+    public async Task UpdatePasswordAsync(string did, string password)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            var enc = new ScryptEncoder();
+            account.PasswordSCrypt = enc.Encode(password);
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Password changed for {Did}", did);
+        }
+    }
+
+    public async Task UpdateTakedownRefAsync(string did, string? takedownRef)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.TakedownRef = takedownRef;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateInvitesDisabledAsync(string did, bool disabled)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.InvitesDisabled = disabled;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateAccountMetadataAsync(string did, string? location, string? accountType)
+    {
+        var account = await _db.Accounts.FirstOrDefaultAsync(x => x.Did == did);
+        if (account != null)
+        {
+            account.Location = location;
+            account.AccountType = accountType;
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Account metadata updated for {Did}", did);
+        }
+    }
+
+    public async Task SuspendAccountAsync(string did, DateTime? suspendedAt = null)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.SuspendedAt = suspendedAt ?? DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Account suspended: {Did}", did);
+        }
+    }
+
+    public async Task UnsuspendAccountAsync(string did)
+    {
+        var actor = await _db.Actors.FirstOrDefaultAsync(x => x.Did == did);
+        if (actor != null)
+        {
+            actor.SuspendedAt = null;
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Account unsuspended: {Did}", did);
+        }
+    }
+
+    public async Task<(ActorAccount[] Accounts, string? Cursor)> GetPendingAccountsAsync(string? cursor, int limit)
+    {
+        limit = Math.Clamp(limit, 1, 100);
+
+        var query = _db.Accounts
+            .Include(a => a.Actor)
+            .Where(a => a.Actor != null && a.Actor.SuspendedAt != null)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(cursor))
+        {
+            query = query.Where(a => string.Compare(a.Actor!.Did, cursor) > 0);
+        }
+
+        query = query.OrderBy(a => a.Actor!.Did).Take(limit + 1);
+        var results = await query.ToArrayAsync();
+
+        string? nextCursor = null;
+        if (results.Length > limit)
+        {
+            nextCursor = results[limit - 1].Actor!.Did;
+            results = results[..limit];
+        }
+
+        var accounts = results
+            .Select(r => ActorAccount.From(r.Actor!, r)!)
+            .ToArray();
+
+        return (accounts, nextCursor);
+    }
+
+    public async Task<(ActorAccount[] Accounts, string? Cursor)> SearchAccountsAsync(string? email, string? cursor, int limit)
+    {
+        limit = Math.Clamp(limit, 1, 100);
+
+        var query = _db.Accounts
+            .Include(a => a.Actor)
+            .Where(a => a.Actor != null)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var term = email.ToLower();
+            query = query.Where(a =>
+                a.Email.ToLower().Contains(term) ||
+                a.Actor!.Handle.ToLower().Contains(term));
+        }
+
+        // Cursor-based pagination using Did as cursor
+        if (!string.IsNullOrWhiteSpace(cursor))
+        {
+            query = query.Where(a => string.Compare(a.Actor!.Did, cursor) > 0);
+        }
+
+        query = query.OrderBy(a => a.Actor!.Did).Take(limit + 1);
+        var results = await query.ToArrayAsync();
+
+        string? nextCursor = null;
+        if (results.Length > limit)
+        {
+            nextCursor = results[limit - 1].Actor!.Did;
+            results = results[..limit];
+        }
+
+        var accounts = results
+            .Select(r => ActorAccount.From(r.Actor!, r)!)
+            .ToArray();
+
+        return (accounts, nextCursor);
+    }
+}

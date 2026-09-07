@@ -1,6 +1,6 @@
-using Crypto.Secp256k1;
+using BlueNilePds.Core.Crypto.Secp256k1;
 
-namespace Crypto.Tests;
+namespace BlueNilePds.Core.Crypto.Tests;
 
 public class DidTests
 {
@@ -19,7 +19,7 @@ public class DidTests
         var kp = Secp256k1Keypair.Create(exportable: false);
         var did = kp.Did();
 
-        var parsed = Crypto.Did.ParseDidKey(did);
+        var parsed = BlueNilePds.Core.Crypto.Did.ParseDidKey(did);
 
         await Assert.That(parsed.JwtAlg).IsEqualTo("ES256K");
         await Assert.That(parsed.KeyBytes).IsNotNull();
@@ -42,7 +42,7 @@ public class DidTests
     {
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            Crypto.Did.ParseDidKey("not:a:valid:did");
+            BlueNilePds.Core.Crypto.Did.ParseDidKey("not:a:valid:did");
         });
     }
 
@@ -51,7 +51,7 @@ public class DidTests
     {
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            Crypto.Did.ParseDidKey("");
+            BlueNilePds.Core.Crypto.Did.ParseDidKey("");
         });
     }
 
@@ -82,11 +82,11 @@ public class DidTests
     {
         var kp = Secp256k1Keypair.Create(exportable: true);
         var did = kp.Did();
-        var parsed = Crypto.Did.ParseDidKey(did);
+        var parsed = BlueNilePds.Core.Crypto.Did.ParseDidKey(did);
 
         byte[] data = "verification test"u8.ToArray();
         var sig = kp.Sign(data);
-        var result = Crypto.Verify.VerifySignature(did, data, sig, null, "ES256K");
+        var result = BlueNilePds.Core.Crypto.Verify.VerifySignature(did, data, sig, null, "ES256K");
 
         await Assert.That(result).IsTrue();
     }

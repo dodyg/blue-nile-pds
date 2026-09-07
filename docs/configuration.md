@@ -6,11 +6,11 @@ _Last reviewed: 2026-04-29_
 
 Runtime configuration is bound from the `Config` section into:
 
-- `src/atompds/Config/ServerEnvironment.cs`
+- `src/Host/Config/ServerEnvironment.cs`
 
 It is then mapped and validated in:
 
-- `src/atompds/Config/ServerConfig.cs`
+- `src/Host/Config/ServerConfig.cs`
 
 ## Required settings
 
@@ -23,7 +23,7 @@ At minimum, local development needs:
 
 ## Common local-development settings
 
-Start from `src/atompds/appsettings.Development.json.example`.
+Start from `src/Host/appsettings.Development.json.example`.
 
 Typical fields:
 
@@ -96,6 +96,6 @@ These are documented so operators do not assume they currently change server beh
 4. validate with:
 
 ```bash
-dotnet build atompds.slnx
-dotnet test --solution atompds.slnx
+dotnet build BlueNilePds.slnx
+dotnet test --solution BlueNilePds.slnx
 ```

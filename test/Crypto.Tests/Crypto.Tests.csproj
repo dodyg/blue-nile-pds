@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\projects\Crypto\Crypto.csproj" />
+        <ProjectReference Include="..\..\src\Core\Crypto\Crypto.csproj" />
     </ItemGroup>
 
 </Project>

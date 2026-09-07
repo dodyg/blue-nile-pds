@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+        <ItemGroup>
+        <PackageReference Include="SimpleBase" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Common\Common.csproj" />
+        <ProjectReference Include="..\Crypto\Crypto.csproj" />
+    </ItemGroup>
+
+</Project>

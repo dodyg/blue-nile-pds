@@ -1,0 +1,57 @@
+﻿using System.Security.Cryptography;
+using System.Text;
+using Multiformats.Codec;
+using Multiformats.Hash;
+
+namespace BlueNilePds.Core.CID;
+
+public static class Util
+{
+    public static Version ParseVersion(this byte version)
+    {
+        return version switch
+        {
+            0 => Version.V0,
+            1 => Version.V1,
+            _ => throw new CIDException(Error.UnknownCodec)
+        };
+    }
+
+    public static Multihash Sha2_256Digest(string data)
+    {
+        var bytes = Encoding.UTF8.GetBytes(data);
+        var hash = SHA256.HashData(bytes);
+        return Multihash.Encode(hash, HashType.SHA2_256);
+    }
+    public static async Task<Multihash> Sha2_256DigestAsync(Stream stream)
+    {
+        var hash = await SHA256.HashDataAsync(stream);
+        return Multihash.Encode(hash, HashType.SHA2_256);
+    }
+
+    public static Multihash Sha2_256Digest(byte[] data)
+    {
+        var hash = SHA256.HashData(data);
+        return Multihash.Encode(hash, HashType.SHA2_256);
+    }
+
+
+    /// <summary>
+    /// Generates a CID with the 'blessed' format for blobs
+    /// <para> https://atproto.com/specs/blob#blob-metadata </para>
+    /// </summary>
+    public static async Task<Cid> CidForBlobsAsync(Stream blobStream)
+    {
+        var multiHash = await Sha2_256DigestAsync(blobStream);
+        return Cid.NewV1((ulong) MulticodecCode.Raw, multiHash, Multiformats.Base.MultibaseEncoding.Base32Lower);
+    }
+    /// <summary>
+    /// Generates a CID with the 'blessed' format for blobs
+    /// <para> https://atproto.com/specs/blob#blob-metadata </para>
+    /// </summary>
+    public static Cid CidForBlobs(byte[] data)
+    {
+        var multiHash = Sha2_256Digest(data);
+        return Cid.NewV1((ulong) MulticodecCode.Raw, multiHash, Multiformats.Base.MultibaseEncoding.Base32Lower);
+    }
+}

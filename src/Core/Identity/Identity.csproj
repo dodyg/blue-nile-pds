@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+        <ItemGroup>
+        <PackageReference Include="DnsClient"/>
+        <PackageReference Include="Microsoft.Data.Sqlite"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\CommonWeb\CommonWeb.csproj"/>
+        <ProjectReference Include="..\Crypto\Crypto.csproj"/>
+    </ItemGroup>
+
+</Project>

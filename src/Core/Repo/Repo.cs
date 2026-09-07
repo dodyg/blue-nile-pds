@@ -1,0 +1,289 @@
+﻿using BlueNilePds.Core.CID;
+using CarpaNet;
+using BlueNilePds.Core.Common;
+using BlueNilePds.Core.Crypto;
+using Multiformats.Hash;
+using PeterO.Cbor;
+using BlueNilePds.Core.Repo.MST;
+
+namespace BlueNilePds.Core.Repo;
+
+public class Repo
+{
+    private readonly IRepoStorage _storage;
+
+    public Repo(Params p)
+    {
+        _storage = p.Storage;
+        Data = p.Data;
+        Commit = p.Commit;
+        Cid = p.Cid;
+    }
+    public MST.MST Data { get; set; }
+    public Commit Commit { get; set; }
+    public Cid Cid { get; set; }
+
+    public static async Task<CommitData> FormatInitCommitAsync(IRepoStorage storage, string did, IKeyPair keypair, RecordCreateOp[]? initialWrites = null)
+    {
+        initialWrites ??= [];
+        var newBlocks = new BlockMap();
+        var data = MST.MST.Create(storage, []);
+        foreach (var record in initialWrites)
+        {
+            newBlocks.Set(record.Cid, record.RecordBytes);
+            var dataKey = MST.Util.FormatDataKey(record.Collection, record.RKey);
+            data = await data.AddAsync(dataKey, record.Cid);
+        }
+
+        var dataCid = await data.GetPointerAsync();
+        var diff = await DataDiff.OfAsync(data, null);
+        newBlocks.AddMap(diff.NewMstBlocks);
+
+        var rev = TID.NextStr();
+        var commit = Util.SignCommit(new UnsignedCommit(did, dataCid, rev, null), keypair);
+        var commitCid = newBlocks.Add(commit.ToCborObject());
+        return new CommitData(commitCid, rev, null, null, newBlocks, diff.RemovedCids);
+    }
+
+    public static async Task<Repo> CreateFromCommitAsync(IRepoStorage storage, CommitData commit)
+    {
+        await storage.ApplyCommitAsync(commit);
+        return await LoadAsync(storage, commit.Cid);
+    }
+
+    public static async Task<Repo> CreateAsync(IRepoStorage storage, string did, IKeyPair keypair, RecordCreateOp[]? initialWrites = null)
+    {
+        var commit = await FormatInitCommitAsync(storage, did, keypair, initialWrites);
+        return await CreateFromCommitAsync(storage, commit);
+    }
+
+    public static async Task<Repo> LoadAsync(IRepoStorage storage, Cid? cid)
+    {
+        var commitCid = cid ?? await storage.GetRootAsync();
+        if (commitCid == null)
+        {
+            throw new InvalidOperationException("No root commit found");
+        }
+
+        var (obj, bytes) = await storage.ReadObjAndBytesAsync(commitCid.Value);
+        var commit = Commit.FromCborObject(obj);
+        var data = MST.MST.Load(storage, commit.Data);
+        return new Repo(new Params(storage, data, commit, commitCid.Value));
+    }
+
+    public async Task<CommitData> FormatCommitAsync(IRecordWriteOp[] toWrite, IKeyPair keypair)
+    {
+        var leaves = new BlockMap();
+        var data = Data;
+        foreach (var write in toWrite)
+        {
+            if (write is RecordCreateOp create)
+            {
+                leaves.Set(create.Cid, create.RecordBytes);
+                var dataKey = $"{create.Collection}/{create.RKey}";
+                data = await data.AddAsync(dataKey, create.Cid);
+                //data = await data.Update(dataKey, cid);
+            }
+            else if (write is RecordUpdateOp update)
+            {
+                leaves.Set(update.Cid, update.RecordBytes);
+                var dataKey = $"{update.Collection}/{update.RKey}";
+                data = await data.UpdateAsync(dataKey, update.Cid);
+            }
+            else if (write is RecordDeleteOp delete)
+            {
+                var dataKey = $"{delete.Collection}/{delete.RKey}";
+                data = await data.DeleteAsync(dataKey);
+            }
+        }
+
+        var dataCid = await data.GetPointerAsync();
+        var diff = await DataDiff.OfAsync(data, Data);
+        var newBlocks = diff.NewMstBlocks;
+        var removedCids = diff.RemovedCids;
+
+        var addedLeaves = leaves.GetMany(diff.NewLeafCids.ToArray());
+        if (addedLeaves.missing.Length > 0)
+        {
+            throw new MissingBlocksException(addedLeaves.missing, nameof(FormatCommitAsync));
+        }
+
+        newBlocks.AddMap(addedLeaves.blocks);
+
+        // T-07: Collect covering proofs for each write key
+        var relevantBlocks = new BlockMap();
+        foreach (var write in toWrite)
+        {
+            var dataKey = write switch
+            {
+                RecordCreateOp create => $"{create.Collection}/{create.RKey}",
+                RecordUpdateOp update => $"{update.Collection}/{update.RKey}",
+                RecordDeleteOp delete => $"{delete.Collection}/{delete.RKey}",
+                _ => null
+            };
+            if (dataKey != null)
+            {
+                var proof = await data.GetCoveringProofAsync(dataKey);
+                relevantBlocks.AddMap(proof);
+            }
+        }
+
+        var rev = TID.NextStr(Commit.Rev);
+        var commit = Util.SignCommit(new UnsignedCommit(Commit.Did, dataCid, rev, null), keypair);
+        var commitCid = newBlocks.Add(commit.ToCborObject());
+
+        if (commitCid == Cid)
+        {
+            newBlocks.Delete(Cid);
+        }
+        else
+        {
+            removedCids.Add(Cid);
+        }
+
+        return new CommitData(commitCid, rev, commit.Rev, Cid, newBlocks, removedCids, relevantBlocks);
+    }
+
+    public async Task<Repo> ApplyCommitAsync(CommitData commit)
+    {
+        await _storage.ApplyCommitAsync(commit);
+        return await LoadAsync(_storage, commit.Cid);
+    }
+
+    public async Task<Repo> ApplyWritesAsync(IRecordWriteOp[] toWrite, IKeyPair keypair)
+    {
+        var commit = await FormatCommitAsync(toWrite, keypair);
+        return await ApplyCommitAsync(commit);
+    }
+
+    /// <summary>
+    /// Re-sign an existing commit with a new keypair. Does not increment rev.
+    /// </summary>
+    public async Task<CommitData> FormatResignCommitAsync(string rev, IKeyPair keypair)
+    {
+        if (Commit.Rev != rev)
+            throw new InvalidOperationException($"Commit rev mismatch: expected {rev}, got {Commit.Rev}");
+
+        var newCommit = Util.SignCommit(new UnsignedCommit(Commit.Did, Commit.Data, Commit.Rev, Commit.Prev), keypair);
+        var newCommitCid = CidForSafeRecord(newCommit.ToCborObject());
+
+        var newBlocks = new BlockMap();
+        newBlocks.Set(newCommitCid, newCommit.ToCborObject().EncodeToBytes());
+
+        var removedCids = new CidSet();
+        if (newCommitCid != Cid)
+        {
+            removedCids.Add(Cid);
+        }
+
+        return new CommitData(newCommitCid, Commit.Rev, null, Commit.Prev, newBlocks, removedCids);
+    }
+
+    /// <summary>
+    /// FormatResignCommit + ApplyCommit.
+    /// </summary>
+    public async Task<Repo> ResignCommitAsync(string rev, IKeyPair keypair)
+    {
+        var commit = await FormatResignCommitAsync(rev, keypair);
+        return await ApplyCommitAsync(commit);
+    }
+
+    private static Cid CidForSafeRecord(CBORObject record)
+    {
+        var bytes = record.EncodeToBytes();
+        var hash = Multihash.Encode(System.Security.Cryptography.SHA256.HashData(bytes), Multiformats.Hash.HashType.SHA2_256);
+        return Cid.NewV1((ulong)Multiformats.Codec.MulticodecCode.MerkleDAGCBOR, hash);
+    }
+
+    public record Params(IRepoStorage Storage, MST.MST Data, Commit Commit, Cid Cid);
+}
+
+public enum WriteOpAction
+{
+    Create,
+    Update,
+    Delete
+}
+
+public enum ValidationStatus
+{
+    Valid,
+    Unknown
+}
+
+public interface IPreparedWrite
+{
+    public WriteOpAction Action { get; }
+    public ATUri Uri { get; }
+}
+
+public interface IPreparedDataWrite : IPreparedWrite
+{
+    public Cid Cid { get; }
+    public PreparedBlobRef[] Blobs { get; }
+}
+
+public record BlobConstraint(string[]? Accept, long? MaxSize);
+public record PreparedBlobRef(Cid Cid, string MimeType, long Size, BlobConstraint Constraints);
+
+public record PreparedCreate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, byte[] RecordBytes, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
+{
+    public WriteOpAction Action => WriteOpAction.Create;
+
+    public RecordCreateOp CreateWriteToOp()
+    {
+        return new RecordCreateOp(
+            Uri.Collection ?? throw new InvalidOperationException("Missing collection."),
+            Uri.RecordKey ?? throw new InvalidOperationException("Missing record key."),
+            Record,
+            Cid,
+            RecordBytes);
+    }
+}
+
+public record PreparedUpdate(ATUri Uri, Cid Cid, Cid? SwapCid, CBORObject Record, byte[] RecordBytes, PreparedBlobRef[] Blobs, ValidationStatus ValidationStatus) : IPreparedDataWrite
+{
+    public WriteOpAction Action => WriteOpAction.Update;
+
+    public RecordUpdateOp UpdateWriteToOp()
+    {
+        return new RecordUpdateOp(
+            Uri.Collection ?? throw new InvalidOperationException("Missing collection."),
+            Uri.RecordKey ?? throw new InvalidOperationException("Missing record key."),
+            Record,
+            Cid,
+            RecordBytes);
+    }
+}
+
+public record PreparedDelete(ATUri Uri, Cid? SwapCid) : IPreparedWrite
+{
+    public WriteOpAction Action => WriteOpAction.Delete;
+
+    public RecordDeleteOp DeleteWriteToOp()
+    {
+        return new RecordDeleteOp(
+            Uri.Collection ?? throw new InvalidOperationException("Missing collection."),
+            Uri.RecordKey ?? throw new InvalidOperationException("Missing record key."));
+    }
+}
+
+public interface IRecordWriteOp
+{
+    public WriteOpAction Action { get; }
+}
+
+public record RecordCreateOp(string Collection, string RKey, CBORObject Record, Cid Cid, byte[] RecordBytes) : IRecordWriteOp
+{
+    public WriteOpAction Action => WriteOpAction.Create;
+}
+
+public record RecordUpdateOp(string Collection, string RKey, CBORObject Record, Cid Cid, byte[] RecordBytes) : IRecordWriteOp
+{
+    public WriteOpAction Action => WriteOpAction.Update;
+}
+
+public record RecordDeleteOp(string Collection, string RKey) : IRecordWriteOp
+{
+    public WriteOpAction Action => WriteOpAction.Delete;
+}

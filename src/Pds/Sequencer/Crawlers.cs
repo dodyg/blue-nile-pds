@@ -1,0 +1,63 @@
+﻿using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
+
+namespace BlueNilePds.Pds.Sequencer;
+
+public record CrawlersConfig(string Hostname, string[] Crawlers);
+
+public class Crawlers
+{
+    public static readonly TimeSpan NotifyThreshold = TimeSpan.FromMinutes(20);
+    private readonly HttpClient _client;
+
+    private readonly CrawlersConfig _config;
+    private readonly ILogger<Crawlers> _logger;
+
+
+    public Crawlers(CrawlersConfig config, HttpClient client, ILogger<Crawlers> logger)
+    {
+        LastNotified = DateTime.MinValue;
+        _config = config;
+        _client = client;
+        _logger = logger;
+    }
+    public DateTime LastNotified { get; private set; }
+
+    public async Task NotifyOfUpdateAsync()
+    {
+        if (DateTime.UtcNow - LastNotified < NotifyThreshold)
+        {
+            return;
+        }
+
+        var crawlTasks = new List<Task>();
+        foreach (var host in _config.Crawlers)
+        {
+            crawlTasks.Add(RequestCrawlAsync(host));
+        }
+
+        await Task.WhenAll(crawlTasks);
+        LastNotified = DateTime.UtcNow;
+    }
+
+    private async Task RequestCrawlAsync(string host)
+    {
+        var lh = host.Trim();
+        _logger.LogInformation("Requesting crawl from {Host}", lh);
+        if (!lh.StartsWith("http://") && !lh.StartsWith("https://"))
+        {
+            lh = $"https://{host}";
+        }
+
+        var response = await _client.PostAsJsonAsync($"{lh}/xrpc/com.atproto.sync.requestCrawl", new
+        {
+            hostname = _config.Hostname
+        });
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Failed to request crawl from {RelayHost} to {Host}", lh, _config.Hostname);
+            _logger.LogWarning("Response: {StatusCode} - {Content}", response.StatusCode, await response.Content.ReadAsStringAsync());
+        }
+    }
+}

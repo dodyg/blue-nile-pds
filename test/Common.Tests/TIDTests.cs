@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace Common.Tests;
+﻿namespace BlueNilePds.Core.Common.Tests;
 
 public class TIDTests
 {

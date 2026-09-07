@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\pds_projects\ActorStore\ActorStore.csproj" />
+    <ProjectReference Include="..\..\src\Pds\ActorStore\ActorStore.csproj" />
   </ItemGroup>
 
 </Project>

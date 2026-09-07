@@ -6,11 +6,11 @@ This document is a structured map of the `blue-nile-pds` codebase. Read this fir
 
 ## 1. Project Overview
 
-`blue-nile-pds` is a .NET 10 preview C# implementation of an ATProto Personal Data Server (PDS). It is a fork of `atompds`, experimental and learning-focused. It hosts user accounts, stores repos (Merkle Search Trees), serves blobs, sequences events to a firehose, and exposes 65 `com.atproto.*` XRPC endpoints plus 36 AppView proxy route registrations, OAuth (4 endpoints), health, 3 well-known endpoints, and an error handler. Total: ~111 HTTP route registrations implemented as ASP.NET Core Minimal API endpoints across ~65 endpoint files under `src/atompds/Endpoints/`.
+`blue-nile-pds` is a .NET 10 preview C# implementation of an ATProto Personal Data Server (PDS). It is a fork of `atompds`, experimental and learning-focused. It hosts user accounts, stores repos (Merkle Search Trees), serves blobs, sequences events to a firehose, and exposes 65 `com.atproto.*` XRPC endpoints plus 36 AppView proxy route registrations, OAuth (4 endpoints), health, 3 well-known endpoints, and an error handler. Total: ~111 HTTP route registrations implemented as ASP.NET Core Minimal API endpoints across ~65 endpoint files under `src/Host/Endpoints/`.
 
 - **SDK:** .NET 10 (`10.0.100-rc.1`, pinned in `global.json`, `rollForward: latestMinor`, test runner: `Microsoft.Testing.Platform`)
 - **Test framework:** TUnit (NOT xUnit despite what AGENTS.md says)
-- **Solution file:** `atompds.slnx` (XML-based slnx format)
+- **Solution file:** `BlueNilePds.slnx` (XML-based slnx format)
 - **Central package management:** `Directory.Packages.props` (CPM)
 - **Build props:** `Directory.Build.props` (applies `Microsoft.VisualStudio.Threading.Analyzers` to all projects)
 - **Build note:** Default `dotnet build` may hit MSB4166 node crashes on resource-constrained machines. Use `-m:1` or `-m:2` if this occurs.
@@ -20,11 +20,11 @@ This document is a structured map of the `blue-nile-pds` codebase. Read this fir
 ## 2. Solution Structure
 
 ```
-atompds.slnx
-├── src/atompds/              ASP.NET Core host (web app entry point, Minimal API endpoints, middleware, services)
-├── src/pdsadmin-cli/            Admin CLI tool (ConsoleAppFramework)
-├── src/migration/             Batch actor store migration utility (DurableTask)
-├── src/pds_projects/          PDS-specific service libraries
+BlueNilePds.slnx
+├── src/Host/              ASP.NET Core host (web app entry point, Minimal API endpoints, middleware, services)
+├── src/Tools/PdsAdmin.Cli/            Admin CLI tool (ConsoleAppFramework)
+├── src/Tools/Migration/             Batch actor store migration utility (DurableTask)
+├── src/Pds/          PDS-specific service libraries
 │   ├── AccountManager/        Account CRUD, auth tokens, invites, passwords
 │   ├── ActorStore/            Per-actor repo storage (SQLite per DID)
 │   ├── BlobStore/             Blob storage (disk or S3)
@@ -32,7 +32,7 @@ atompds.slnx
 │   ├── Mailer/                Email sending (SMTP or stub)
 │   ├── Sequencer/             Event sequencing & firehose
 │   └── Xrpc/                  XRPC error/response types
-├── src/projects/              Lower-level shared libraries
+├── src/Core/              Lower-level shared libraries
 │   ├── CID/                   Content Identifier (v0/v1, CBOR, multihash)
 │   ├── Common/                TID, RecordKey, CborBlock, ICborEncodable<T>
 │   ├── CommonDb/              Shared EF Core SQLite package ref (no source)
@@ -92,7 +92,7 @@ atompds host references ALL pds_projects + Repo
 
 ## 4. Key Entry Points
 
-### Web Host: `src/atompds/Program.cs`
+### Web Host: `src/Host/Program.cs`
 
 1. Creates `WebApplication.CreateSlimBuilder(args)` with `AddCors()` + `AddHttpClient()`
 2. Reads `Config` section from appsettings → `ServerEnvironment`
@@ -107,13 +107,13 @@ atompds host references ALL pds_projects + Repo
 
 Note: `Microsoft.AspNetCore.OpenApi` and `Scalar.AspNetCore` packages are referenced in the .csproj but not configured or invoked in Program.cs.
 
-### Config: `src/atompds/Config/ServerEnvironment.cs`
+### Config: `src/Host/Config/ServerEnvironment.cs`
 
 All config is bound from `appsettings.Development.json` `Config` section. Contains **71 properties** (70 `PDS_*` + `InviteEpoch`). Key required fields: `PDS_JWT_SECRET`, `PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX`, `PDS_BLOBSTORE_DISK_LOCATION`, `PDS_BLOBSTORE_DISK_TMP_LOCATION`. See `appsettings.Development.json.example`.
 
 Property groups: Service Configuration (7), Data Directories (4), Actor Store (2), Blobstore Disk (2), Blobstore S3 (7), Identity (7), Invites (3), Subscription (2), Bsky AppView (3), Crawlers (1), Secrets (2), Fetch (2), Proxy (6), Server Metadata/Branding (8 — `PDS_SERVICE_NAME`, `PDS_PRIVACY_POLICY_URL`, `PDS_TERMS_OF_SERVICE_URL`, `PDS_HOME_URL`, `PDS_SUPPORT_URL`, `PDS_LOGO_URL`, `PDS_CONTACT_EMAIL`, `PDS_PHONE_VERIFICATION_REQUIRED`), SMTP (6), Rate Limiting (1), Anti-Abuse/hCaptcha (2), OAuth Entryway (4 — `PDS_OAUTH_ENTRYWAY_URL`, `PDS_OAUTH_ENTRYWAY_DID`, `PDS_OAUTH_ENTRYWAY_JWT_VERIFY_KEY_K256_PUBLIC_KEY_HEX`, `PDS_OAUTH_TRUSTED_CLIENTS`), Moderation (2 — `PDS_REPORT_SERVICE_URL`, `PDS_REPORT_SERVICE_DID`), Redis (1 — `PDS_REDIS_URL`).
 
-### DI Wiring: `src/atompds/Config/ServerConfig.cs`
+### DI Wiring: `src/Host/Config/ServerConfig.cs`
 
 `RegisterServices()` registers:
 - All config sub-records as singletons
@@ -149,7 +149,7 @@ Registered in `Program.cs` (NOT in `RegisterServices()`):
 
 ### Location & Naming
 
-All HTTP endpoints use ASP.NET Core Minimal APIs. No MVC controllers exist. Endpoint files live under `src/atompds/Endpoints/` organized by ATProto namespace. `EndpointRegistration.cs` contains the `MapEndpoints()` extension method that wires all routes into the app.
+All HTTP endpoints use ASP.NET Core Minimal APIs. No MVC controllers exist. Endpoint files live under `src/Host/Endpoints/` organized by ATProto namespace. `EndpointRegistration.cs` contains the `MapEndpoints()` extension method that wires all routes into the app.
 
 | Namespace | Directory | Endpoints | Notes |
 |-----------|-----------|-----------|-------|
@@ -217,13 +217,13 @@ Attributes take optional `(bool checkTakenDown, bool checkDeactivated)` params.
 - Throw `XRPCError(new XxxErrorDetail("message"))` for API errors
 - Error detail types: `InvalidRequestErrorDetail`, `AuthRequiredErrorDetail`, `InvalidTokenErrorDetail`, `ExpiredTokenErrorDetail`, `InvalidInviteCodeErrorDetail`, `HandleNotAvailableErrorDetail`, `AccountTakenDownErrorDetail`, etc.
 - `XRPCExceptionHandler` converts `XRPCError` to HTTP responses
-- All error types defined in `src/pds_projects/Xrpc/Errors.cs`
+- All error types defined in `src/Pds/Xrpc/Errors.cs`
 
 ---
 
 ## 6. Core Subsystems
 
-### 6a. Actor Store (`src/pds_projects/ActorStore/`)
+### 6a. Actor Store (`src/Pds/ActorStore/`)
 
 Each user gets their own SQLite database at `<actor_dir>/<sha256(did)>/<did_colons_as_underscores>/store.sqlite`.
 
@@ -243,7 +243,7 @@ Each user gets their own SQLite database at `<actor_dir>/<sha256(did)>/<did_colo
 
 **Migrations:** `20241207005453_Init`, `20260112165417_BlobStatus`
 
-### 6b. Account Manager (`src/pds_projects/AccountManager/`)
+### 6b. Account Manager (`src/Pds/AccountManager/`)
 
 Global SQLite database (`account.sqlite`) shared across all accounts.
 
@@ -255,7 +255,7 @@ Global SQLite database (`account.sqlite`) shared across all accounts.
 
 **DB models:** `ActorAccount`, `RefreshToken`, plus EF entities for each store.
 
-### 6c. Sequencer (`src/pds_projects/Sequencer/`)
+### 6c. Sequencer (`src/Pds/Sequencer/`)
 
 Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 
@@ -270,14 +270,14 @@ Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 
 **DB table:** `RepoSeqs` (Seq auto-inc PK, Did, EventType, Event bytes, Invalidated, SequencedAt)
 
-### 6d. Blob Store (`src/pds_projects/BlobStore/`)
+### 6d. Blob Store (`src/Pds/BlobStore/`)
 
-- `IBlobStore` — blob storage abstraction (defined in `src/projects/Repo/IRepoStorage.cs`)
+- `IBlobStore` — blob storage abstraction (defined in `src/Core/Repo/IRepoStorage.cs`)
 - `BlobStoreFactory` — creates `DiskBlobStore` or `S3BlobStore` per config
 - `DiskBlobStore` — file system: `<location>/<did>/<cid>` permanent, `<tmp>/<did>/<key>` temp
 - `S3BlobStore` — AWS S3: `blocks/<did>/<cid>` permanent, `tmp/<did>/<key>` temp. Also defines `BlobNotFoundException`
 
-### 6e. Repo / MST (`src/projects/Repo/`)
+### 6e. Repo / MST (`src/Core/Repo/`)
 
 - `Repo` — core class: `CreateAsync`, `LoadAsync`, `FormatCommitAsync`, `ApplyWritesAsync`
 - `MST` — Merkle Search Tree: `AddAsync`, `DeleteAsync`, `GetAsync`, `WalkAsync`, `SplitAroundAsync`
@@ -287,14 +287,14 @@ Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 - `IRepoStorage` — storage abstraction (implemented by `SqlRepoTransactor`)
 - `IBlobStore` — blob storage abstraction (implemented by `DiskBlobStore`/`S3BlobStore`)
 
-### 6f. Identity (`src/projects/Identity/`)
+### 6f. Identity (`src/Core/Identity/`)
 
 - `IdResolver` — composite: `DidResolver` + `HandleResolver`
 - `DidResolver` — dispatches to `PlcResolver` (did:plc) or `DidWebResolver` (did:web)
 - `HandleResolver` — DNS TXT `_atproto.<handle>` + HTTPS `/.well-known/atproto-did`
 - `MemoryCache` — stale-while-revalidate `ConcurrentDictionary` with TTL
 
-### 6g. Crypto (`src/projects/Crypto/`)
+### 6g. Crypto (`src/Core/Crypto/`)
 
 - `Secp256k1Keypair` — `Create()`, `Import()`, `Sign()`, `Did()`, `Export()`
 - `Verify` — `VerifySignature(didKey, data, sig, opts, jwtAlg)` — dispatches to `IDidKeyPlugin.VerifySignature`
@@ -302,7 +302,7 @@ Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 - `Operations` — `VerifySig`, `VerifyDidSig`, `IsCompactFormat` — note: `VerifySig` passes compact-format signatures directly to `Secp256k1Net.Secp256k1.Verify` (static method expects compact, not internal format)
 - `Secp256k1Wrapper` — thread-safe (locked) wrapper around native `Secp256k1Net`
 
-### 6h. Host Services (`src/atompds/Services/`)
+### 6h. Host Services (`src/Host/Services/`)
 
 - `BackgroundJobQueue` + `BackgroundJobWorker` — bounded `Channel<Func<IServiceProvider, Task>>` (capacity 1000, `DropOldest`), `IBackgroundJobQueue` interface, consumed by a `BackgroundService` host
 - `BackgroundEmailDispatcher` — enqueues email-sending jobs (`SendCustomEmail`, `SendAccountDelete`, `SendEmailConfirmation`, `SendEmailUpdate`, `SendPasswordReset`, `SendPlcOperationSignature`) onto `IBackgroundJobQueue`
@@ -323,7 +323,7 @@ Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 - `Utils/Extensions.cs` — C# 13 extension adding `ToJsonElement()` to `DidDocument`
 - `Utils/CursorUtils.cs` — pagination cursor packing/unpacking (two-part `::`-separated strings)
 
-### 6j. Host Middleware (`src/atompds/Middleware/`)
+### 6j. Host Middleware (`src/Host/Middleware/`)
 
 - `AuthMiddleware` — inspects endpoint metadata attributes (`[AdminToken]`, `[AccessStandard]`, `[AccessFull]`, `[AccessPrivileged]`, `[Refresh]`) and invokes `AuthVerifier`
 - `AuthVerifier` — Bearer/DPoP JWT validation, basic auth for admin, refresh token verification, scope checking, takedown/deactivation checks
@@ -332,7 +332,7 @@ Event store for the firehose. Global SQLite (`sequencer.sqlite`).
 
 ---
 
-## 7. Configuration Records (`src/pds_projects/Config/`)
+## 7. Configuration Records (`src/Pds/Config/`)
 
 All config is immutable records mapped from `ServerEnvironment`:
 
@@ -351,7 +351,7 @@ All config is immutable records mapped from `ServerEnvironment`:
 
 ---
 
-## 8. XRPC Error System (`src/pds_projects/Xrpc/`)
+## 8. XRPC Error System (`src/Pds/Xrpc/`)
 
 **`XRPCError`** — typed exception with `ResponseType` (HTTP status), `Error` (machine string), `Detail`.
 
@@ -373,7 +373,7 @@ All config is immutable records mapped from `ServerEnvironment`:
 | `test/Crypto.Tests/` | Secp256k1 keypair creation/import/export, signing, signature verification, DID key parsing/formatting, round-trip (26 tests) |
 | `test/Repo.Tests/` | MST insert/delete/walk, node splitting, CAR block encoding, data diff, round-trip (11 tests) |
 | `test/ActorStore.Tests/` | `Prepare.ExtractBlobReferences` — comprehensive validation of blob reference extraction from JSON (156 tests) |
-| `test/atompds.Tests/` | Integration tests via `WebApplicationFactory<Program>` (282 tests): auth gatekeeping, route existence, CRUD flows, account lifecycle, sequencer events. **101 tests fail** (pre-existing) — primarily account creation/session flows returning 400 errors. Uses `TestWebAppFactory` + `AuthTestHelper` + `AccountHelper` in `Infrastructure/` |
+| `test/Host.Tests/` | Integration tests via `WebApplicationFactory<Program>` (282 tests): auth gatekeeping, route existence, CRUD flows, account lifecycle, sequencer events. **101 tests fail** (pre-existing) — primarily account creation/session flows returning 400 errors. Uses `TestWebAppFactory` + `AuthTestHelper` + `AccountHelper` in `Infrastructure/` |
 | `test/SubscribeTester/` | NOT a test — manual WebSocket diagnostic tool |
 
 **Test commands:**
@@ -383,7 +383,7 @@ dotnet test test/Common.Tests/Common.Tests.csproj
 dotnet test test/Crypto.Tests/Crypto.Tests.csproj
 dotnet test test/Repo.Tests/Repo.Tests.csproj
 dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
-dotnet test test/atompds.Tests/atompds.Tests.csproj
+dotnet test test/Host.Tests/atompds.Tests.csproj
 ```
 
 **Total: 504 tests across 6 test projects** (398 pass, 101 fail pre-existing in atompds.Tests, 5 skipped).
@@ -424,46 +424,46 @@ dotnet test test/atompds.Tests/atompds.Tests.csproj
 
 | File | Why |
 |------|-----|
-| `src/atompds/Program.cs` | Startup pipeline, middleware order, static endpoints |
-| `src/atompds/Config/ServerConfig.cs` | All DI registration, config mapping |
-| `src/atompds/Config/ServerEnvironment.cs` | All env variable bindings (71 properties) |
-| `src/atompds/Middleware/AuthMiddleware.cs` | Auth attribute definitions |
-| `src/atompds/Middleware/AuthVerifier.cs` | JWT validation, DPoP, token verification |
-| `src/atompds/Middleware/RateLimitMiddleware.cs` | Rate limiting policies (per-ip, auth-sensitive, repo-write) |
-| `src/atompds/Services/BackgroundJobQueue.cs` | Background job queue + worker + `IBackgroundJobQueue` interface |
-| `src/atompds/Services/WriteSnapshotCache.cs` | Read-after-write consistency |
-| `src/atompds/Services/OAuth/OAuthSessionStore.cs` | OAuth PKCE flow state |
-| `src/atompds/Services/CaptchaVerifier.cs` | hCaptcha token verification |
-| `src/atompds/Services/ServiceJwtBuilder.cs` | Inter-service JWT creation |
-| `src/atompds/Services/BackgroundEmailDispatcher.cs` | Async email dispatch via background queue |
-| `src/atompds/Services/EmailAddressValidator.cs` | Email structure + disposable domain validation |
-| `src/atompds/Services/RedisScratchCache.cs` | Redis-backed scratch cache implementation |
-| `src/atompds/Services/ReservedSigningKeyStore.cs` | Temporary signing key reservation |
-| `src/atompds/Services/EntrywayRelayService.cs` | OAuth entryway request forwarding |
-| `src/atompds/ExceptionHandler/XRPCExceptionHandler.cs` | `IExceptionHandler` for `XRPCError` → JSON responses |
-| `src/atompds/Utils/CursorUtils.cs` | Pagination cursor packing/unpacking |
-| `src/atompds/Endpoints/EndpointRegistration.cs` | Wires all route registrations; controls endpoint order (AppViewProxy last) |
-| `src/atompds/Endpoints/RootEndpoints.cs` | `/`, `/robots.txt`, `/tls-check` — server info JSON |
-| `src/atompds/Endpoints/OAuth/` | OAuth authorize/token flow |
-| `src/atompds/Endpoints/WellKnownEndpoints.cs` | `.well-known/` endpoints |
-| `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs` | AppView proxy (catchall `{nsid}` GET+POST, registered last) |
-| `src/pds_projects/AccountManager/AccountRepository.cs` | Account creation, login, session management |
-| `src/pds_projects/AccountManager/Auth.cs` | JWT creation, refresh token rotation |
-| `src/pds_projects/ActorStore/ActorRepositoryProvider.cs` | Per-actor store lifecycle |
-| `src/pds_projects/ActorStore/Repo/Prepare.cs` | Write preparation, blob extraction, slur checking |
-| `src/pds_projects/Sequencer/Outbox.cs` | Concurrency-sensitive backfill/cutover/streaming |
-| `src/pds_projects/Sequencer/SequencerRepository.cs` | Event sequencing, background polling |
-| `src/pds_projects/AccountManager/Db/AccountStore.cs` | Account deactivation date parsing |
-| `src/projects/Repo/Repo.cs` | Commit creation, write application |
-| `src/projects/Repo/MST/MST.cs` | Merkle Search Tree core |
-| `src/projects/Identity/BaseResolver.cs` | DID resolution with caching |
-| `src/projects/Crypto/Secp256k1/Secp256k1Keypair.cs` | Key management |
-| `src/projects/Crypto/Secp256k1/Operations.cs` | Signature verification — passes compact format directly to `Secp256k1Net` |
-| `src/projects/CommonWeb/Util.cs` | DID/handle/AT-URI validation |
+| `src/Host/Program.cs` | Startup pipeline, middleware order, static endpoints |
+| `src/Host/Config/ServerConfig.cs` | All DI registration, config mapping |
+| `src/Host/Config/ServerEnvironment.cs` | All env variable bindings (71 properties) |
+| `src/Host/Middleware/AuthMiddleware.cs` | Auth attribute definitions |
+| `src/Host/Middleware/AuthVerifier.cs` | JWT validation, DPoP, token verification |
+| `src/Host/Middleware/RateLimitMiddleware.cs` | Rate limiting policies (per-ip, auth-sensitive, repo-write) |
+| `src/Host/Services/BackgroundJobQueue.cs` | Background job queue + worker + `IBackgroundJobQueue` interface |
+| `src/Host/Services/WriteSnapshotCache.cs` | Read-after-write consistency |
+| `src/Host/Services/OAuth/OAuthSessionStore.cs` | OAuth PKCE flow state |
+| `src/Host/Services/CaptchaVerifier.cs` | hCaptcha token verification |
+| `src/Host/Services/ServiceJwtBuilder.cs` | Inter-service JWT creation |
+| `src/Host/Services/BackgroundEmailDispatcher.cs` | Async email dispatch via background queue |
+| `src/Host/Services/EmailAddressValidator.cs` | Email structure + disposable domain validation |
+| `src/Host/Services/RedisScratchCache.cs` | Redis-backed scratch cache implementation |
+| `src/Host/Services/ReservedSigningKeyStore.cs` | Temporary signing key reservation |
+| `src/Host/Services/EntrywayRelayService.cs` | OAuth entryway request forwarding |
+| `src/Host/ExceptionHandler/XRPCExceptionHandler.cs` | `IExceptionHandler` for `XRPCError` → JSON responses |
+| `src/Host/Utils/CursorUtils.cs` | Pagination cursor packing/unpacking |
+| `src/Host/Endpoints/EndpointRegistration.cs` | Wires all route registrations; controls endpoint order (AppViewProxy last) |
+| `src/Host/Endpoints/RootEndpoints.cs` | `/`, `/robots.txt`, `/tls-check` — server info JSON |
+| `src/Host/Endpoints/OAuth/` | OAuth authorize/token flow |
+| `src/Host/Endpoints/WellKnownEndpoints.cs` | `.well-known/` endpoints |
+| `src/Host/Endpoints/Xrpc/AppViewProxyEndpoints.cs` | AppView proxy (catchall `{nsid}` GET+POST, registered last) |
+| `src/Pds/AccountManager/AccountRepository.cs` | Account creation, login, session management |
+| `src/Pds/AccountManager/Auth.cs` | JWT creation, refresh token rotation |
+| `src/Pds/ActorStore/ActorRepositoryProvider.cs` | Per-actor store lifecycle |
+| `src/Pds/ActorStore/Repo/Prepare.cs` | Write preparation, blob extraction, slur checking |
+| `src/Pds/Sequencer/Outbox.cs` | Concurrency-sensitive backfill/cutover/streaming |
+| `src/Pds/Sequencer/SequencerRepository.cs` | Event sequencing, background polling |
+| `src/Pds/AccountManager/Db/AccountStore.cs` | Account deactivation date parsing |
+| `src/Core/Repo/Repo.cs` | Commit creation, write application |
+| `src/Core/Repo/MST/MST.cs` | Merkle Search Tree core |
+| `src/Core/Identity/BaseResolver.cs` | DID resolution with caching |
+| `src/Core/Crypto/Secp256k1/Secp256k1Keypair.cs` | Key management |
+| `src/Core/Crypto/Secp256k1/Operations.cs` | Signature verification — passes compact format directly to `Secp256k1Net` |
+| `src/Core/CommonWeb/Util.cs` | DID/handle/AT-URI validation |
 
 ---
 
-## 12. Admin CLI (`src/pdsadmin-cli/`)
+## 12. Admin CLI (`src/Tools/PdsAdmin.Cli/`)
 
 Single-file app using `ConsoleAppFramework`. Two command classes:
 
@@ -475,7 +475,7 @@ Config from `pdsenv.json` (`PdsHostname`, `PdsAdminPassword`).
 
 ---
 
-## 13. Migration Tool (`src/migration/`)
+## 13. Migration Tool (`src/Tools/Migration/`)
 
 Uses DurableTask to batch-migrate all per-actor SQLite databases. Discovers actor DBs under `PDS_DATA_DIRECTORY/actors/`, runs EF migrations sequentially, rolls back on failure.
 

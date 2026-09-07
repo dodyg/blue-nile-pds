@@ -1,13 +1,12 @@
 using System.Text.Json;
-using ActorStore.Repo;
-using CID;
-using Common;
-using Crypto.Secp256k1;
-using global::Repo;
-using global::Repo.MST;
+using BlueNilePds.Pds.ActorStore.Repo;
+using BlueNilePds.Core.Common;
+using BlueNilePds.Core.Crypto.Secp256k1;
+using global::BlueNilePds.Core.Repo;
+using global::BlueNilePds.Core.Repo.MST;
 using PeterO.Cbor;
 
-namespace ActorStore.Tests;
+namespace BlueNilePds.Pds.ActorStore.Tests;
 
 public class MSTTests
 {
@@ -17,7 +16,7 @@ public class MSTTests
         var storage = new MemoryBlockStore(null);
         var mst = MST.Create(storage, []);
         var keypair = Secp256k1Keypair.Create(false);
-        var repo = await global::Repo.Repo.CreateAsync(storage, "did:plc:test", keypair);
+        var repo = await global::BlueNilePds.Core.Repo.Repo.CreateAsync(storage, "did:plc:test", keypair);
 
         var leaves = await repo.Data.LeavesAsync();
         var reachableLeaves = new List<Leaf>();
@@ -37,7 +36,7 @@ public class MSTTests
     {
         var storage = new MemoryBlockStore(null);
         var keypair = Secp256k1Keypair.Create(false);
-        var repo = await global::Repo.Repo.CreateAsync(storage, "did:plc:test", keypair);
+        var repo = await global::BlueNilePds.Core.Repo.Repo.CreateAsync(storage, "did:plc:test", keypair);
 
         var reachableLeaves = new List<Leaf>();
         await foreach (var leaf in repo.Data.ReachableLeavesAsync())
@@ -54,7 +53,7 @@ public class MSTTests
     {
         var storage = new MemoryBlockStore(null);
         var keypair = Secp256k1Keypair.Create(false);
-        var repo = await global::Repo.Repo.CreateAsync(storage, "did:plc:test", keypair,
+        var repo = await global::BlueNilePds.Core.Repo.Repo.CreateAsync(storage, "did:plc:test", keypair,
         [
             CreatePostOp()
         ]);

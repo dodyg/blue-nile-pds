@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Crypto.Tests;
+namespace BlueNilePds.Core.Crypto.Tests;
 
 public class UtilsTests
 {

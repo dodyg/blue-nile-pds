@@ -1,0 +1,119 @@
+﻿using BlueNilePds.Core.CID;
+using PeterO.Cbor;
+
+namespace BlueNilePds.Core.Repo;
+
+public class MemoryBlockStore : IRepoStorage
+{
+    private readonly BlockMap _blocks;
+    private string? _rev;
+    private Cid? _root;
+
+    public MemoryBlockStore(BlockMap? blocks)
+    {
+        _blocks = new BlockMap();
+        if (blocks != null)
+        {
+            _blocks.AddMap(blocks);
+        }
+    }
+
+    public Task<Cid?> GetRootAsync()
+    {
+        return Task.FromResult(_root);
+    }
+
+    public Task PutBlockAsync(Cid cid, byte[] block, string rev)
+    {
+        _blocks.Set(cid, block);
+        _rev = rev;
+        return Task.CompletedTask;
+    }
+
+    public Task PutManyAsync(BlockMap blocks, string rev)
+    {
+        _blocks.AddMap(blocks);
+        _rev = rev;
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateRootAsync(Cid cid, string rev)
+    {
+        _root = cid;
+        _rev = rev;
+        return Task.CompletedTask;
+    }
+
+    public Task ApplyCommitAsync(CommitData commit)
+    {
+        _root = commit.Cid;
+        _rev = commit.Rev;
+        foreach (var (cid, block) in commit.NewBlocks.Iterator)
+        {
+            _blocks.Set(cid, block);
+        }
+        foreach (var cid in commit.RemovedCids.ToArray())
+        {
+            _blocks.Delete(cid);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<byte[]?> GetBytesAsync(Cid cid)
+    {
+        if (!_blocks.Has(cid))
+        {
+            throw new MissingBlockException(cid, nameof(GetBytesAsync));
+        }
+        return Task.FromResult<byte[]?>(_blocks.Get(cid));
+    }
+
+    public Task<bool> HasAsync(Cid cid)
+    {
+        return Task.FromResult(_blocks.Has(cid));
+    }
+
+    public Task<(BlockMap blocks, Cid[] missing)> GetBlocksAsync(Cid[] cids)
+    {
+        var missing = cids.Where(c => !_blocks.Has(c)).ToArray();
+        var blocks = new BlockMap();
+        foreach (var cid in cids)
+        {
+            if (_blocks.Has(cid))
+            {
+                blocks.Set(cid, _blocks.Get(cid)!);
+            }
+        }
+        return Task.FromResult((blocks, missing));
+    }
+
+    public async Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytesAsync(Cid cid)
+    {
+        var result = await AttemptReadAsync(cid);
+        if (result == null)
+        {
+            throw new MissingBlockException(cid, nameof(ReadObjAndBytesAsync));
+        }
+
+        return result.Value;
+    }
+    public async Task<(CBORObject obj, byte[] bytes)?> AttemptReadAsync(Cid cid)
+    {
+        try
+        {
+            var bytes = await GetBytesAsync(cid);
+            if (bytes == null)
+            {
+                return null;
+            }
+
+            var obj = CBORObject.DecodeFromBytes(bytes);
+            return (obj, bytes);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+}

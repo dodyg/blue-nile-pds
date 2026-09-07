@@ -8,20 +8,20 @@
 
 ## Solution layout
 
-- `src/atompds/`: ASP.NET Core host, Minimal API endpoints, middleware, startup, config binding.
-- `src/pds_projects/`: PDS-specific services such as `AccountManager`, `ActorStore`, `BlobStore`, `Sequencer`, `Mailer`, and `Xrpc`.
-- `src/projects/`: lower-level libraries such as `CID`, `Common`, `Crypto`, `DidLib`, `Handle`, `Identity`, and `Repo`.
-- `src/pdsadmin-cli/`: admin CLI.
-- `src/pdsweb/`: single React SPA serving the public site at `/` and the admin UI at `/admin/*`.
-- `src/migration/`: batch migration utility for actor stores.
-- `test/`: TUnit test projects plus `SubscribeTester`.
-- `atompds.slnx`: root solution file. Use this for solution-wide build and test commands.
+- `src/Host/`: ASP.NET Core host (`Host.csproj` → `BlueNilePds.Host.dll`), Minimal API endpoints, middleware, startup, config binding.
+- `src/Pds/`: PDS-specific services such as `AccountManager`, `ActorStore`, `BlobStore`, `Sequencer`, `Mailer`, and `Xrpc`.
+- `src/Core/`: lower-level libraries such as `Cid`, `Common`, `Crypto`, `Did`, `Handle`, `Identity`, and `Repo`.
+- `src/Tools/PdsAdmin.Cli/`: admin CLI.
+- `src/Web/`: single React SPA serving the public site at `/` and the admin UI at `/admin/*`.
+- `src/Tools/Migration/`: batch migration utility for actor stores.
+- `test/`: TUnit test projects (`Host.Tests`, `Cid.Tests`, …). `SubscribeTester` lives in `src/Tools/SubscribeTester`.
+- `BlueNilePds.slnx`: root solution file. Use this for solution-wide build and test commands.
 
 ## Environment and prerequisites
 
 - SDK is pinned in `global.json` to `10.0.100` with `rollForward: latestMinor`.
 - Projects target `net10.0`.
-- `src/atompds/atompds.csproj` enables `LangVersion=preview`, nullable reference types, and invariant globalization.
+- `src/Host/Host.csproj` enables `LangVersion=preview`, nullable reference types, and invariant globalization.
 - Do not downgrade language or framework features unless the task explicitly requires it.
 
 ## Build, run, and test
@@ -29,21 +29,21 @@
 Run commands from the repository root unless a task clearly needs a project directory.
 
 ```bash
-dotnet build atompds.slnx
-dotnet test --solution atompds.slnx
-dotnet run --project src/atompds/atompds.csproj
-dotnet run --project src/pdsadmin-cli/pdsadmin-cli.csproj
+dotnet build BlueNilePds.slnx
+dotnet test --solution BlueNilePds.slnx
+dotnet run --project src/Host/Host.csproj
+dotnet run --project src/Tools/PdsAdmin.Cli/PdsAdmin.Cli.csproj
 ```
 
-`dotnet test atompds.slnx` (positional) does NOT work — must use `--solution` flag.
+`dotnet test BlueNilePds.slnx` (positional) does NOT work — must use `--solution` flag.
 
 Useful focused test commands:
 
 ```bash
-dotnet test test/CID.Tests/CID.Tests.csproj
+dotnet test test/Cid.Tests/CID.Tests.csproj
 dotnet test test/Common.Tests/Common.Tests.csproj
 dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
-dotnet test test/atompds.Tests/atompds.Tests.csproj
+dotnet test test/Host.Tests/Host.Tests.csproj
 ```
 
 Build may hit MSB4166 node crashes on resource-constrained machines; add `-m:1` or `-m:2` if that occurs.
@@ -51,23 +51,23 @@ Build may hit MSB4166 node crashes on resource-constrained machines; add `-m:1` 
 For dependency hygiene:
 
 ```bash
-dotnet list atompds.slnx package --vulnerable --include-transitive
+dotnet list BlueNilePds.slnx package --vulnerable --include-transitive
 ```
 
 ## Configuration
 
-- Runtime config is bound from the `Config` section into `src/atompds/Config/ServerEnvironment.cs`.
-- Start from `src/atompds/appsettings.Development.json.example`.
-- `**/atompds/appsettings.*.json` is gitignored; do not commit local secrets.
+- Runtime config is bound from the `Config` section into `src/Host/Configuration/ServerEnvironment.cs`.
+- Start from `src/Host/appsettings.Development.json.example`.
+- `**/Host/appsettings.*.json` is gitignored; do not commit local secrets.
 - `PDS_JWT_SECRET` and `PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX` are required.
 - `ServerConfig` expands `~/` paths and creates missing data directories.
-- `pdsadmin-cli` uses `src/pdsadmin-cli/pdsenv.json`; avoid committing real credentials there.
+- `PdsAdmin.Cli` uses `src/Tools/PdsAdmin.Cli/pdsenv.json`; avoid committing real credentials there.
 
 ## Architecture notes
 
-- Dependency registration lives in `src/atompds/Config/ServerConfig.cs`.
-- Startup pipeline lives in `src/atompds/Program.cs`.
-- All HTTP endpoints use ASP.NET Core Minimal APIs (no MVC controllers). Endpoints are in `src/atompds/Endpoints/`, organized by ATProto namespace:
+- Dependency registration lives in `src/Host/Configuration/ServerConfig.cs`.
+- Startup pipeline lives in `src/Host/Program.cs`.
+- All HTTP endpoints use ASP.NET Core Minimal APIs (no MVC controllers). Endpoints are in `src/Host/Endpoints/`, organized by ATProto namespace:
   - `Endpoints/RootEndpoints.cs`, `ErrorEndpoints.cs`, `WellKnownEndpoints.cs`
   - `Endpoints/OAuth/` — OAuth token, authorize, and client-metadata endpoints
   - `Endpoints/Xrpc/` — all `xrpc/` routes grouped by ATProto namespace (`Admin`, `Identity`, `Moderation`, `Repo`, `Server`, `Sync`, `Temp`)
@@ -77,7 +77,7 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - Rate limiting is applied with `.RequireRateLimiting("policy-name")` on individual endpoints.
 - JSON uses `System.Text.Json` with `ConfigureHttpJsonOptions` (same options as former `AddControllers().AddJsonOptions()`). CarpaNet-generated serializer contexts are used for ATProto models.
 - `AccountManagerDb` and `SequencerDb` migrations run automatically on app startup.
-- Actor repos are stored per DID via `ActorRepositoryProvider` in `src/pds_projects/ActorStore/`.
+- Actor repos are stored per DID via `ActorRepositoryProvider` in `src/Pds/ActorStore/`.
 - Firehose event pipeline: HTTP write handler → `SequencerRepository.SequenceEventAsync` → saves to `RepoSeqs` table → calls `ISequencerNotifier.NotifyNewEvent()` (wake signal) → `SequencerPollingService` polls DB, fires `OnEvents` → `Outbox` receives via `Channel<ISeqEvt>` → `SubscribeReposEndpoints` encodes as CBOR and sends via WebSocket.
 
 ## Coding conventions to follow
@@ -85,14 +85,14 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 - Match the existing namespace-to-folder structure.
 - Prefer small constructor-injected classes over static helpers when working in the web host and service layers.
 - Use existing config records and DI wiring instead of ad hoc environment reads.
-- Reuse existing XRPC error types from `src/pds_projects/Xrpc/` for API-facing validation and protocol errors.
+- Reuse existing XRPC error types from `src/Pds/Pds.Xrpc/` for API-facing validation and protocol errors.
 - Follow the Minimal API endpoint pattern: `static class {Feature}Endpoints` with a `Map{Feature}Endpoints(this RouteGroupBuilder group)` extension method and `static async Task<IResult> Handle(...)` action methods. Use `.WithMetadata(new SomeAuthAttribute())` for auth and `.RequireRateLimiting(...)` for rate limiting.
 - Keep serialization compatible with the CarpaNet-generated lexicon models used by the server and tooling.
 - When touching persistence, inspect related EF models, migrations, and repository code together.
 
 ## Front-end stack
 
-- React 19 + TypeScript + Vite 8. Single SPA served from `src/pdsweb/` via ASP.NET Core static files middleware: public site at `/`, admin UI at `/admin/*`.
+- React 19 + TypeScript + Vite 8. Single SPA served from `src/Web/` via ASP.NET Core static files middleware: public site at `/`, admin UI at `/admin/*`.
 - **TanStack Query v5** for all server state. `queryClient.ts` configures global defaults (30s stale, 1 retry), global `queryCache.onError` for 401 redirects, and `XrpcError` class. Mutations auto-invalidate related query keys on success.
 - **No direct `xrpcGet`/`xrpcPost` calls from components.** All API interaction goes through domain hooks (`useAccountInfo`, `useSearchAccounts`, `useSubjectStatus`, `useDashboardStats`, `useInviteCodes`, etc.) in `hooks/useAccounts.ts`, `hooks/useInvites.ts`, `hooks/useDashboard.ts`.
 - Add a new hook for any new endpoint. Follow the pattern: `useQuery`/`useInfiniteQuery` for reads, `useMutation` + `queryClient.invalidateQueries` for writes.
@@ -109,10 +109,10 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 ## Known hotspots and gotchas
 
 - **SQLite does not preserve `DateTimeKind`.** Values written as `DateTime.UtcNow` are read back as `DateTimeKind.Unspecified`. When compared against `DateTime.UtcNow` (Kind=Utc), .NET converts the Unspecified value from local time, shifting it by the timezone offset. This breaks cursor validation in `SubscribeReposEndpoints.cs` and will affect any `DateTime` comparison across a SQLite read boundary. Fix: add a value converter in `OnModelCreating` — `HasConversion(v => v.ToUniversalTime(), v => DateTime.SpecifyKind(v, DateTimeKind.Utc))`. Already applied to `SequencerDb.RepoSeqs.SequencedAt`.
-- `src/pds_projects/Sequencer/Outbox.cs` is concurrency-sensitive. Careful with cutover, buffering, and channel completion behavior. The live event loop uses `Channel<ISeqEvt>` with backfill/cutover race handled via `ConcurrentQueue` + lock.
-- `SequencerPollingService` lives in `src/atompds/Services/` (not in the `Sequencer` project) because it's a `BackgroundService` hosted in the web host. It's registered as singleton + `ISequencerEventSource` + hosted service in `ServerConfig.cs`. Do NOT look for it under `src/pds_projects/Sequencer/`.
+- `src/Pds/Sequencer/Outbox.cs` is concurrency-sensitive. Careful with cutover, buffering, and channel completion behavior. The live event loop uses `Channel<ISeqEvt>` with backfill/cutover race handled via `ConcurrentQueue` + lock.
+- `SequencerPollingService` lives in `src/Host/Services/` (not in the `Sequencer` project) because it's a `BackgroundService` hosted in the web host. It's registered as singleton + `ISequencerEventSource` + hosted service in `ServerConfig.cs`. Do NOT look for it under `src/Pds/Sequencer/`.
 - `BackgroundJobQueue` and `BackgroundJobWorker` are registered in `Program.cs:RegisterPdsServices()`, NOT in `ServerConfig.RegisterServices()`. Look in both places when tracing DI.
-- `src/pds_projects/AccountManager/Db/AccountStore.cs` contains user-input date parsing in account deactivation flows; treat that path carefully.
+- `src/Pds/AccountManager/Db/AccountStore.cs` contains user-input date parsing in account deactivation flows; treat that path carefully.
 - This repo currently emits NuGet vulnerability warnings for some transitive packages; do not ignore new warnings without documenting why.
 - The README lists several intentional limitations and TODOs. Review it before making protocol or data-model changes.
 - The project is explicitly experimental; avoid broad refactors unless the task requires them.
@@ -120,17 +120,17 @@ dotnet list atompds.slnx package --vulnerable --include-transitive
 ## Files worth reading before major changes
 
 - `readme.md`
-- `src/atompds/Program.cs`
-- `src/atompds/Config/ServerConfig.cs`
-- `src/atompds/Config/ServerEnvironment.cs`
-- `src/pds_projects/AccountManager/`
-- `src/pds_projects/ActorStore/`
-- `src/pds_projects/Sequencer/`
-- `src/projects/Repo/`
+- `src/Host/Program.cs`
+- `src/Host/Configuration/ServerConfig.cs`
+- `src/Host/Configuration/ServerEnvironment.cs`
+- `src/Pds/AccountManager/`
+- `src/Pds/ActorStore/`
+- `src/Pds/Sequencer/`
+- `src/Core/Repo/`
 
 ## Agent workflow guidance
 
-- For most tasks, validate with `dotnet build atompds.slnx` and relevant `dotnet test` commands before finishing.
+- For most tasks, validate with `dotnet build BlueNilePds.slnx` and relevant `dotnet test` commands before finishing.
 - Prefer surgical fixes over repo-wide rewrites.
 - If you touch public XRPC behavior, review adjacent endpoints for consistency.
 - If you add configuration, wire it through `ServerEnvironment` and `ServerConfig`.

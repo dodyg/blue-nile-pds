@@ -1,0 +1,295 @@
+﻿using System.Runtime.CompilerServices;
+using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Core.CID;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using PeterO.Cbor;
+using BlueNilePds.Core.Repo;
+using BlueNilePds.Core.Repo.Car;
+using BlueNilePds.Core.Repo.MST;
+
+namespace BlueNilePds.Pds.ActorStore.Repo;
+
+public record RevCursor(Cid Cid, string Rev);
+
+public class SqlRepoTransactor : IRepoStorage
+{
+    private readonly BlockMap _cache = new();
+    private readonly ActorStoreDb _db;
+    private readonly string _did;
+    private readonly ILogger _logger;
+
+    public SqlRepoTransactor(ActorStoreDb db, string did, ILogger logger)
+    {
+        _db = db;
+        _did = did;
+        _logger = logger;
+    }
+
+    public async Task<Cid?> GetRootAsync()
+    {
+        var detailedRoot = await GetRootDetailedAsync();
+        return detailedRoot.Cid;
+    }
+
+    public async Task PutBlockAsync(Cid cid, byte[] block, string rev)
+    {
+        var newBlock = new RepoBlock
+        {
+            Cid = cid.ToString(),
+            Content = block,
+            RepoRev = rev,
+            Size = block.Length
+        };
+
+        UpsertRepoBlock(newBlock);
+
+        await _db.SaveChangesAsync();
+        _cache.Set(cid, block);
+    }
+
+    public Task PutManyAsync(BlockMap toPut, string rev)
+    {
+        var blocks = new List<RepoBlock>();
+        foreach (var (cid, block) in toPut.Iterator)
+        {
+            blocks.Add(new RepoBlock
+            {
+                Cid = cid.ToString(),
+                Content = block,
+                RepoRev = rev,
+                Size = block.Length
+            });
+        }
+
+        foreach (var block in blocks)
+        {
+            UpsertRepoBlock(block);
+        }
+
+        return _db.SaveChangesAsync();
+    }
+
+    // Reconciles a block write with the change tracker so an upserted key never
+    // collides with an already-tracked RepoBlock for the same Cid.
+    private void UpsertRepoBlock(RepoBlock block)
+    {
+        var tracked = _db.ChangeTracker.Entries<RepoBlock>()
+            .FirstOrDefault(e => e.Entity.Cid == block.Cid);
+
+        if (tracked != null)
+        {
+            var entity = tracked.Entity;
+            entity.Content = block.Content;
+            entity.RepoRev = block.RepoRev;
+            entity.Size = block.Size;
+            if (tracked.State == EntityState.Deleted)
+            {
+                tracked.State = EntityState.Modified;
+            }
+            return;
+        }
+
+        // TODO: should find a way to do "ON CONFLICT DO NOTHING" here
+        if (_db.RepoBlocks.Any(x => x.Cid == block.Cid))
+        {
+            _db.RepoBlocks.Update(block);
+        }
+        else
+        {
+            _db.RepoBlocks.Add(block);
+        }
+    }
+
+    public Task UpdateRootAsync(Cid cid, string rev)
+    {
+        var root = new RepoRoot
+        {
+            Did = _did,
+            Cid = cid.ToString(),
+            Rev = rev,
+            IndexedAt = DateTime.UtcNow
+        };
+
+        if (_db.RepoRoots.Any(x => x.Did == _did))
+        {
+            _db.RepoRoots.Update(root);
+        }
+        else
+        {
+            _db.RepoRoots.Add(root);
+        }
+
+        return _db.SaveChangesAsync();
+    }
+    
+    public async Task ApplyCommitAsync(CommitData commit)
+    {
+        await UpdateRootAsync(commit.Cid, commit.Rev);
+        await PutManyAsync(commit.NewBlocks, commit.Rev);
+        await DeleteManyAsync(commit.RemovedCids.ToArray());
+    }
+
+    public async Task<byte[]?> GetBytesAsync(Cid cid)
+    {
+        var cached = _cache.Get(cid);
+        if (cached != null)
+        {
+            return cached;
+        }
+
+        var cidStr = cid.ToString();
+        var res = await _db.RepoBlocks.Where(x => x.Cid == cidStr)
+            .Select(x => x.Content)
+            .FirstOrDefaultAsync();
+
+        if (res == null)
+        {
+            return null;
+        }
+        _cache.Set(cid, res);
+        return res;
+    }
+    public async Task<bool> HasAsync(Cid cid)
+    {
+        return await GetBytesAsync(cid) != null;
+    }
+    public async Task<(BlockMap blocks, Cid[] missing)> GetBlocksAsync(Cid[] cids)
+    {
+        var cached = _cache.GetMany(cids);
+        if (cached.missing.Length < 1)
+        {
+            return cached;
+        }
+        var missing = new CidSet(cached.missing);
+        var missingStr = cached.missing.Select(x => x.ToString()).ToArray();
+        var blocks = new BlockMap();
+        
+        foreach (var batch in missingStr.Chunk(500))
+        {
+            var res = await _db.RepoBlocks
+                .Where(x => batch.Contains(x.Cid))
+                .Select(x => new {x.Cid, x.Content})
+                .AsNoTracking()
+                .ToListAsync();
+            
+            foreach (var row in res)
+            {
+                var cid = Cid.FromString(row.Cid);
+                blocks.Set(cid, row.Content);
+                missing.Delete(cid);
+            }
+        }
+
+        _cache.AddMap(blocks);
+        blocks.AddMap(cached.blocks);
+        return (blocks, missing.ToArray());
+    }
+    public async Task<(CBORObject obj, byte[] bytes)> ReadObjAndBytesAsync(Cid cid)
+    {
+        var bytes = await GetBytesAsync(cid);
+        if (bytes == null)
+        {
+            throw new MissingBlockException(cid, nameof(ReadObjAndBytesAsync));
+        }
+        var obj = CBORObject.DecodeFromBytes(bytes);
+        return (obj, bytes);
+    }
+    public async Task<(CBORObject obj, byte[] bytes)?> AttemptReadAsync(Cid cid)
+    {
+        try
+        {
+            return await ReadObjAndBytesAsync(cid);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to read block {Cid}", cid);
+            return null;
+        }
+    }
+
+    public async Task<(Cid Cid, string Rev)> GetRootDetailedAsync()
+    {
+        var res = await _db.RepoRoots.AsNoTracking().SingleAsync();
+        return (Cid.FromString(res.Cid), res.Rev);
+    }
+
+    public async Task CacheRevAsync(string rev)
+    {
+        var res = _db.RepoBlocks.Where(x => x.RepoRev == rev)
+            .Select(x => new {x.Cid, x.Content})
+            .Take(15)
+            .ToArray();
+        foreach (var block in res)
+        {
+            _cache.Set(Cid.FromString(block.Cid), block.Content);
+        }
+    }
+
+    public async Task DeleteManyAsync(Cid[] cids)
+    {
+        foreach (var cid in cids)
+        {
+            var cidStr = cid.ToString();
+            var block = await _db.RepoBlocks.Where(x => x.Cid == cidStr)
+                .FirstOrDefaultAsync();
+            if (block == null)
+            {
+                continue;
+            }
+            _db.RepoBlocks.Remove(block);
+        }
+
+        await _db.SaveChangesAsync();
+    }
+    public async IAsyncEnumerable<CarBlock> IterateCarBlocksAsync(string? since,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        RevCursor? cursor = null;
+        // allow us to write to car while fetching the next page
+        do
+        {
+            var res = await GetBlockRangeAsync(since, cursor);
+            foreach (var row in res)
+            {
+                yield return new CarBlock(Cid.FromString(row.Cid), row.Content);
+            }
+            
+            var lastRow = res.LastOrDefault();
+            if (lastRow is not null)
+            {
+                cursor = new RevCursor(Cid.FromString(lastRow.Cid), lastRow.RepoRev);
+            }
+            else
+            {
+                cursor = null;
+            }
+        } while (cursor is not null);
+    }
+
+    public async Task<List<RepoBlock>> GetBlockRangeAsync(string? since = null, RevCursor? cursor = null)
+    {
+        var query = _db.RepoBlocks.AsNoTracking();
+
+        if (cursor is not null)
+        {
+            // Use composite cursor for pagination: (repoRev, cid) < (cursor.Rev, cursor.Cid)
+            var cursorCid = cursor.Cid.ToString();
+            query = query.Where(x => 
+                x.RepoRev.CompareTo(cursor.Rev) < 0 || 
+                (x.RepoRev == cursor.Rev && x.Cid.CompareTo(cursorCid) < 0));
+        }
+
+        if (since is not null)
+        {
+            query = query.Where(x => x.RepoRev.CompareTo(since) > 0);
+        }
+
+        return await query
+            .OrderByDescending(x => x.RepoRev)
+            .ThenByDescending(x => x.Cid)
+            .Take(500)
+            .ToListAsync();
+    }
+
+}

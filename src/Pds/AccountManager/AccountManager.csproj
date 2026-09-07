@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+        <ItemGroup>
+        <PackageReference Include="jose-jwt" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Scrypt.NET" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Core\Cid\CID.csproj" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+        <ProjectReference Include="..\Pds.Config\Config.csproj" />
+        <ProjectReference Include="..\Pds.Xrpc\Xrpc.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -16,9 +16,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\projects\Repo\Repo.csproj" />
-        <ProjectReference Include="..\..\src\projects\CID\CID.csproj" />
-        <ProjectReference Include="..\..\src\projects\Common\Common.csproj" />
+        <ProjectReference Include="..\..\src\Core\Repo\Repo.csproj" />
+        <ProjectReference Include="..\..\src\Core\Cid\CID.csproj" />
+        <ProjectReference Include="..\..\src\Core\Common\Common.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,65 @@
+﻿using System.Collections.Concurrent;
+using BlueNilePds.Core.CommonWeb;
+
+namespace BlueNilePds.Core.Identity;
+
+public class MemoryCache : IDidCache
+{
+    private readonly ConcurrentDictionary<string, CacheVal> _cache = new();
+    private readonly TimeSpan _maxTtl;
+
+    private readonly TimeSpan _staleTtl;
+    public MemoryCache(TimeSpan? staleTtl = null, TimeSpan? maxTtl = null)
+    {
+        _staleTtl = staleTtl ?? TimeSpan.FromHours(1);
+        _maxTtl = maxTtl ?? TimeSpan.FromDays(1);
+    }
+
+    public Task CacheDidAsync(string did, DidDocument doc, CacheResult? prevResult = null)
+    {
+        _cache[did] = new CacheVal(doc, DateTime.UtcNow);
+        return Task.CompletedTask;
+    }
+
+    public Task<CacheResult?> CheckCacheAsync(string did)
+    {
+        if (!_cache.TryGetValue(did, out var val))
+        {
+            return Task.FromResult<CacheResult?>(null);
+        }
+        var now = DateTime.UtcNow;
+        var expired = now > val.UpdatedAt + _maxTtl;
+        var stale = now > val.UpdatedAt + _staleTtl;
+        return Task.FromResult<CacheResult?>(new CacheResult
+        {
+            Doc = val.Doc,
+            Did = did,
+            Expired = expired,
+            Stale = stale,
+            UpdatedAt = val.UpdatedAt
+        });
+    }
+
+    public async Task RefreshCacheAsync(string did, Func<Task<DidDocument?>> getDoc, CacheResult? prevResult = null)
+    {
+        var doc = await getDoc();
+        if (doc == null)
+        {
+            return;
+        }
+        await CacheDidAsync(did, doc);
+    }
+
+    public Task ClearEntryAsync(string did)
+    {
+        _cache.TryRemove(did, out _);
+        return Task.CompletedTask;
+    }
+
+    public Task ClearAsync()
+    {
+        _cache.Clear();
+        return Task.CompletedTask;
+    }
+    private record CacheVal(DidDocument Doc, DateTime UpdatedAt);
+}
