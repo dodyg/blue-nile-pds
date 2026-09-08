@@ -9,8 +9,8 @@
 
 ### C1. Hardcoded Admin Password
 
-**File:** `src/atompds/Config/ServerConfig.cs:315`
-**File:** `src/atompds/Config/ServerEnvironment.cs` (add property)
+**File:** `src/Host/Config/ServerConfig.cs:315`
+**File:** `src/Host/Config/ServerEnvironment.cs` (add property)
 
 The admin password is the literal string `"secret"`. Any client sending `Authorization: Basic admin:secret` has full admin access.
 
@@ -26,7 +26,7 @@ The admin password is the literal string `"secret"`. Any client sending `Authori
 
 ### C3. CORS Middleware Ordered Incorrectly
 
-**File:** `src/atompds/Program.cs:67-81`
+**File:** `src/Host/Program.cs:67-81`
 
 `UseCors()` is registered after routing, auth middleware, and endpoint mapping. Browser preflight `OPTIONS` requests hit auth middleware (401) before CORS headers are added.
 
@@ -45,13 +45,13 @@ app.UseNotFoundMiddleware();
 app.UseWebSockets();
 ```
 
-**Verify:** Build and run existing tests: `dotnet test --solution atompds.slnx`
+**Verify:** Build and run existing tests: `dotnet test --solution BlueNilePds.slnx`
 
 ---
 
 ### C4. Sequencer/Outbox Race Condition
 
-**File:** `src/pds_projects/Sequencer/Outbox.cs:133-149`
+**File:** `src/Pds/Sequencer/Outbox.cs:133-149`
 
 `_caughtUp` is a plain `bool` read/written from multiple threads without synchronization. The code comments acknowledge the race. This can cause firehose event reordering.
 
@@ -80,8 +80,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet build --solution atompds.slnx
-      - run: dotnet test --solution atompds.slnx
+      - run: dotnet build --solution BlueNilePds.slnx
+      - run: dotnet test --solution BlueNilePds.slnx
 ```
 
 Also add `.github/dependabot.yml` for NuGet dependency scanning.
@@ -94,20 +94,20 @@ Also add `.github/dependabot.yml` for NuGet dependency scanning.
 
 ### H1. Rate Limiting Disabled by Default
 
-**File:** `src/atompds/Config/ServerEnvironment.cs:118`
+**File:** `src/Host/Config/ServerEnvironment.cs:118`
 
 `PDS_RATE_LIMITS_ENABLED` defaults to `false`. Combined with C1 (hardcoded admin password), there is no brute-force protection.
 
-**Fix:** Change default to `true` or at minimum document the risk in `appsettings.Development.json.example`. If changing to `true`, verify the rate limit values in `src/atompds/Middleware/RateLimitMiddleware.cs` are sensible for production.
+**Fix:** Change default to `true` or at minimum document the risk in `appsettings.Development.json.example`. If changing to `true`, verify the rate limit values in `src/Host/Middleware/RateLimitMiddleware.cs` are sensible for production.
 
-**Verify:** `dotnet build --solution atompds.slnx`
+**Verify:** `dotnet build --solution BlueNilePds.slnx`
 
 ---
 
 ### H2. SSRF Protection Not Enforced
 
-**File:** `src/pds_projects/Config/ProxyConfig.cs:5` — flag exists but is never read
-**File:** `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs:193-194` — makes HTTP requests to DID-resolved URLs
+**File:** `src/Pds/Config/ProxyConfig.cs:5` — flag exists but is never read
+**File:** `src/Host/Endpoints/Xrpc/AppViewProxyEndpoints.cs:193-194` — makes HTTP requests to DID-resolved URLs
 
 **Fix:**
 1. In `AppViewProxyEndpoints.cs`, before making the proxied request, check `ProxyConfig.DisableSsrfProtection`
@@ -120,7 +120,7 @@ Also add `.github/dependabot.yml` for NuGet dependency scanning.
 
 ### H3. OAuth redirect_uri Not Validated
 
-**File:** `src/atompds/Endpoints/OAuth/OAuthAuthorizeEndpoints.cs:48-49,98`
+**File:** `src/Host/Endpoints/OAuth/OAuthAuthorizeEndpoints.cs:48-49,98`
 
 The `redirect_uri` query parameter is used directly in `Results.Redirect()` without any validation against registered client redirect URIs.
 
@@ -135,7 +135,7 @@ The `redirect_uri` query parameter is used directly in `Results.Redirect()` with
 
 ### H4. Synchronous Blocking in Endpoint Handler
 
-**File:** `src/atompds/Endpoints/Xrpc/Com/Atproto/Server/RefreshSessionEndpoints.cs:46-47`
+**File:** `src/Host/Endpoints/Xrpc/Com/Atproto/Server/RefreshSessionEndpoints.cs:46-47`
 
 ```csharp
 var didDoc = didDocTask.Result;
@@ -154,8 +154,8 @@ var rotated = await rotateTask;
 
 ### H5. SequencerRepository Scoped but Spawns Background Polling
 
-**File:** `src/pds_projects/Sequencer/SequencerRepository.cs:35` — `Task.Run(PollTaskAsync)` in constructor
-**File:** `src/atompds/Config/ServerConfig.cs:324` — registered as `AddScoped`
+**File:** `src/Pds/Sequencer/SequencerRepository.cs:35` — `Task.Run(PollTaskAsync)` in constructor
+**File:** `src/Host/Config/ServerConfig.cs:324` — registered as `AddScoped`
 
 Every HTTP request that injects `SequencerRepository` creates a new polling task.
 
@@ -164,17 +164,17 @@ Every HTTP request that injects `SequencerRepository` creates a new polling task
 2. Register `SequencerRepository` as singleton (its dependency `SequencerDb` is via `IDbContextFactory`, which is safe for singleton use)
 3. Or: keep scoped but inject a shared `Channel<ISeqEvt>` from a singleton, so only one poller exists
 
-**Verify:** Build and run `atompds.Tests`.
+**Verify:** Build and run `Host.Tests`.
 
 ---
 
 ### H6. Missing Audit Logging for Destructive Operations
 
 **Files:**
-- `src/atompds/Endpoints/Xrpc/Com/Atproto/Server/DeleteAccountEndpoints.cs:58`
-- `src/atompds/Endpoints/Xrpc/Com/Atproto/Admin/AdminDeleteAccountEndpoints.cs:20`
-- `src/pds_projects/AccountManager/Db/AccountStore.cs:178-184, 205-225, 247-267`
-- `src/pds_projects/AccountManager/AccountRepository.cs:214-268` (login failures)
+- `src/Host/Endpoints/Xrpc/Com/Atproto/Server/DeleteAccountEndpoints.cs:58`
+- `src/Host/Endpoints/Xrpc/Com/Atproto/Admin/AdminDeleteAccountEndpoints.cs:20`
+- `src/Pds/AccountManager/Db/AccountStore.cs:178-184, 205-225, 247-267`
+- `src/Pds/AccountManager/AccountRepository.cs:214-268` (login failures)
 
 **Fix:** Add `ILogger` injection and structured logging for:
 - Account deletion (log DID)
@@ -190,7 +190,7 @@ Every HTTP request that injects `SequencerRepository` creates a new polling task
 
 ### H7. Proxy Logs Full Response Bodies
 
-**File:** `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs:224,256,301`
+**File:** `src/Host/Endpoints/Xrpc/AppViewProxyEndpoints.cs:224,256,301`
 
 Full API response content logged at `Information` level, potentially exposing PII.
 
@@ -207,7 +207,7 @@ logger.LogDebug("[PROXY][{status}] {path} via {serviceDid}", status, path, servi
 
 ### H8. BuildServiceProvider() Anti-Pattern
 
-**File:** `src/atompds/Config/ServerConfig.cs:343`
+**File:** `src/Host/Config/ServerConfig.cs:343`
 
 ```csharp
 services.AddSingleton<IMailer>(new SmtpMailer(smtpConfig,
@@ -230,18 +230,18 @@ services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
 
 | Area | Priority | Suggested test file |
 |------|----------|-------------------|
-| `src/projects/Crypto/` (key generation, signing, verification) | Critical | `test/Crypto.Tests/` |
-| `src/projects/Repo/` (MST insert/delete/walk, CAR encoding, commits) | Critical | `test/Repo.Tests/` |
-| `src/pds_projects/Sequencer/` (event ordering, Outbox cutover, backfill) | Critical | `test/Sequencer.Tests/` |
-| `src/pds_projects/AccountManager/` (Auth, password hashing, token rotation) | Critical | `test/AccountManager.Tests/` |
-| `src/projects/Identity/` (DID resolution, caching, handle resolution) | High | `test/Identity.Tests/` |
-| `src/projects/Handle/` (validation, normalization) | High | `test/Handle.Tests/` |
-| `src/projects/DidLib/` (PLC operations) | High | `test/DidLib.Tests/` |
-| `src/atompds/Services/` (BackgroundJobQueue, OAuthSessionStore, WriteSnapshotCache) | High | `test/atompds.Tests/Services/` |
-| `src/pds_projects/BlobStore/` (disk + S3 paths, temp-to-permanent lifecycle) | Medium | `test/BlobStore.Tests/` |
-| `src/atompds/Middleware/` (AuthVerifier, RateLimitMiddleware unit tests) | Medium | `test/atompds.Tests/Middleware/` |
+| `src/Core/Crypto/` (key generation, signing, verification) | Critical | `test/Crypto.Tests/` |
+| `src/Core/Repo/` (MST insert/delete/walk, CAR encoding, commits) | Critical | `test/Repo.Tests/` |
+| `src/Pds/Sequencer/` (event ordering, Outbox cutover, backfill) | Critical | `test/Sequencer.Tests/` |
+| `src/Pds/AccountManager/` (Auth, password hashing, token rotation) | Critical | `test/AccountManager.Tests/` |
+| `src/Core/Identity/` (DID resolution, caching, handle resolution) | High | `test/Identity.Tests/` |
+| `src/Core/Handle/` (validation, normalization) | High | `test/Handle.Tests/` |
+| `src/Core/DidLib/` (PLC operations) | High | `test/DidLib.Tests/` |
+| `src/Host/Services/` (BackgroundJobQueue, OAuthSessionStore, WriteSnapshotCache) | High | `test/Host.Tests/Services/` |
+| `src/Pds/BlobStore/` (disk + S3 paths, temp-to-permanent lifecycle) | Medium | `test/BlobStore.Tests/` |
+| `src/Host/Middleware/` (AuthVerifier, RateLimitMiddleware unit tests) | Medium | `test/Host.Tests/Middleware/` |
 
-**Existing integration tests are shallow:** ~85% of `test/atompds.Tests/` tests only verify route existence and auth gating. No tests exercise full business logic flows (create account, create session, write record, read record).
+**Existing integration tests are shallow:** ~85% of `test/Host.Tests/` tests only verify route existence and auth gating. No tests exercise full business logic flows (create account, create session, write record, read record).
 
 **Fix approach:**
 1. Start with `Crypto.Tests` and `Repo.Tests` — these are foundational libraries with no external dependencies
@@ -250,7 +250,7 @@ services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
 4. For integration tests, add test infrastructure: database seeding, account factory helpers, authenticated client helpers
 5. Use TUnit (`[Test]`, `Assert.That(...).IsEqualTo(...)`) — NOT xUnit
 
-**Verify:** `dotnet test --solution atompds.slnx`
+**Verify:** `dotnet test --solution BlueNilePds.slnx`
 
 ---
 
@@ -258,17 +258,17 @@ services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
 
 ### M1. Config Records Missing `required` Keyword (9 CS8618 warnings)
 
-**Files:** `src/pds_projects/Config/DatabaseConfig.cs`, `ActorStoreConfig.cs`, `IdentityConfig.cs`, `BskyAppViewConfig.cs`, `BlobstoreConfig.cs`
+**Files:** `src/Pds/Config/DatabaseConfig.cs`, `ActorStoreConfig.cs`, `IdentityConfig.cs`, `BskyAppViewConfig.cs`, `BlobstoreConfig.cs`
 
 **Fix:** Add `required` to all non-nullable `init`-only `string` and `List<string>` properties. Follow the pattern already used by `ServiceConfig.cs`, `SecretsConfig.cs`, and `SubscriptionConfig.cs`.
 
-**Verify:** `dotnet build --solution atompds.slnx` — CS8618 warnings for these files should disappear.
+**Verify:** `dotnet build --solution BlueNilePds.slnx` — CS8618 warnings for these files should disappear.
 
 ---
 
 ### M2. No JWT Expiration Validation in Bearer Token Path
 
-**File:** `src/atompds/Middleware/AuthVerifier.cs:612-641`
+**File:** `src/Host/Middleware/AuthVerifier.cs:612-641`
 
 `jose-jwt`'s `JWT.Verify()` only verifies the HMAC signature. The `exp` claim is not checked for the non-OAuth bearer path (the OAuth path does check `exp`).
 
@@ -280,7 +280,7 @@ services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
 
 ### M3. No SQLite WAL Mode or busy_timeout on Global DBs
 
-**Files:** `src/atompds/Config/ServerConfig.cs:262-263,323`
+**Files:** `src/Host/Config/ServerConfig.cs:262-263,323`
 
 AccountManagerDb and SequencerDb connection strings lack `PRAGMA journal_mode=WAL` and `PRAGMA busy_timeout`.
 
@@ -302,7 +302,7 @@ Use `DbContextOptionsBuilder` with `ExecuteSqlRaw` in a database seed or via `Sq
 
 ### M4. No Password Strength Enforcement
 
-**Files:** `src/atompds/Endpoints/Xrpc/Com/Atproto/Server/CreateAccountEndpoints.cs:219`, `ResetPasswordEndpoints.cs:19-26`
+**Files:** `src/Host/Endpoints/Xrpc/Com/Atproto/Server/CreateAccountEndpoints.cs:219`, `ResetPasswordEndpoints.cs:19-26`
 
 **Fix:** Add validation (minimum 8 characters, not empty) before hashing. Throw `XRPCError(new InvalidRequestErrorDetail(...))`.
 
@@ -312,7 +312,7 @@ Use `DbContextOptionsBuilder` with `ExecuteSqlRaw` in a database seed or via `Sq
 
 ### M5. BlobStore Path Uses Raw DID Without Traversal Checks
 
-**File:** `src/pds_projects/BlobStore/DiskBlobStore.cs:36,46-47`
+**File:** `src/Pds/BlobStore/DiskBlobStore.cs:36,46-47`
 
 `Did` is used directly in `Path.Join` without sanitization. A malicious DID containing `../` could cause path traversal.
 
@@ -364,7 +364,7 @@ For internal errors, use `InternalServerErrorDetail` or a new error detail type.
 
 ### M8. Health Endpoint is a No-Op
 
-**File:** `src/atompds/Endpoints/Xrpc/HealthEndpoints.cs:14-17`
+**File:** `src/Host/Endpoints/Xrpc/HealthEndpoints.cs:14-17`
 
 Returns static version string. Does not check database connectivity, blob store, or downstream services.
 
@@ -391,19 +391,19 @@ No OpenTelemetry, distributed tracing, metrics, or correlation ID propagation an
 
 ### M10. Unused NuGet Packages
 
-**Files:** `Directory.Packages.props`, `src/atompds/atompds.csproj`
+**Files:** `Directory.Packages.props`, `src/Host/Host.csproj`
 
 These packages are listed but never used in source code:
 - `Newtonsoft.Json` — not imported in any `.csproj`, zero `using Newtonsoft` in codebase
 - `System.Drawing.Common` — not imported in any `.csproj`
-- `Scalar.AspNetCore` — referenced in `atompds.csproj:23` but never invoked
-- `Microsoft.AspNetCore.OpenApi` — referenced in `atompds.csproj:16` but never invoked
+- `Scalar.AspNetCore` — referenced in `Host.csproj:23` but never invoked
+- `Microsoft.AspNetCore.OpenApi` — referenced in `Host.csproj:16` but never invoked
 
 **Fix:**
 1. Remove `Newtonsoft.Json` and `System.Drawing.Common` from `Directory.Packages.props`
-2. Remove `Scalar.AspNetCore` and `Microsoft.AspNetCore.OpenApi` from both `atompds.csproj` and `Directory.Packages.props` (or configure them if OpenAPI docs are desired)
+2. Remove `Scalar.AspNetCore` and `Microsoft.AspNetCore.OpenApi` from both `Host.csproj` and `Directory.Packages.props` (or configure them if OpenAPI docs are desired)
 
-**Verify:** `dotnet build --solution atompds.slnx`
+**Verify:** `dotnet build --solution BlueNilePds.slnx`
 
 ---
 
@@ -424,7 +424,7 @@ States "xUnit test projects" and "Add or update xUnit tests". The project uses T
 
 ### M12. Background Job DI Split from RegisterServices()
 
-**File:** `src/atompds/Program.cs:49-53`
+**File:** `src/Host/Program.cs:49-53`
 
 Background job registrations are in `Program.cs` while all other DI wiring is in `ServerConfig.RegisterServices()`.
 
@@ -436,7 +436,7 @@ Background job registrations are in `Program.cs` while all other DI wiring is in
 
 ### M13. HTTP Logging Configured but Middleware Commented Out
 
-**File:** `src/atompds/Program.cs:37-42,85`
+**File:** `src/Host/Program.cs:37-42,85`
 
 `AddHttpLogging()` service is registered but `app.UseHttpLogging()` is commented out.
 

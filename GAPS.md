@@ -229,7 +229,7 @@ The canonical PDS defines a `Takendown` auth scope (`com.atproto.takendown`) for
 
 ### 6.1 DID Cache — In-Memory vs. Persistent
 
-The canonical PDS uses a separate SQLite database (`did_cache.sqlite`) for DID resolution caching with stale-while-revalidate semantics. The local implementation uses an in-memory `ConcurrentDictionary` (`MemoryCache` in `src/projects/Identity/`). This means:
+The canonical PDS uses a separate SQLite database (`did_cache.sqlite`) for DID resolution caching with stale-while-revalidate semantics. The local implementation uses an in-memory `ConcurrentDictionary` (`MemoryCache` in `src/Core/Identity/`). This means:
 - Cache is lost on restart
 - No persistence across instances
 - Memory grows unbounded (within TTL constraints)
@@ -344,7 +344,7 @@ The canonical PDS uses Redis for distributed rate limiting when configured. The 
 
 ### 9.1 Test Coverage
 
-The local implementation now has 5 test projects with 27+ integration test files in `atompds.Tests` covering:
+The local implementation now has 5 test projects with 27+ integration test files in `Host.Tests` covering:
 - Account management (creation, deactivation, deletion)
 - Admin operations and lifecycle
 - App passwords

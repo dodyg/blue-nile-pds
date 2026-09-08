@@ -16,7 +16,7 @@ public class ServerEnvironment
     private const int DAY = 24 * HOUR;
 
     // Service Configuration
-    public string PDS_SERVICE_NAME { get; set; } = "AtomPDS";
+    public string PDS_SERVICE_NAME { get; set; } = "Blue Nile PDS";
     public int PDS_PORT { get; set; } = 2583;
     public string PDS_HOSTNAME { get; set; } = "localhost";
     public string? PDS_SERVICE_DID { get; set; }

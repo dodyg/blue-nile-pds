@@ -42,20 +42,20 @@ Only items that are **still open** are listed. Cross-ref IDs in `[brackets]`.
 | **[T-21]** | Takendown auth scope (`com.atproto.takendown`) | Phase 4 — Auth | `AuthVerifier.cs` |
 | **[T-22]** | Entryway PLC rotation key + admin token config | Phase 4 — Auth | `ServerEnvironment.cs`, `AuthVerifier.cs` |
 | **[T-23]** | Restore commented-out DB tables (used_refresh_token, device, authorization_request, etc.) | Phase 5 — Database | Migration (new) |
-| **[T-24]** | Persistent DID cache via SQLite (stale-while-revalidate) | Phase 5 — Database | `src/projects/Identity/` |
+| **[T-24]** | Persistent DID cache via SQLite (stale-while-revalidate) | Phase 5 — Database | `src/Core/Identity/` |
 | **[T-25]** | OAuth persistence (SQLite-backed sessions, codes, clients) | Phase 6 — OAuth | `OAuthSessionStore.cs` |
 | **[T-26]** | OAuth PAR (pushed authorization requests) | Phase 6 — OAuth | `Endpoints/OAuth/OAuthParEndpoint.cs` (new) |
 | **[T-29]** | Rate limit bypass (`x-ratelimit-bypass` header, bypass IPs) | Phase 7 — Rate Limits | `RateLimitMiddleware.cs` |
 | **[T-30]** | Redis-backed distributed rate limiting | Phase 7 — Rate Limits | `RateLimitMiddleware.cs` |
 | **[T-31]** | Remaining missing config vars (14 vars from GAPS.md §5.1) | Phase 7 — Config | `ServerEnvironment.cs` |
-| **[T-36]** | Recovery & maintenance scripts (rebuild-repo, publish-identity, rotate-keys, sequencer-recovery) | Phase 8 — Infra | `src/pdsadmin-cli/` |
+| **[T-36]** | Recovery & maintenance scripts (rebuild-repo, publish-identity, rotate-keys, sequencer-recovery) | Phase 8 — Infra | `src/Tools/PdsAdmin.Cli/` |
 | **[T-32]** | Blob GC is implemented; verify schedule config and distributed lock | Phase 8 — Infra | `BlobGarbageCollectionService.cs` |
-| **[T-33]** | Separate moderation mailer (`PDS_MODERATION_EMAIL_SMTP_URL`) | Phase 8 — Infra | `src/pds_projects/Mailer/` |
-| **[T-34]** | HTML email templates (Handlebars or Razor) | Phase 8 — Infra | `src/pds_projects/Mailer/Templates/` |
+| **[T-33]** | Separate moderation mailer (`PDS_MODERATION_EMAIL_SMTP_URL`) | Phase 8 — Infra | `src/Pds/Mailer/` |
+| **[T-34]** | HTML email templates (Handlebars or Razor) | Phase 8 — Infra | `src/Pds/Mailer/Templates/` |
 | **[T-35]** | Handle backup nameservers (`PDS_HANDLE_BACKUP_NAMESERVERS`) | Phase 8 — Infra | `HandleManager.cs` |
 | **[T-37]** | Docker + compose exist; add `installer.sh` and health checks | Phase 9 — Deploy | `Dockerfile`, `compose.yaml` |
 | **[T-38]** | Graceful shutdown with queue drain | Phase 9 — Deploy | `BackgroundJobQueue.cs` |
-| **[T-39]** | Missing integration test areas (10 test files from GAPS.md §9.1) | Phase 10 — Tests | `test/atompds.Tests/` |
+| **[T-39]** | Missing integration test areas (10 test files from GAPS.md §9.1) | Phase 10 — Tests | `test/Host.Tests/` |
 
 ## P4 — Cleanup & Tech Debt
 
@@ -70,7 +70,7 @@ Only items that are **still open** are listed. Cross-ref IDs in `[brackets]`.
 | **[FIX-M7]** | Raw `Exception` throws bypassing XRPC error formatting (5 locations) | `ApplyWritesEndpoints.cs`, `AuthVerifier.cs`, etc. |
 | **[FIX-M8]** | Health endpoint is a no-op (static version string, no DB check) | `HealthEndpoints.cs:14-17` |
 | **[FIX-M9]** | No observability (OpenTelemetry, metrics, tracing, correlation IDs) | Codebase-wide |
-| **[FIX-M10]** | Unused NuGet packages (Newtonsoft.Json, System.Drawing.Common, Scalar.AspNetCore, Microsoft.AspNetCore.OpenApi) | `Directory.Packages.props`, `atompds.csproj` |
+| **[FIX-M10]** | Unused NuGet packages (Newtonsoft.Json, System.Drawing.Common, Scalar.AspNetCore, Microsoft.AspNetCore.OpenApi) | `Directory.Packages.props`, `Host.csproj` |
 | **[FIX-M11]** | AGENTS.md incorrectly references xUnit (should be TUnit) | `AGENTS.md` |
 | **[FIX-M12]** | Background job DI split — registrations in `Program.cs` instead of `ServerConfig.RegisterServices()` | `Program.cs:49-53` |
 | **[FIX-M13]** | HTTP logging configured but middleware commented out | `Program.cs:37-42,85` |

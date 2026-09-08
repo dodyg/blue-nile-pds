@@ -13,12 +13,12 @@ This document is an actionable plan for agents to implement the testing gaps ide
 | `test/CID.Tests/` | TUnit | 12 | CID v0/v1 parsing, creation, round-trip |
 | `test/Common.Tests/` | TUnit | 10 | TID, S32 encoding, CBOR round-trip |
 | `test/ActorStore.Tests/` | TUnit | 156 | `Prepare.ExtractBlobReferences` |
-| `test/atompds.Tests/` | TUnit | ~90 | Integration tests via `WebApplicationFactory<Program>` |
+| `test/Host.Tests/` | TUnit | ~90 | Integration tests via `WebApplicationFactory<Program>` |
 | `test/SubscribeTester/` | — | — | Manual WebSocket tool (not automated) |
 
 ### 1.2 Existing Test Patterns
 
-All new tests go into `test/atompds.Tests/`. Follow these conventions exactly:
+All new tests go into `test/Host.Tests/`. Follow these conventions exactly:
 
 **Framework:** TUnit (`[Test]`, `[Arguments]`, `Assert.That(...).IsEqualTo(...)`)
 
@@ -27,11 +27,11 @@ All new tests go into `test/atompds.Tests/`. Follow these conventions exactly:
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using atompds.Tests.Infrastructure;
+using Host.Tests.Infrastructure;
 using TUnit.Assertions;
 using TUnit.Assertions.Extensions;
 
-namespace atompds.Tests;
+namespace Host.Tests;
 
 public class MyFeatureTests
 {
@@ -89,7 +89,7 @@ private HttpRequestMessage CreateAdminRequest(string method, string url, string?
 
 The biggest missing piece is the ability to create test accounts within integration tests. Currently tests only verify auth rejection and route existence — they cannot exercise happy paths that require a real account.
 
-**Create `test/atompds.Tests/Infrastructure/AccountHelper.cs`:**
+**Create `test/Host.Tests/Infrastructure/AccountHelper.cs`:**
 
 ```csharp
 public static class AccountHelper
@@ -232,7 +232,7 @@ Each section is a self-contained task an agent can pick up. Files are listed in 
 
 These tests exercise the most critical paths and unlock all subsequent test phases.
 
-#### `test/atompds.Tests/AccountTests.cs`
+#### `test/Host.Tests/AccountTests.cs`
 
 **Purpose:** Test full account creation, login, session management, and deletion.
 
@@ -262,15 +262,15 @@ These tests exercise the most critical paths and unlock all subsequent test phas
 | 20 | `DeactivateAccount_Succeeds` | Create account, deactivate. Assert `active` is false. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/CreateAccountController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/CreateSessionController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/GetSessionController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/RefreshSessionController.cs`
-- `src/pds_projects/AccountManager/AccountRepository.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/CreateAccountController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/CreateSessionController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/GetSessionController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/RefreshSessionController.cs`
+- `src/Pds/AccountManager/AccountRepository.cs`
 
 ---
 
-#### `test/atompds.Tests/PasswordTests.cs`
+#### `test/Host.Tests/PasswordTests.cs`
 
 **Purpose:** Password reset and change flows.
 
@@ -286,14 +286,14 @@ These tests exercise the most critical paths and unlock all subsequent test phas
 | 6 | `AdminUpdatePassword_Succeeds` | Use admin endpoint to update password. Assert new password works. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/RequestPasswordResetController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/ResetPasswordController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Admin/UpdateAccountPasswordAdminController.cs`
-- `src/pds_projects/AccountManager/Db/PasswordStore.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/RequestPasswordResetController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/ResetPasswordController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Admin/UpdateAccountPasswordAdminController.cs`
+- `src/Pds/AccountManager/Db/PasswordStore.cs`
 
 ---
 
-#### `test/atompds.Tests/AppPasswordTests.cs`
+#### `test/Host.Tests/AppPasswordTests.cs`
 
 **Purpose:** App-specific password lifecycle.
 
@@ -308,15 +308,15 @@ These tests exercise the most critical paths and unlock all subsequent test phas
 | 5 | `AppPasswordToken_GrantsAccess` | Login with app password token, verify `getSession` works but shows `via` field. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/CreateAppPasswordController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/ListAppPasswordsController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/RevokeAppPasswordController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/CreateAppPasswordController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/ListAppPasswordsController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/RevokeAppPasswordController.cs`
 
 ---
 
 ### Phase 2: Record CRUD Operations
 
-#### `test/atompds.Tests/CrudTests.cs`
+#### `test/Host.Tests/CrudTests.cs`
 
 **Purpose:** Full record lifecycle — create, read, update, delete, list, applyWrites.
 
@@ -343,15 +343,15 @@ These tests exercise the most critical paths and unlock all subsequent test phas
 | 17 | `CreateRecord_ProfileSelfRkey` | Create profile record. Assert rkey is `self`. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Repo/ApplyWritesController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Repo/ListRecordsController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Repo/DescribeRepoController.cs`
-- `src/pds_projects/ActorStore/Repo/Prepare.cs`
-- `src/pds_projects/ActorStore/Record/RecordRepository.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Repo/ApplyWritesController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Repo/ListRecordsController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Repo/DescribeRepoController.cs`
+- `src/Pds/ActorStore/Repo/Prepare.cs`
+- `src/Pds/ActorStore/Record/RecordRepository.cs`
 
 ---
 
-#### `test/atompds.Tests/BlobTests.cs`
+#### `test/Host.Tests/BlobTests.cs`
 
 **Purpose:** Blob upload, retrieval, and deletion.
 
@@ -367,10 +367,10 @@ These tests exercise the most critical paths and unlock all subsequent test phas
 | 6 | `UploadBlob_WithImage_Succeeds` | Upload actual image bytes (small test PNG). Verify dimensions detected if applicable. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Repo/BlobController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Sync/GetBlobController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Sync/ListBlobsController.cs`
-- `src/pds_projects/BlobStore/DiskBlobStore.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Repo/BlobController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Sync/GetBlobController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Sync/ListBlobsController.cs`
+- `src/Pds/BlobStore/DiskBlobStore.cs`
 
 **Test data:** Use files in `test/data/` or generate small PNG bytes inline:
 ```csharp
@@ -384,7 +384,7 @@ private static byte[] CreateTestPng() => [
 
 ### Phase 3: Sync and Federation
 
-#### `test/atompds.Tests/SyncFederationTests.cs`
+#### `test/Host.Tests/SyncFederationTests.cs`
 
 **Purpose:** Repo sync endpoints — getRepo, getBlocks, getLatestCommit, subscribeRepos.
 
@@ -406,11 +406,11 @@ private static byte[] CreateTestPng() => [
 | 12 | `ImportRepo_Succeeds` | Export repo CAR, import to new DID. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Sync/GetRepoController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Sync/GetBlocksController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Sync/GetLatestCommitController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Sync/SubscribeReposController.cs`
-- `src/pds_projects/Sequencer/Outbox.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Sync/GetRepoController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Sync/GetBlocksController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Sync/GetLatestCommitController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Sync/SubscribeReposController.cs`
+- `src/Pds/Sequencer/Outbox.cs`
 - `test/SubscribeTester/Program.cs` (for WebSocket patterns)
 
 **WebSocket test pattern:**
@@ -445,7 +445,7 @@ public async Task SubscribeRepos_ReceivesCommitEvent()
 
 ### Phase 4: Admin Operations
 
-#### `test/atompds.Tests/AdminLifecycleTests.cs`
+#### `test/Host.Tests/AdminLifecycleTests.cs`
 
 **Purpose:** Admin endpoints that require real accounts (takedown, invites, account management).
 
@@ -468,14 +468,14 @@ public async Task SubscribeRepos_ReceivesCommitEvent()
 | 13 | `SendEmail_ToAccount` | Send email via admin endpoint. Assert 200 (email queued). |
 
 **Key source files to read:**
-- All controllers in `src/atompds/Controllers/Xrpc/Com/Atproto/Admin/`
-- `src/pds_projects/AccountManager/AccountRepository.cs`
+- All controllers in `src/Host/Controllers/Xrpc/Com/Atproto/Admin/`
+- `src/Pds/AccountManager/AccountRepository.cs`
 
 ---
 
 ### Phase 5: Invite Code System
 
-#### `test/atompds.Tests/InviteCodeTests.cs`
+#### `test/Host.Tests/InviteCodeTests.cs`
 
 **Purpose:** Invite code creation, usage, tracking.
 
@@ -492,16 +492,16 @@ public async Task SubscribeRepos_ReceivesCommitEvent()
 | 7 | `InviteCodeUseTracking` | Use a code, check `invite_code_use` has entry. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/CreateInviteCodeController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/CreateInviteCodesController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/GetAccountInviteCodesController.cs`
-- `src/pds_projects/AccountManager/Db/InviteStore.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/CreateInviteCodeController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/CreateInviteCodesController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/GetAccountInviteCodesController.cs`
+- `src/Pds/AccountManager/Db/InviteStore.cs`
 
 ---
 
 ### Phase 6: Auth Scope Enforcement
 
-#### `test/atompds.Tests/AuthScopeTests.cs`
+#### `test/Host.Tests/AuthScopeTests.cs`
 
 **Purpose:** Verify that auth scopes are correctly enforced on all endpoints.
 
@@ -523,15 +523,15 @@ public async Task SubscribeRepos_ReceivesCommitEvent()
 | 12 | `ExpiredToken_ReturnsExpiredError` | Create token with past `exp`. Assert `ExpiredToken` error type. |
 
 **Key source files to read:**
-- `src/atompds/Middleware/AuthMiddleware.cs`
-- `src/atompds/Middleware/AuthVerifier.cs`
-- `src/atompds/Services/AuthVerifierConfig.cs`
+- `src/Host/Middleware/AuthMiddleware.cs`
+- `src/Host/Middleware/AuthVerifier.cs`
+- `src/Host/Services/AuthVerifierConfig.cs`
 
 ---
 
 ### Phase 7: Email Flows
 
-#### `test/atompds.Tests/EmailTests.cs`
+#### `test/Host.Tests/EmailTests.cs`
 
 **Purpose:** Email confirmation, update, and token-based flows.
 
@@ -558,17 +558,17 @@ var token = await db.EmailTokens
 ```
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/ConfirmEmailController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/RequestEmailConfirmationController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/RequestEmailUpdateController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Server/UpdateEmailController.cs`
-- `src/pds_projects/AccountManager/Db/EmailTokenStore.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/ConfirmEmailController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/RequestEmailConfirmationController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/RequestEmailUpdateController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Server/UpdateEmailController.cs`
+- `src/Pds/AccountManager/Db/EmailTokenStore.cs`
 
 ---
 
 ### Phase 8: Identity and Handle Management
 
-#### `test/atompds.Tests/HandleTests.cs`
+#### `test/Host.Tests/HandleTests.cs`
 
 **Purpose:** Handle resolution, update, validation.
 
@@ -587,15 +587,15 @@ var token = await db.EmailTokens
 | 9 | `SubmitPlcOperation_ReturnsResult` | Authenticated call with body. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Identity/` (all 6 controllers)
-- `src/pds_projects/AccountManager/AccountRepository.cs`
-- `src/projects/Handle/`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Identity/` (all 6 controllers)
+- `src/Pds/AccountManager/AccountRepository.cs`
+- `src/Core/Handle/`
 
 ---
 
 ### Phase 9: Moderation and Takedown
 
-#### `test/atompds.Tests/ModerationTests.cs`
+#### `test/Host.Tests/ModerationTests.cs`
 
 **Purpose:** Report creation, takedown lifecycle.
 
@@ -612,15 +612,15 @@ var token = await db.EmailTokens
 | 7 | `Untakedown_RestoresAccess` | Untakedown. Everything works again. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Moderation/CreateReportController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Admin/SubjectStatusController.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Admin/AdminDeleteAccountController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Moderation/CreateReportController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Admin/SubjectStatusController.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Admin/AdminDeleteAccountController.cs`
 
 ---
 
 ### Phase 10: Sequencer and Event Stream
 
-#### `test/atompds.Tests/SequencerTests.cs`
+#### `test/Host.Tests/SequencerTests.cs`
 
 **Purpose:** Event sequencing, cursor management, firehose behavior.
 
@@ -646,15 +646,15 @@ var events = await db.RepoSeqs.OrderBy(e => e.Seq).ToListAsync();
 ```
 
 **Key source files to read:**
-- `src/pds_projects/Sequencer/SequencerRepository.cs`
-- `src/pds_projects/Sequencer/Outbox.cs`
-- `src/atompds/Controllers/Xrpc/Com/Atproto/Sync/SubscribeReposController.cs`
+- `src/Pds/Sequencer/SequencerRepository.cs`
+- `src/Pds/Sequencer/Outbox.cs`
+- `src/Host/Controllers/Xrpc/Com/Atproto/Sync/SubscribeReposController.cs`
 
 ---
 
 ### Phase 11: OAuth Flow
 
-#### `test/atompds.Tests/OAuthFlowTests.cs`
+#### `test/Host.Tests/OAuthFlowTests.cs`
 
 **Purpose:** End-to-end OAuth PKCE flow.
 
@@ -677,15 +677,15 @@ var events = await db.RepoSeqs.OrderBy(e => e.Seq).ToListAsync();
 | 13 | `Token_UnsupportedGrantType_ReturnsError` | Use `client_credentials` grant. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/OAuth/OAuthAuthorizeController.cs`
-- `src/atompds/Controllers/OAuth/OAuthTokenController.cs`
-- `src/atompds/Services/OAuth/OAuthSessionStore.cs`
+- `src/Host/Controllers/OAuth/OAuthAuthorizeController.cs`
+- `src/Host/Controllers/OAuth/OAuthTokenController.cs`
+- `src/Host/Services/OAuth/OAuthSessionStore.cs`
 
 ---
 
 ### Phase 12: Proxy and AppView Routing
 
-#### `test/atompds.Tests/ProxyTests.cs`
+#### `test/Host.Tests/ProxyTests.cs`
 
 **Purpose:** Verify proxy routing, catch-all behavior, service JWT creation.
 
@@ -705,15 +705,15 @@ var events = await db.RepoSeqs.OrderBy(e => e.Seq).ToListAsync();
 | 10 | `Proxy_ReadAfterWrite_PatchesProfile` | Create profile, get via proxy (mock AppView response), verify local write patched in. |
 
 **Key source files to read:**
-- `src/atompds/Controllers/Xrpc/AppViewProxyController.cs`
-- `src/atompds/Services/WriteSnapshotCache.cs`
-- `src/atompds/Services/ServiceJwtBuilder.cs`
+- `src/Host/Controllers/Xrpc/AppViewProxyController.cs`
+- `src/Host/Services/WriteSnapshotCache.cs`
+- `src/Host/Services/ServiceJwtBuilder.cs`
 
 ---
 
 ### Phase 13: Account Deactivation and Deletion
 
-#### `test/atompds.Tests/AccountDeactivationTests.cs`
+#### `test/Host.Tests/AccountDeactivationTests.cs`
 
 **Tests to write:**
 
@@ -727,7 +727,7 @@ var events = await db.RepoSeqs.OrderBy(e => e.Seq).ToListAsync();
 | 6 | `DeleteAccount_RemovesFromListRepos` |
 | 7 | `DeleteAccount_RemovesActorStore` |
 
-#### `test/atompds.Tests/AccountDeletionTests.cs`
+#### `test/Host.Tests/AccountDeletionTests.cs`
 
 **Tests to write:**
 
@@ -787,19 +787,19 @@ Phase 13 → AccountDeactivationTests (7 tests)
 After implementing each phase, run:
 
 ```bash
-dotnet test test/atompds.Tests/atompds.Tests.csproj --filter "FullyQualifiedName~atompds.Tests.PhaseName"
+dotnet test test/Host.Tests/Host.Tests.csproj --filter "FullyQualifiedName~Host.Tests.PhaseName"
 ```
 
 Or run all tests:
 
 ```bash
-dotnet test test/atompds.Tests/atompds.Tests.csproj
+dotnet test test/Host.Tests/Host.Tests.csproj
 ```
 
 Run full solution tests to verify no regressions:
 
 ```bash
-dotnet test atompds.slnx
+dotnet test BlueNilePds.slnx
 ```
 
 ---
@@ -808,9 +808,9 @@ dotnet test atompds.slnx
 
 After implementing a phase, verify:
 
-- [ ] All new tests pass (`dotnet test test/atompds.Tests/atompds.Tests.csproj`)
-- [ ] All existing tests still pass (`dotnet test atompds.slnx`)
-- [ ] No compilation warnings in test project (`dotnet build test/atompds.Tests/atompds.Tests.csproj`)
+- [ ] All new tests pass (`dotnet test test/Host.Tests/Host.Tests.csproj`)
+- [ ] All existing tests still pass (`dotnet test BlueNilePds.slnx`)
+- [ ] No compilation warnings in test project (`dotnet build test/Host.Tests/Host.Tests.csproj`)
 - [ ] Test names follow `<Method>_<Scenario>_<Expected>` pattern
 - [ ] Each test is independent (creates its own account/data or uses class-level shared state with `[Order]`)
 - [ ] Auth helpers are used consistently (no raw JWT construction in test methods)

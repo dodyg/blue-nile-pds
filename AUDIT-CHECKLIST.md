@@ -13,9 +13,9 @@ This audit checklist has been addressed and verified in the current branch.
 The current branch was validated with:
 
 ```bash
-dotnet build atompds.slnx
-dotnet test --solution atompds.slnx
-dotnet list atompds.slnx package --vulnerable --include-transitive --no-restore
+dotnet build BlueNilePds.slnx
+dotnet test --solution BlueNilePds.slnx
+dotnet list BlueNilePds.slnx package --vulnerable --include-transitive --no-restore
 ```
 
 ## Result summary

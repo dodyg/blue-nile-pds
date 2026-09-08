@@ -8,10 +8,10 @@ The canonical implementation verifies imported repo CARs and sync diffs, verifie
 
 Local evidence:
 
-- `src/projects/Repo/Types.cs` defines `CommitData` with `NewBlocks`, `RemovedCids`, and `RelevantBlocks`.
-- `src/projects/Repo/Repo.cs` formats commits from MST diffs, calls `GetCoveringProofAsync()` for each write key, and populates `RelevantBlocks` in `CommitData`.
-- `src/projects/Repo/Sync/Consumer.cs` implements `VerifyRepoAsync`, `VerifyDiffAsync`, `VerifyProofsAsync`, and `VerifyRecordsAsync`.
-- `src/atompds/Endpoints/Xrpc/Com/Atproto/Repo/ImportRepoEndpoints.cs` performs 5 verification steps (root count, CID integrity, commit presence, MST structure, forward delta) before writing blocks.
+- `src/Core/Repo/Types.cs` defines `CommitData` with `NewBlocks`, `RemovedCids`, and `RelevantBlocks`.
+- `src/Core/Repo/Repo.cs` formats commits from MST diffs, calls `GetCoveringProofAsync()` for each write key, and populates `RelevantBlocks` in `CommitData`.
+- `src/Core/Repo/Sync/Consumer.cs` implements `VerifyRepoAsync`, `VerifyDiffAsync`, `VerifyProofsAsync`, and `VerifyRecordsAsync`.
+- `src/Host/Endpoints/Xrpc/Com/Atproto/Repo/ImportRepoEndpoints.cs` performs 5 verification steps (root count, CID integrity, commit presence, MST structure, forward delta) before writing blocks.
 - Missing: `carBlockStream()` for spec-compliant CAR block ordering, `verifyIncomingCarBlocks()` for per-block CID-content integrity on import.
 
 Canonical reference:
@@ -27,10 +27,10 @@ Canonical PDS validates records against known lexicons, validates collection/rke
 
 Local evidence:
 
-- `src/pds_projects/ActorStore/Repo/Prepare.cs` has explicit TODOs for schema validation and currently sets `ValidationStatus.Unknown`.
+- `src/Pds/ActorStore/Repo/Prepare.cs` has explicit TODOs for schema validation and currently sets `ValidationStatus.Unknown`.
 - `Prepare.CidForSafeRecord()` says "This is probably not in any way correct" and hashes a generic JSON-to-CBOR conversion instead of the canonical lex-CBOR path.
 - Blob extraction in `Prepare.ExtractBlobReferences()` has a TODO for constraints and does not enforce blob accept/max-size constraints from schemas.
-- `src/atompds/Endpoints/Xrpc/Com/Atproto/Repo/ApplyWritesEndpoints.cs` returns validation status from those prepared writes, so write APIs can report `Unknown` for records that canonical PDS would validate or reject.
+- `src/Host/Endpoints/Xrpc/Com/Atproto/Repo/ApplyWritesEndpoints.cs` returns validation status from those prepared writes, so write APIs can report `Unknown` for records that canonical PDS would validate or reject.
 
 Canonical reference:
 
@@ -44,10 +44,10 @@ Canonical PDS has a database-backed OAuth provider store for authorization reque
 
 Local evidence:
 
-- `src/atompds/Services/OAuth/OAuthSessionStore.cs` stores authorizations and codes in `ConcurrentDictionary`, so authorization state is lost on process restart.
-- `src/atompds/Endpoints/OAuth/OAuthTokenEndpoints.cs` issues self-contained refresh JWTs and validates them statelessly; there is no persisted token record, revocation, token rotation state, used-refresh-token tracking, or device/client record.
-- `src/atompds/Endpoints/OAuth/OAuthClientMetadataEndpoints.cs` redirects directly to any `http://` or `https://` `client_id` instead of resolving and validating client metadata with the canonical safety model.
-- DPoP proof checks exist in `src/atompds/Middleware/AuthVerifier.cs`, but there is no durable nonce/replay/device/token store comparable to the canonical OAuth provider backing store.
+- `src/Host/Services/OAuth/OAuthSessionStore.cs` stores authorizations and codes in `ConcurrentDictionary`, so authorization state is lost on process restart.
+- `src/Host/Endpoints/OAuth/OAuthTokenEndpoints.cs` issues self-contained refresh JWTs and validates them statelessly; there is no persisted token record, revocation, token rotation state, used-refresh-token tracking, or device/client record.
+- `src/Host/Endpoints/OAuth/OAuthClientMetadataEndpoints.cs` redirects directly to any `http://` or `https://` `client_id` instead of resolving and validating client metadata with the canonical safety model.
+- DPoP proof checks exist in `src/Host/Middleware/AuthVerifier.cs`, but there is no durable nonce/replay/device/token store comparable to the canonical OAuth provider backing store.
 
 Canonical reference:
 
@@ -61,9 +61,9 @@ Canonical PDS includes a small set of `app.bsky.*` private-state endpoints and r
 
 Local evidence:
 
-- `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs` returns an empty preference list for `app.bsky.actor.getPreferences` and makes `app.bsky.actor.putPreferences` a no-op.
+- `src/Host/Endpoints/Xrpc/AppViewProxyEndpoints.cs` returns an empty preference list for `app.bsky.actor.getPreferences` and makes `app.bsky.actor.putPreferences` a no-op.
 - The same file has a catchall proxy limited to `app.bsky.*`, `chat.bsky.*`, and `com.atproto.moderation.*`; it does not provide broad canonical routing for other service families such as `tools.ozone.*`.
-- `src/atompds/Endpoints/Xrpc/Com/Atproto/Moderation/CreateReportEndpoints.cs` proxies report creation when report-service config is present, but moderation/admin-service proxy parity beyond that is limited.
+- `src/Host/Endpoints/Xrpc/Com/Atproto/Moderation/CreateReportEndpoints.cs` proxies report creation when report-service config is present, but moderation/admin-service proxy parity beyond that is limited.
 
 Canonical reference:
 
@@ -79,7 +79,7 @@ Canonical `bluesky-social/pds` is not just application code; it ships a producti
 Local evidence:
 
 - `Dockerfile` (multi-stage build, .NET 10 Alpine) and `compose.yaml` (PDS + Caddy with persistent volumes) exist.
-- `src/atompds/appsettings.Development.json.example` documents config.
+- `src/Host/appsettings.Development.json.example` documents config.
 - Missing: `installer.sh`, ACME certificate automation, production-ready health checks.
 
 Canonical reference:
@@ -91,4 +91,4 @@ Impact: Docker + Caddy deployment is working, but the setup is less streamlined 
 
 ## Important non-gap noted during review
 
-The admin password is not currently a production hardcoded-secret gap: `src/atompds/Config/ServerConfig.cs` only defaults `PDS_ADMIN_PASSWORD` to `secret` in dev mode and throws when it is absent outside dev mode.
+The admin password is not currently a production hardcoded-secret gap: `src/Host/Config/ServerConfig.cs` only defaults `PDS_ADMIN_PASSWORD` to `secret` in dev mode and throws when it is absent outside dev mode.
