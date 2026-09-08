@@ -447,6 +447,7 @@ public record ServerConfig
 
         services.AddSingleton<BackupService>();
         services.AddSingleton<RepoResyncService>();
+        services.AddScoped<UserDataExportService>();
 
         // Pending accounts
         services.AddDbContext<PendingAccountsDb>(x =>

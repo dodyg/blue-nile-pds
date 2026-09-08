@@ -1,5 +1,5 @@
 import { useQuery, useInfiniteQuery, useMutation } from '@tanstack/react-query';
-import { xrpcGet, downloadXrpcFile } from '../api/adminClient';
+import { xrpcGet, downloadAdminFile, downloadXrpcFile } from '../api/adminClient';
 import type { DescribeRepoResponse, ListRecordsResponse, GetRecordResponse } from '../types/admin';
 
 export const repoKeys = {
@@ -43,5 +43,12 @@ export function useDownloadAccountRepo() {
   return useMutation({
     mutationFn: (did: string) =>
       downloadXrpcFile('com.atproto.sync.getRepo', { did }, `${did}.car`),
+  });
+}
+
+export function useExportUserData() {
+  return useMutation({
+    mutationFn: ({ did, fileName }: { did: string; fileName: string }) =>
+      downloadAdminFile('export/user', { did, fileName }),
   });
 }
