@@ -8,6 +8,7 @@ public class PendingRegisterRequest
     public string? InviteCode { get; set; }
     public string? Location { get; set; }
     public string? AccountType { get; set; }
+    public string? VerificationCode { get; set; }
 }
 
 public class PendingLoginRequest

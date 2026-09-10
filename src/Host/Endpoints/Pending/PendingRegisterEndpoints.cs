@@ -1,4 +1,5 @@
 using BlueNilePds.Host.Endpoints.Pending.Models;
+using BlueNilePds.Host.Services;
 using Microsoft.AspNetCore.Mvc;
 using BlueNilePds.Pds.PendingAccounts.Services;
 
@@ -17,7 +18,8 @@ public static class PendingRegisterEndpoints
 
     private static async Task<IResult> RegisterAsync(
         [FromBody] PendingRegisterRequest request,
-        PendingAccountService pendingAccountService)
+        PendingAccountService pendingAccountService,
+        TurnstileVerifier turnstileVerifier)
     {
         if (string.IsNullOrWhiteSpace(request.Email) ||
             string.IsNullOrWhiteSpace(request.Handle) ||
@@ -25,6 +27,8 @@ public static class PendingRegisterEndpoints
         {
             return Results.BadRequest(new { error = "Email, handle, and password are required" });
         }
+
+        await turnstileVerifier.VerifyAsync(request.VerificationCode);
 
         var result = await pendingAccountService.RegisterAsync(
             request.Email, request.Handle, request.Password, request.InviteCode,

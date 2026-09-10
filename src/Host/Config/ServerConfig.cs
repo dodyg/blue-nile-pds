@@ -329,6 +329,12 @@ public record ServerConfig
             var logger = x.GetRequiredService<ILogger<CaptchaVerifier>>();
             return new CaptchaVerifier(httpClient, logger, config._env.PDS_HCAPTCHA_SECRET);
         });
+        services.AddSingleton(x =>
+        {
+            var httpClient = x.GetRequiredService<HttpClient>();
+            var logger = x.GetRequiredService<ILogger<TurnstileVerifier>>();
+            return new TurnstileVerifier(httpClient, logger, config._env.PDS_TURNSTILE_SECRET);
+        });
         services.AddSingleton<EmailAddressValidator>();
 
         // Write snapshot cache

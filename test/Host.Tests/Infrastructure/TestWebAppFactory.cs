@@ -142,6 +142,11 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                 return Json(HttpStatusCode.OK, "{\"success\":true}");
             }
 
+            if (request.RequestUri.Host.Equals("challenges.cloudflare.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(HttpStatusCode.OK, "{\"success\":true}");
+            }
+
             if (request.RequestUri.Host.Equals(PlcDirectoryHost, StringComparison.OrdinalIgnoreCase))
             {
                 return await HandlePlcAsync(request, cancellationToken);

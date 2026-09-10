@@ -133,6 +133,8 @@ public class ServerEnvironment
     // Anti-Abuse
     public string? PDS_HCAPTCHA_SECRET { get; set; }
     public string? PDS_HCAPTCHA_SITE_KEY { get; set; }
+    public string? PDS_TURNSTILE_SECRET { get; set; }
+    public string? PDS_TURNSTILE_SITE_KEY { get; set; }
 
     // OAuth
     public string? PDS_OAUTH_ENTRYWAY_URL { get; set; }
