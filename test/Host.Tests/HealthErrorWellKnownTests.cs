@@ -24,13 +24,13 @@ public class HealthErrorWellKnownTests
     }
 
     [Test]
-    public async Task Health_VersionStartsWithAtompds()
+    public async Task Health_VersionStartsWithBlueNilePds()
     {
         var response = await Client.GetAsync("/xrpc/_health");
         var json = await AuthTestHelper.ReadJsonAsync(response);
         var version = json.GetProperty("version").GetString();
         await Assert.That(version).IsNotNull();
-        await Assert.That(version!.StartsWith("atompds")).IsTrue();
+        await Assert.That(version!.StartsWith("blue-nile-pds")).IsTrue();
     }
 
     [Test]

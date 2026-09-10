@@ -5,6 +5,8 @@ import { clearPendingTokens, setPendingTokens } from '../stores/pendingAuth';
 
 export interface PendingConfigResponse {
   approvalRequired: boolean;
+  turnstileRequired: boolean;
+  turnstileSiteKey?: string;
 }
 
 export interface PendingProfileResponse {
@@ -49,7 +51,7 @@ export function usePendingProfile() {
 
 export function usePendingRegister() {
   return useMutation({
-    mutationFn: (body: { email: string; handle: string; password: string; inviteCode?: string; location?: string; accountType?: string }) =>
+    mutationFn: (body: { email: string; handle: string; password: string; inviteCode?: string; location?: string; accountType?: string; verificationCode?: string }) =>
       publicPendingPost<PendingRegisterResponse>('register', body),
     onSuccess: (data) => {
       setPendingTokens(data.accessJwt, data.refreshJwt);

@@ -57,7 +57,7 @@ dotnet test --solution BlueNilePds.slnx
 Run only the server integration tests:
 
 ```bash
-dotnet test --project test/Host.Tests/atompds.Tests.csproj
+dotnet test --project test/Host.Tests/Host.Tests.csproj
 ```
 
 Run a focused library test project:

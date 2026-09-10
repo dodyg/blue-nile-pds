@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import TurnstileWidget from '../components/TurnstileWidget';
 import { useCreateAccount, useSetAccountProfile } from '../hooks/useAccount';
 import { useDescribeServer, useHandleAvailability } from '../hooks/useServer';
 import { usePendingConfig, usePendingRegister } from '../hooks/usePending';
@@ -34,6 +35,11 @@ export default function Register() {
   const availability = useHandleAvailability(handle.trim());
   const pendingConfig = usePendingConfig();
   const approvalRequired = pendingConfig.data?.approvalRequired ?? false;
+  const turnstileRequired = approvalRequired
+    && (pendingConfig.data?.turnstileRequired ?? false)
+    && !!pendingConfig.data?.turnstileSiteKey;
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   const inviteRequired = describe.data?.inviteCodeRequired ?? false;
   const effectiveHandle = handle.trim().toLowerCase();
@@ -79,6 +85,10 @@ export default function Register() {
 
     try {
       if (approvalRequired) {
+        if (turnstileRequired && !turnstileToken) {
+          setFormError('Please complete the captcha.');
+          return;
+        }
         await pendingRegister.mutateAsync({
           email: email.trim(),
           handle: effectiveHandle,
@@ -86,6 +96,7 @@ export default function Register() {
           ...(inviteRequired ? { inviteCode: inviteCode.trim() } : {}),
           ...(location.trim() ? { location: location.trim() } : {}),
           ...(accountType !== 'individual' ? { accountType } : {}),
+          ...(turnstileRequired ? { verificationCode: turnstileToken } : {}),
         });
         navigate('/pending/profile');
         return;
@@ -111,6 +122,10 @@ export default function Register() {
       navigate('/profile');
     } catch (err) {
       setFormError(errMessage(err));
+      if (turnstileRequired) {
+        setTurnstileToken('');
+        setTurnstileKey((k) => k + 1);
+      }
     }
   }
 
@@ -213,6 +228,17 @@ export default function Register() {
                 required
               />
             </label>
+          )}
+
+          {turnstileRequired && pendingConfig.data?.turnstileSiteKey && (
+            <TurnstileWidget
+              siteKey={pendingConfig.data.turnstileSiteKey}
+              resetKey={turnstileKey}
+              onVerify={(token: string) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken('')}
+              onError={() => setTurnstileToken('')}
+              onUnsupported={() => setFormError('Captcha is not supported by your browser.')}
+            />
           )}
 
           {formError && (

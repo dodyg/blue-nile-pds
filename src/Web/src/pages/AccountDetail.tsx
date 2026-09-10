@@ -9,7 +9,7 @@ import { Card, CardHeader } from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { Table, Th, Tr, Td } from '../components/Table';
 import { useAccountInfo, useSubjectStatus, useUpdateSubjectStatus, useDeleteAccount, useEnableInvites, useDisableInvites, useUpdateAccountPassword, useUpdateAccountEmail, useUpdateAccountHandle } from '../hooks/useAccounts';
-import { useDescribeRepo, useDownloadAccountRepo } from '../hooks/useRepo';
+import { useDescribeRepo, useDownloadAccountRepo, useExportUserData } from '../hooks/useRepo';
 import { useStartRepoResync } from '../hooks/useRepoResync';
 
 export default function AccountDetail() {
@@ -44,7 +44,10 @@ export default function AccountDetail() {
   const updateEmail = useUpdateAccountEmail();
   const updateHandle = useUpdateAccountHandle();
   const downloadRepo = useDownloadAccountRepo();
+  const exportUserData = useExportUserData();
   const startResync = useStartRepoResync();
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportBusy = downloadRepo.isPending || exportUserData.isPending;
 
   const takedownRef = subjectStatus?.takedown?.ref ?? null;
   const isTakenDown = !!takedownRef;
@@ -73,20 +76,62 @@ export default function AccountDetail() {
         description={info.did}
         actions={(
           <>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => downloadRepo.mutate(info.did, { onSuccess: () => setMessage('Repo downloaded as CAR file') })}
-              disabled={downloadRepo.isPending}
+            <div
+              className="relative"
+              onKeyDown={(e) => { if (e.key === 'Escape') setExportMenuOpen(false); }}
             >
-              {downloadRepo.isPending ? 'Downloading…' : 'Download data'}
-            </Button>
+              <Button
+                variant="primary"
+                size="md"
+                aria-haspopup="menu"
+                aria-expanded={exportMenuOpen}
+                onClick={() => setExportMenuOpen((open) => !open)}
+                disabled={exportBusy}
+              >
+                {downloadRepo.isPending ? 'Downloading…' : exportUserData.isPending ? 'Exporting…' : 'Export data ▾'}
+              </Button>
+              {exportMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setExportMenuOpen(false)} />
+                  <div role="menu" className="absolute right-0 z-40 mt-1 w-56 rounded-sm border border-subtle bg-surface py-1 shadow-card">
+                    <button
+                      role="menuitem"
+                      className="block w-full px-3 py-2 text-left transition-colors hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring disabled:opacity-50"
+                      disabled={exportBusy}
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        downloadRepo.mutate(info.did, { onSuccess: () => setMessage('Repo downloaded as CAR file') });
+                      }}
+                    >
+                      <span className="block text-sm font-medium text-ink">Repo archive (CAR)</span>
+                      <span className="block font-mono text-xs text-muted">Raw repo data</span>
+                    </button>
+                    <button
+                      role="menuitem"
+                      className="block w-full px-3 py-2 text-left transition-colors hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring disabled:opacity-50"
+                      disabled={exportBusy}
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        exportUserData.mutate(
+                          { did: info.did, fileName: `export-${info.handle}.zip` },
+                          { onSuccess: () => setMessage('Readable export downloaded') },
+                        );
+                      }}
+                    >
+                      <span className="block text-sm font-medium text-ink">Readable export (ZIP)</span>
+                      <span className="block font-mono text-xs text-muted">JSON records + media</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
             {info.invitesDisabled ? <Badge tone="warning">invites off</Badge> : <Badge tone="success">invites on</Badge>}
           </>
         )}
       />
 
       {downloadRepo.error && <p className="mb-4 text-sm text-danger">{downloadRepo.error.message}</p>}
+      {exportUserData.error && <p className="mb-4 text-sm text-danger">{exportUserData.error.message}</p>}
 
       <Card className="mb-6 p-5">
         <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">

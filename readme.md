@@ -56,7 +56,7 @@ dotnet test --solution BlueNilePds.slnx
 Run the main integration suite only:
 
 ```bash
-dotnet test --project test/Host.Tests/atompds.Tests.csproj
+dotnet test --project test/Host.Tests/Host.Tests.csproj
 ```
 
 ## Run the server

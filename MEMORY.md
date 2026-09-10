@@ -48,7 +48,7 @@ BlueNilePds.slnx
     ├── Crypto.Tests/          Secp256k1 keypair lifecycle, signing, verification, DID key parsing (26 tests)
     ├── Repo.Tests/            MST insert/delete/walk, CAR encoding, round-trip (11 tests)
     ├── ActorStore.Tests/      `Prepare.ExtractBlobReferences` — blob reference extraction from JSON (156 tests)
-    ├── atompds.Tests/         Integration tests — all XRPC namespaces via WebApplicationFactory (282 tests; 176 pass, 101 fail, 5 skip — pre-existing failures in account/session/crud flows)
+    ├── Host.Tests/         Integration tests — all XRPC namespaces via WebApplicationFactory (282 tests; 176 pass, 101 fail, 5 skip — pre-existing failures in account/session/crud flows)
     ├── SubscribeTester/       Manual WebSocket subscription test tool
     └── data/                  Shared test data (blob files)
 ```
@@ -85,7 +85,7 @@ pds_projects layer (Config depends on Crypto):
   ActorStore → BlobStore, CID, CommonDb, DidLib, Handle, Repo, Config, Xrpc
   Sequencer → AccountManager, ActorStore
 
-atompds host references ALL pds_projects + Repo
+Host references ALL src/Pds projects + Core/Repo
 ```
 
 ---
@@ -170,7 +170,7 @@ All HTTP endpoints use ASP.NET Core Minimal APIs. No MVC controllers exist. Endp
 ### Endpoint Pattern
 
 ```csharp
-namespace atompds.Endpoints.Xrpc.Com.Atproto.Server;
+namespace BlueNilePds.Endpoints.Xrpc.Com.Atproto.Server;
 
 public static class XxxEndpoints
 {
@@ -383,10 +383,10 @@ dotnet test test/Common.Tests/Common.Tests.csproj
 dotnet test test/Crypto.Tests/Crypto.Tests.csproj
 dotnet test test/Repo.Tests/Repo.Tests.csproj
 dotnet test test/ActorStore.Tests/ActorStore.Tests.csproj
-dotnet test test/Host.Tests/atompds.Tests.csproj
+dotnet test test/Host.Tests/Host.Tests.csproj
 ```
 
-**Total: 504 tests across 6 test projects** (398 pass, 101 fail pre-existing in atompds.Tests, 5 skipped).
+**Total: 504 tests across 6 test projects** (398 pass, 101 fail pre-existing in Host.Tests, 5 skipped).
 
 ---
 
@@ -509,6 +509,6 @@ Uses DurableTask to batch-migrate all per-actor SQLite databases. Discovers acto
 | `Microsoft.DurableTask.SqlServer` | SQL Server backend for DurableTask (migration tool) |
 | `StackExchange.Redis` | Redis client for `RedisScratchCache` |
 | `Microsoft.AspNetCore.OpenApi` | OpenAPI support — referenced but not configured in Program.cs |
-| `Microsoft.AspNetCore.Mvc.Testing` | Integration test host (`WebApplicationFactory`) for atompds.Tests |
+| `Microsoft.AspNetCore.Mvc.Testing` | Integration test host (`WebApplicationFactory`) for Host.Tests |
 | `Microsoft.VisualStudio.Threading.Analyzers` | Roslyn analyzer (applied via `Directory.Build.props`) |
 | `Microsoft.Extensions.Logging.*` | Logging abstractions, console, debug providers |

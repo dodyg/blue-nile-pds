@@ -19,6 +19,9 @@ public static class AdminApiEndpoints
         var resync = app.MapGroup("api/admin/repo/resync");
         resync.MapPost("", HandleResyncAsync).WithMetadata(new AdminTokenAttribute());
         resync.MapGet("status", HandleResyncStatus).WithMetadata(new AdminTokenAttribute());
+
+        var export = app.MapGroup("api/admin/export");
+        export.MapGet("user", HandleExportUserAsync).WithMetadata(new AdminTokenAttribute());
         return app;
     }
 
@@ -70,6 +73,26 @@ public static class AdminApiEndpoints
     {
         backupService.DeleteBackup(request.FileName);
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> HandleExportUserAsync(
+        string? did,
+        UserDataExportService exportService,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(did))
+            throw new XRPCError(new InvalidRequestErrorDetail("did is required"));
+
+        var (resolvedDid, handle) = await exportService.ResolveAccountAsync(did.Trim());
+        var fileName = UserDataExportService.BuildFileName(handle);
+
+        // Buffer the zip in memory: ZipArchive performs synchronous writes
+        // internally, which Kestrel's response stream disallows.
+        // Per-user exports are small enough that buffering is safe.
+        using var buffer = new MemoryStream();
+        await exportService.ExportToStreamAsync(resolvedDid, handle, buffer, cancellationToken);
+
+        return Results.File(buffer.ToArray(), "application/zip", fileName);
     }
 
     private static async Task<IResult> HandleResyncAsync(RepoResyncService resyncService, RepoResyncRequest request)

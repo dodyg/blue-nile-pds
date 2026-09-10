@@ -13,7 +13,7 @@ These are blocking correctness/security issues. Ship nothing to production until
 ### T-03: CID Computation Correctness
 **Gap:** 12.15  
 **Priority:** Must-have  
-**File:** `src/pds_projects/ActorStore/Repo/Prepare.cs`
+**File:** `src/Pds/ActorStore/Repo/Prepare.cs`
 
 The `CidForSafeRecord()` method (line 82) does `JsonElement → CBOR → CID`. Verify byte-level equivalence against the canonical by:
 
@@ -26,11 +26,11 @@ The fix likely requires using a deterministic DAG-CBOR encoder. The `PeterO.Cbor
 ### T-06: Lexicon Record Validation
 **Gap:** 12.11  
 **Priority:** Must-have  
-**File:** `src/pds_projects/ActorStore/Repo/Prepare.cs`
+**File:** `src/Pds/ActorStore/Repo/Prepare.cs`
 
 Replace the `// TODO: need to properly validate the record` block (line 31) with real validation:
 
-1. Build a static map of known lexicon schemas from the JSON files in `src/projects/CommonWeb/Lexicons/`.
+1. Build a static map of known lexicon schemas from the JSON files in `src/Core/CommonWeb/Lexicons/`.
 2. For each create/update, verify `$type` exists in the schema map.
 3. Validate required fields, field types, string formats (datetime, DID, handle, etc.) per lexicon.
 4. Reject records with `createdAt` in the future by more than a configurable tolerance.
@@ -49,7 +49,7 @@ These close protocol-level gaps that affect interop with the relay/indexer netwo
 ### T-08: CAR Streamable Block Ordering
 **Gap:** 12.7  
 **Priority:** High  
-**Files:** `src/projects/Repo/MST/MST.cs`, `src/pds_projects/ActorStore/Repo/SqlRepoTransactor.cs`
+**Files:** `src/Core/Repo/MST/MST.cs`, `src/Pds/ActorStore/Repo/SqlRepoTransactor.cs`
 
 Add `CarBlockStreamAsync()` to `MST.cs`, mirroring `carBlockStream()` from `packages/repo/src/mst/mst.ts` lines 350–385:
 
@@ -66,7 +66,7 @@ Update `GetRepoController` and the sync `getRepo` endpoint to use `CarBlockStrea
 ### T-10: Commit Re-signing (`resignCommit`)
 **Gap:** 12.3  
 **Priority:** Medium  
-**File:** `src/projects/Repo/Repo.cs`
+**File:** `src/Core/Repo/Repo.cs`
 
 Add two methods matching the canonical:
 
@@ -86,7 +86,7 @@ Wire into the key rotation flow (`rotate-keys` admin script, T-19).
 ### T-11: Blob Constraints Enforcement
 **Gap:** 12.12  
 **Priority:** Medium  
-**File:** `src/pds_projects/ActorStore/Repo/Prepare.cs`, `src/pds_projects/ActorStore/Repo/RepoRepository.cs`
+**File:** `src/Pds/ActorStore/Repo/Prepare.cs`, `src/Pds/ActorStore/Repo/RepoRepository.cs`
 
 1. In `ExtractBlobReferences()`, parse the lexicon field constraints (Accept MIME list, maxSize) from the parent object's `$type` + field name and populate `BlobConstraint.Accept` and `BlobConstraint.MaxSize`.
 2. In `ProcessWritesAsync()`, after collecting blobs per write, look up each blob's metadata from `BlobTransactor.GetBlobAsync()` and verify:
@@ -99,7 +99,7 @@ Wire into the key rotation flow (`rotate-keys` admin script, T-19).
 ### T-12: Content Type Sniffing for Blob Upload
 **Gap:** 12.13  
 **Priority:** Low  
-**File:** `src/pds_projects/ActorStore/Repo/BlobTransactor.cs`
+**File:** `src/Pds/ActorStore/Repo/BlobTransactor.cs`
 
 After writing the blob to temp storage, read the first 512 bytes back and run MIME sniffing (e.g., via `System.Net.Http.Headers.MediaTypeHeaderValue` + magic bytes comparison). Compare the sniffed MIME type against the client-declared MIME type and reject mismatches for high-risk types (HTML, SVG, JavaScript).
 
@@ -108,7 +108,7 @@ After writing the blob to temp storage, read the first 512 bytes back and run MI
 ### T-13: Legacy Blob Reference Support
 **Gap:** 12.14  
 **Priority:** Low  
-**File:** `src/pds_projects/ActorStore/Repo/Prepare.cs`
+**File:** `src/Pds/ActorStore/Repo/Prepare.cs`
 
 In `TryExtractBlobReference()`, add a second branch before the current `$type: blob` check:
 
@@ -127,7 +127,7 @@ if (!elem.TryGetProperty("$type", out _) &&
 ### T-14: MST Structural Validation
 **Gap:** 12.18  
 **Priority:** Low  
-**File:** `src/projects/Repo/MST/Util.cs`
+**File:** `src/Core/Repo/MST/Util.cs`
 
 In `DeserializeNodeData()`, add after key format validation:
 1. Verify entries are in strict lexicographic (UTF-8 byte) ascending order.
@@ -146,7 +146,7 @@ Complete the proxy/routing layer to match canonical behavior.
 ### T-17: Dedicated Chat Service Routing
 **Gap:** 2.2  
 **Priority:** Medium  
-**Files:** `src/atompds/Config/ServerEnvironment.cs`, `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs`
+**Files:** `src/Host/Config/ServerEnvironment.cs`, `src/Host/Endpoints/Xrpc/AppViewProxyEndpoints.cs`
 
 **Step 1** — Add config:
 ```csharp
@@ -165,7 +165,7 @@ public string? PDS_CHAT_SERVICE_DID { get; set; }
 ### T-18: Protected Method Enforcement
 **Gap:** 2.3, 2.4  
 **Priority:** Medium  
-**File:** `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs`
+**File:** `src/Host/Endpoints/Xrpc/AppViewProxyEndpoints.cs`
 
 Define `PROTECTED_METHODS` set (matching the canonical 16-method list: session, email, identity, app password operations). In `CatchallProxyAsync`, before proxying, check if `nsid` is in this set and return `NotFound` immediately.
 
@@ -176,7 +176,7 @@ Define `PRIVILEGED_METHODS` set (chat + `createAccount`). In the proxy path, ver
 ### T-19: Response Header Forwarding
 **Gap:** 2.6  
 **Priority:** Low  
-**File:** `src/atompds/Endpoints/Xrpc/AppViewProxyEndpoints.cs`
+**File:** `src/Host/Endpoints/Xrpc/AppViewProxyEndpoints.cs`
 
 In `InnerAsync()`, after receiving the upstream response, forward these headers to the client response if present:
 ```csharp
@@ -198,7 +198,7 @@ Close the auth method gaps to support Ozone and service-to-service auth.
 ### T-20: Moderator Auth & Service JWT Auth
 **Gap:** 4.2, 4.3  
 **Priority:** High (required for T-16)  
-**File:** `src/atompds/Middleware/AuthVerifier.cs`
+**File:** `src/Host/Middleware/AuthVerifier.cs`
 
 Add the following auth methods to `AuthVerifier`:
 
@@ -215,7 +215,7 @@ Add the following auth methods to `AuthVerifier`:
 ### T-21: Takendown Auth Scope
 **Gap:** 4.6  
 **Priority:** Low  
-**File:** `src/atompds/Middleware/AuthVerifier.cs`
+**File:** `src/Host/Middleware/AuthVerifier.cs`
 
 Add `Takendown` to `AuthScope` enum and `ScopeMap`:
 ```csharp
@@ -229,7 +229,7 @@ When an account is taken down, issue tokens with the `Takendown` scope. Restrict
 ### T-22: Entryway PLC Rotation Key & Admin Token
 **Gap:** 4.5  
 **Priority:** Medium  
-**Files:** `src/atompds/Config/ServerEnvironment.cs`, `src/atompds/Middleware/AuthVerifier.cs`
+**Files:** `src/Host/Config/ServerEnvironment.cs`, `src/Host/Middleware/AuthVerifier.cs`
 
 Add:
 ```csharp
@@ -250,7 +250,7 @@ Restore the commented-out tables and bring the schema to parity.
 ### T-23: Restore Commented-Out DB Tables
 **Gap:** 7.1, 6.7, 6.8  
 **Priority:** Medium  
-**Files:** `src/pds_projects/AccountManager/Migrations/` (new migration)
+**Files:** `src/Pds/AccountManager/Migrations/` (new migration)
 
 Create migration `20260610000001_RestoreSecurityTables.cs` that adds:
 
@@ -269,9 +269,9 @@ Wire `used_refresh_token` into `RefreshSession` to detect and block replayed ref
 ### T-24: Persistent DID Cache
 **Gap:** 6.1, 7.3  
 **Priority:** Medium  
-**Files:** `src/projects/Identity/`, `src/atompds/Config/ServerConfig.cs`
+**Files:** `src/Core/Identity/`, `src/Host/Config/ServerConfig.cs`
 
-Create `SqliteDIDCache.cs` in `src/projects/Identity/` backed by `PDS_DID_CACHE_DB_LOCATION`:
+Create `SqliteDIDCache.cs` in `src/Core/Identity/` backed by `PDS_DID_CACHE_DB_LOCATION`:
 - Schema: `did_cache (did TEXT PK, doc JSON, updatedAt DATETIME, staleAt DATETIME, expiresAt DATETIME)`
 - Implement `IDidCache` with stale-while-revalidate: return stale entries but kick off background refresh.
 - Register in `ServerConfig.cs` instead of `MemoryCache` when `PDS_DID_CACHE_DB_LOCATION` is set.
@@ -287,7 +287,7 @@ Complete the OAuth implementation to match the canonical provider.
 ### T-25: OAuth Persistence (Sessions, Codes, Clients)
 **Gap:** 3.1  
 **Priority:** High  
-**Files:** `src/atompds/Services/OAuth/OAuthSessionStore.cs`
+**Files:** `src/Host/Services/OAuth/OAuthSessionStore.cs`
 
 Replace the in-memory `OAuthSessionStore` with SQLite-backed storage using the tables from T-23 (`authorization_request`, `authorized_client`, `token`):
 - Persist authorization codes with expiry.
@@ -300,7 +300,7 @@ Replace the in-memory `OAuthSessionStore` with SQLite-backed storage using the t
 ### T-26: OAuth PAR (Pushed Authorization Requests)
 **Gap:** 3.1, 3.2  
 **Priority:** Medium  
-**File:** `src/atompds/Endpoints/OAuth/` (new endpoint)
+**File:** `src/Host/Endpoints/OAuth/` (new endpoint)
 
 Add `POST /oauth/par` endpoint:
 - Accepts standard OAuth authorization parameters in the POST body.
@@ -317,7 +317,7 @@ Update `/.well-known/oauth-authorization-server` to advertise:
 ### T-27: OAuth Well-Known Metadata Completion
 **Gap:** 3.2  
 **Priority:** Low  
-**File:** `src/atompds/Endpoints/WellKnownEndpoints.cs`
+**File:** `src/Host/Endpoints/WellKnownEndpoints.cs`
 
 Extend the `/.well-known/oauth-authorization-server` response to include:
 - `client_id_metadata_document` URL
@@ -330,7 +330,7 @@ Extend the `/.well-known/oauth-authorization-server` response to include:
 ### T-28: DPoP Secret Configuration
 **Gap:** 4.4  
 **Priority:** Low  
-**Files:** `src/atompds/Config/ServerEnvironment.cs`
+**Files:** `src/Host/Config/ServerEnvironment.cs`
 
 Add:
 ```csharp
@@ -348,7 +348,7 @@ Use it as a secondary HMAC key to validate DPoP proof `jti` values for replay pr
 ### T-29: Rate Limit Bypass Mechanisms
 **Gap:** 8.1  
 **Priority:** Medium  
-**Files:** `src/atompds/Config/ServerEnvironment.cs`, `src/atompds/Middleware/RateLimitMiddleware.cs`
+**Files:** `src/Host/Config/ServerEnvironment.cs`, `src/Host/Middleware/RateLimitMiddleware.cs`
 
 Add:
 ```csharp
@@ -365,7 +365,7 @@ In `RateLimitMiddleware`, before applying rate limits:
 ### T-30: Redis-Backed Rate Limiting
 **Gap:** 8.2  
 **Priority:** Medium  
-**Files:** `src/atompds/Middleware/RateLimitMiddleware.cs`
+**Files:** `src/Host/Middleware/RateLimitMiddleware.cs`
 
 When `PDS_REDIS_URL` is set, replace the in-memory `MemoryCache` sliding window with a Redis-backed implementation using `StackExchange.Redis`. Use atomic Lua scripts (`INCR` + `EXPIRE`) for distributed accuracy across multiple PDS instances.
 
@@ -376,7 +376,7 @@ Also add `PDS_REDIS_SCRATCH_PASSWORD` to `ServerEnvironment.cs` for Redis authen
 ### T-31: Remaining Missing Config Variables
 **Gap:** 5.1, 5.2  
 **Priority:** Low  
-**File:** `src/atompds/Config/ServerEnvironment.cs`
+**File:** `src/Host/Config/ServerEnvironment.cs`
 
 Add the missing environment variables:
 - `PDS_DPOP_SECRET` (see T-28)
@@ -401,7 +401,7 @@ Wire each into the appropriate service. For `PDS_INVITE_REQUIRED`, change the de
 ### T-33: Separate Moderation Mailer
 **Gap:** 6.3  
 **Priority:** Low  
-**Files:** `src/pds_projects/Mailer/`, `src/atompds/Config/ServerEnvironment.cs`
+**Files:** `src/Pds/Mailer/`, `src/Host/Config/ServerEnvironment.cs`
 
 Create `ModerationMailer.cs` alongside `SmtpMailer.cs`. It reads from `PDS_MODERATION_EMAIL_SMTP_URL` and `PDS_MODERATION_EMAIL_ADDRESS` (add to `ServerEnvironment.cs`). If these are not set, fall back to the default mailer. Wire into moderation-related email sends.
 
@@ -410,7 +410,7 @@ Create `ModerationMailer.cs` alongside `SmtpMailer.cs`. It reads from `PDS_MODER
 ### T-34: HTML Email Templates
 **Gap:** 11.6  
 **Priority:** Low  
-**Files:** `src/pds_projects/Mailer/Templates/` (new directory)
+**Files:** `src/Pds/Mailer/Templates/` (new directory)
 
 Add Handlebars-style or Razor-based HTML email templates for:
 - `confirm-email.html`
@@ -426,7 +426,7 @@ Update `SmtpMailer` to render HTML emails with a plain-text fallback part (multi
 ### T-35: Handle Backup Nameservers
 **Gap:** 6.5  
 **Priority:** Low  
-**Files:** `src/atompds/Config/ServerEnvironment.cs`, `src/projects/Handle/HandleManager.cs`
+**Files:** `src/Host/Config/ServerEnvironment.cs`, `src/Core/Handle/HandleManager.cs`
 
 Add:
 ```csharp
@@ -440,7 +440,7 @@ In `HandleManager` DNS resolution, if the primary DNS lookup fails, retry agains
 ### T-36: Recovery & Maintenance Scripts
 **Gap:** 6.2  
 **Priority:** Medium  
-**Files:** `src/pdsadmin-cli/` or new project `src/pdstools/`
+**Files:** `src/Tools/PdsAdmin.Cli/` or new project `src/pdstools/`
 
 Implement the missing admin tools as subcommands of `pdsadmin-cli` (or a new `pdstools` CLI):
 
@@ -461,7 +461,7 @@ Implement the missing admin tools as subcommands of `pdsadmin-cli` (or a new `pd
 ### T-38: Graceful Shutdown
 **Gap:** 10.2  
 **Priority:** Low  
-**File:** `src/atompds/Services/BackgroundJobQueue.cs` (or wherever `BackgroundJobWorker` lives)
+**File:** `src/Host/Services/BackgroundJobQueue.cs` (or wherever `BackgroundJobWorker` lives)
 
 Implement `StopAsync(CancellationToken)` with explicit queue drain:
 ```csharp
@@ -482,7 +482,7 @@ Register SIGTERM → `IHostApplicationLifetime.StopApplication()`.
 
 ### T-39: Missing Integration Test Areas
 **Gap:** 9.1  
-**Files:** `test/atompds.Tests/`
+**Files:** `test/Host.Tests/`
 
 Add test files for the gaps in canonical coverage:
 

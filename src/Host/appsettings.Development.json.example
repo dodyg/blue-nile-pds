@@ -43,6 +43,34 @@
     // Account approval — require admin approval for new accounts (default false)
     "PDS_ACCOUNT_APPROVAL_REQUIRED": false,
     "PDS_ADMIN_EMAIL": "admin@example.com", // receives pending-account notifications; falls back to PDS_CONTACT_EMAIL
+    "PDS_PENDING_DB_LOCATION": "pending.sqlite",
+
+    // Invites — require an invite code for registration (default true)
+    "PDS_INVITE_REQUIRED": true,
+
+    // Admin — password for the admin UI (Basic auth as admin:<password>) and
+    // the /api/admin endpoints. Set a strong value; empty disables admin login.
+    "PDS_ADMIN_PASSWORD": "",
+
+    // Anti-abuse — Cloudflare Turnstile for the pending-registration form.
+    // Get keys at https://dash.cloudflare.com → Turnstile. Empty = disabled.
+    "PDS_TURNSTILE_SECRET": "",
+    "PDS_TURNSTILE_SITE_KEY": "",
+
+    // Anti-abuse — hCaptcha for direct xrpc account creation (legacy).
+    // Empty = disabled.
+    "PDS_HCAPTCHA_SECRET": "",
+    "PDS_HCAPTCHA_SITE_KEY": "",
+
+    // Rate limiting (default true). Requests from bypass IPs or carrying the
+    // bypass key skip limits.
+    "PDS_RATE_LIMITS_ENABLED": true,
+    "PDS_RATE_LIMIT_BYPASS_KEY": "",
+    "PDS_RATE_LIMIT_BYPASS_IPS": [],
+
+    // Backups — directory for whole-PDS snapshots, and how many to keep (default 5)
+    "PDS_BACKUP_DIRECTORY": "~/.pds_data/backups",
+    "PDS_BACKUP_MAX_KEEP": 5,
 
     // SMTP Mailer configuration
     "PDS_SMTP_HOST": "smtp.example.com",

@@ -29,7 +29,7 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
     public TestWebAppFactory(IReadOnlyDictionary<string, string?>? additionalConfig)
     {
         _additionalConfig = additionalConfig;
-        _tempDir = Path.Combine(Path.GetTempPath(), $"atompds-tests-{Guid.NewGuid():N}");
+        _tempDir = Path.Combine(Path.GetTempPath(), $"bluenile-tests-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
         Directory.CreateDirectory(Path.Combine(_tempDir, "blocks"));
         Directory.CreateDirectory(Path.Combine(_tempDir, "temp"));
@@ -138,6 +138,11 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
             }
 
             if (request.RequestUri.Host.Equals("api.hcaptcha.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(HttpStatusCode.OK, "{\"success\":true}");
+            }
+
+            if (request.RequestUri.Host.Equals("challenges.cloudflare.com", StringComparison.OrdinalIgnoreCase))
             {
                 return Json(HttpStatusCode.OK, "{\"success\":true}");
             }

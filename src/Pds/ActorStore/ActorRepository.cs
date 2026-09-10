@@ -44,6 +44,15 @@ public class ActorRepository : IDisposable, IAsyncDisposable
             .ToArray();
     }
 
+    public async Task<string[]> ListCollectionsAsync()
+    {
+        return (await _db.Records
+            .Select(r => r.Collection)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToListAsync()).ToArray();
+    }
+
     public async Task<T> TransactDbAsync<T>(Func<ActorStoreDb, Task<T>> fn)
     {
         await using var tx = await _db.Database.BeginTransactionAsync();

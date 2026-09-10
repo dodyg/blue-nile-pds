@@ -50,7 +50,7 @@ export default function Layout() {
       </main>
       <footer className="border-t border-subtle">
         <div className="mx-auto max-w-5xl px-4 py-4 text-center text-xs text-muted">
-          Blue Nile PDS · built with atompds
+          Blue Nile PDS
         </div>
       </footer>
     </div>

@@ -16,7 +16,7 @@ public class ServerEnvironment
     private const int DAY = 24 * HOUR;
 
     // Service Configuration
-    public string PDS_SERVICE_NAME { get; set; } = "AtomPDS";
+    public string PDS_SERVICE_NAME { get; set; } = "Blue Nile PDS";
     public int PDS_PORT { get; set; } = 2583;
     public string PDS_HOSTNAME { get; set; } = "localhost";
     public string? PDS_SERVICE_DID { get; set; }
@@ -133,6 +133,8 @@ public class ServerEnvironment
     // Anti-Abuse
     public string? PDS_HCAPTCHA_SECRET { get; set; }
     public string? PDS_HCAPTCHA_SITE_KEY { get; set; }
+    public string? PDS_TURNSTILE_SECRET { get; set; }
+    public string? PDS_TURNSTILE_SITE_KEY { get; set; }
 
     // OAuth
     public string? PDS_OAUTH_ENTRYWAY_URL { get; set; }
