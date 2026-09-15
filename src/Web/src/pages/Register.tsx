@@ -23,7 +23,10 @@ const ACCOUNT_TYPES = [
 export default function Register() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
-  const [handle, setHandle] = useState('');
+  const [handlePrefix, setHandlePrefix] = useState('');
+  const [handleDomain, setHandleDomain] = useState('');
+  const [customHandle, setCustomHandle] = useState('');
+  const [useCustomDomain, setUseCustomDomain] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -32,7 +35,18 @@ export default function Register() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const describe = useDescribeServer();
-  const availability = useHandleAvailability(handle.trim());
+
+  const CUSTOM_DOMAIN_VALUE = '__custom';
+  const domains = describe.data?.availableUserDomains ?? [];
+  const activeDomain = handleDomain || domains[0] || '';
+
+  const effectiveHandle = useCustomDomain
+    ? customHandle.trim().toLowerCase()
+    : `${handlePrefix.trim().toLowerCase()}${activeDomain}`;
+
+  const availabilityHandle =
+    useCustomDomain || handlePrefix.trim() ? effectiveHandle : '';
+  const availability = useHandleAvailability(availabilityHandle);
   const pendingConfig = usePendingConfig();
   const approvalRequired = pendingConfig.data?.approvalRequired ?? false;
   const turnstileRequired = approvalRequired
@@ -42,7 +56,6 @@ export default function Register() {
   const [turnstileKey, setTurnstileKey] = useState(0);
 
   const inviteRequired = describe.data?.inviteCodeRequired ?? false;
-  const effectiveHandle = handle.trim().toLowerCase();
   const handleAvailable =
     availability.data?.result.$type === 'com.atproto.temp.checkHandleAvailability#resultAvailable';
 
@@ -62,9 +75,25 @@ export default function Register() {
       setFormError('Enter a valid email address.');
       return;
     }
-    if (effectiveHandle.length < 3 || !effectiveHandle.includes('.')) {
-      setFormError('Handle must be your username followed by a domain (e.g. alice.example).');
-      return;
+    if (useCustomDomain) {
+      if (effectiveHandle.length < 3 || !effectiveHandle.includes('.')) {
+        setFormError('Handle must be your username followed by a domain (e.g. alice.example).');
+        return;
+      }
+    } else {
+      const prefix = handlePrefix.trim().toLowerCase();
+      if (!prefix) {
+        setFormError('Enter a handle prefix.');
+        return;
+      }
+      if (!/^[a-z0-9-]+$/.test(prefix)) {
+        setFormError('Handle prefix may only contain letters, numbers, and hyphens.');
+        return;
+      }
+      if (!activeDomain) {
+        setFormError('No handle domain is available. Use a custom domain instead.');
+        return;
+      }
     }
     if (availability.isSuccess && !handleAvailable) {
       setFormError('That handle is not available.');
@@ -149,15 +178,89 @@ export default function Register() {
             />
           </label>
 
-          <label className="block">
+          <div className="block">
             <span className="mb-1 block text-sm font-medium text-secondary">Handle</span>
-            <Input
-              value={handle}
-              onChange={(e) => setHandle(e.target.value)}
-              placeholder="alice.example"
-              autoComplete="username"
-              required
-            />
+            {domains.length > 0 && !useCustomDomain ? (
+              <>
+                <div className="flex">
+                  <Input
+                    value={handlePrefix}
+                    onChange={(e) => {
+                      const raw = e.target.value.toLowerCase();
+                      const domain = activeDomain.toLowerCase();
+                      setHandlePrefix(
+                        domain && raw.endsWith(domain) ? raw.slice(0, -domain.length) : raw,
+                      );
+                    }}
+                    placeholder="alice"
+                    autoComplete="username"
+                    required
+                    className="rounded-r-none"
+                  />
+                  <span className="inline-flex shrink-0 items-center rounded-r-sm border border-l-0 border-subtle bg-hover px-3 py-2 font-mono text-sm text-secondary">
+                    {activeDomain || '…'}
+                  </span>
+                </div>
+                {domains.length > 1 && (
+                  <select
+                    value={activeDomain}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === CUSTOM_DOMAIN_VALUE) {
+                        setUseCustomDomain(true);
+                        return;
+                      }
+                      setHandleDomain(value);
+                      setHandlePrefix((prev) => {
+                        const lowered = prev.toLowerCase();
+                        const next = value.toLowerCase();
+                        return next && lowered.endsWith(next) ? lowered.slice(0, -next.length) : prev;
+                      });
+                    }}
+                    className="mt-2 block w-full rounded-sm border border-subtle bg-surface px-3 py-2 text-sm text-ink focus:outline-2 focus:outline-offset-2 focus:outline-focus-ring"
+                    aria-label="Handle domain"
+                  >
+                    {domains.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                    <option value={CUSTOM_DOMAIN_VALUE}>Custom…</option>
+                  </select>
+                )}
+                {domains.length <= 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setUseCustomDomain(true)}
+                    className="mt-1 text-xs text-secondary underline hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                  >
+                    Use a custom domain instead
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <Input
+                  value={customHandle}
+                  onChange={(e) => setCustomHandle(e.target.value)}
+                  placeholder="alice.example"
+                  autoComplete="username"
+                  required
+                />
+                {domains.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseCustomDomain(false);
+                      setCustomHandle('');
+                    }}
+                    className="mt-1 text-xs text-secondary underline hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                  >
+                    Back to {domains[0]} handles
+                  </button>
+                )}
+              </>
+            )}
             {availability.isSuccess && (
               <p className={`mt-1 text-xs ${handleAvailable ? 'text-success-deep' : 'text-danger'}`}>
                 {handleAvailable ? 'Handle is available.' : 'Handle is already taken.'}
@@ -166,7 +269,7 @@ export default function Register() {
             {availability.isError && (
               <p className="mt-1 text-xs text-danger">That handle does not look right.</p>
             )}
-          </label>
+          </div>
 
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-secondary">Location</span>
