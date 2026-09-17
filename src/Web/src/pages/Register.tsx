@@ -37,7 +37,9 @@ export default function Register() {
   const describe = useDescribeServer();
 
   const CUSTOM_DOMAIN_VALUE = '__custom';
-  const domains = describe.data?.availableUserDomains ?? [];
+  const domains = (describe.data?.availableUserDomains ?? [])
+    .filter((d) => d.trim() !== '')
+    .map((d) => (d.startsWith('.') ? d : `.${d}`));
   const activeDomain = handleDomain || domains[0] || '';
 
   const effectiveHandle = useCustomDomain
