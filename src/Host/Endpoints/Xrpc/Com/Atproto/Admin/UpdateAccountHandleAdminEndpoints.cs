@@ -1,5 +1,6 @@
 using BlueNilePds.Core.Did;
 using BlueNilePds.Core.Handle;
+using BlueNilePds.Core.Identity;
 using BlueNilePds.Host.Middleware;
 using BlueNilePds.Pds.AccountManager;
 using BlueNilePds.Pds.AccountManager.Db;
@@ -26,7 +27,8 @@ public static class UpdateAccountHandleAdminEndpoints
         PlcClient plcClient,
         SecretsConfig secretsConfig,
         ServiceConfig serviceConfig,
-        ILogger<Program> logger)
+        ILogger<Program> logger,
+        IDidCache didCache)
     {
         var did = (string)request.Did;
         if (string.IsNullOrWhiteSpace(did) || string.IsNullOrWhiteSpace(request.Handle))
@@ -61,6 +63,15 @@ public static class UpdateAccountHandleAdminEndpoints
 
         await accountRepository.UpdateHandleAsync(did, handle);
         await sequencer.SequenceIdentityEventAsync(did, handle);
+
+        try
+        {
+            await didCache.ClearEntryAsync(did);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to clear DID cache for {Did}", did);
+        }
 
         return Results.Ok(new { });
     }
