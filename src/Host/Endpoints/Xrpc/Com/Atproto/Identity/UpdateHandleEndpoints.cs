@@ -1,9 +1,10 @@
 using BlueNilePds.Pds.AccountManager;
 using BlueNilePds.Pds.AccountManager.Db;
 using BlueNilePds.Host.Middleware;
-using BlueNilePds.Pds.Config;
 using BlueNilePds.Core.Did;
 using BlueNilePds.Core.Handle;
+using BlueNilePds.Core.Identity;
+using BlueNilePds.Pds.Config;
 using BlueNilePds.Pds.Sequencer;
 using BlueNilePds.Pds.Xrpc;
 
@@ -26,7 +27,8 @@ public static class UpdateHandleEndpoints
         SecretsConfig secretsConfig,
         ServiceConfig serviceConfig,
         SequencerRepository sequencer,
-        ILogger<Program> logger)
+        ILogger<Program> logger,
+        IDidCache didCache)
     {
         var auth = context.GetAuthOutput();
         var did = auth.AccessCredentials.Did;
@@ -62,6 +64,15 @@ public static class UpdateHandleEndpoints
 
         await accountRepository.UpdateHandleAsync(did, validatedHandle);
         await sequencer.SequenceIdentityEventAsync(did, validatedHandle);
+
+        try
+        {
+            await didCache.ClearEntryAsync(did);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to clear DID cache for {Did}", did);
+        }
 
         return Results.Ok();
     }
