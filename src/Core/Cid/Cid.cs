@@ -55,7 +55,11 @@ public readonly record struct Cid
 
     public override string ToString()
     {
-        return ToStringOfBase(Base ?? MultibaseEncoding.Base58Btc);
+        // Canonical atproto string form for CIDv1 is base32 lowercase ("bafyrei...");
+        // CIDv0 is only ever base58btc ("Qm...").
+        return Version == Version.V0
+            ? ToStringOfBase(MultibaseEncoding.Base58Btc)
+            : ToStringOfBase(Base ?? MultibaseEncoding.Base32Lower);
     }
 
     public static Cid NewV0(Multihash hash)
