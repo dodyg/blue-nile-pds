@@ -7,6 +7,8 @@ using BlueNilePds.Host.Middleware;
 using BlueNilePds.Pds.Config;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Logs;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using BlueNilePds.Pds.Sequencer.Db;
 using BlueNilePds.Pds.PendingAccounts;
 namespace BlueNilePds.Host;
@@ -21,14 +23,19 @@ public class Program
             ContentRootPath = AppContext.BaseDirectory
         });
 
-        // Configure OpenTelemetry Logging
-        builder.Logging.AddOpenTelemetry(options =>
+        // Register OpenTelemetry for tracing
+        builder.Services.AddOpenTelemetry().WithTracing(static builder =>
         {
-            options.IncludeFormattedMessage = true;
-            options.IncludeScopes = true;
-            options.ParseStateValues = true;
-
-            options.AddOtlpExporter();
+            builder
+                .AddAspNetCoreInstrumentation(options =>
+                {
+                    options.RecordException = true;
+                })
+                .AddHttpClientInstrumentation(options =>
+                {
+                    options.RecordException = true;
+                })
+                .AddOtlpExporter();
         });
 
         builder.Services.AddCors();
