@@ -72,6 +72,10 @@ public class TestWebAppFactory : WebApplicationFactory<Program>
                 ["Config:PDS_BSKY_APP_VIEW_DID"] = "did:web:appview.bsky.social",
                 ["Config:PDS_PROXY_REQUIRE_HEADER"] = "true",
                 ["Config:PDS_ACCOUNT_APPROVAL_REQUIRED"] = "false",
+                ["Config:PDS_TURNSTILE_SECRET"] = "",
+                ["Config:PDS_TURNSTILE_SITE_KEY"] = "",
+                ["Config:PDS_HCAPTCHA_SECRET"] = "",
+                ["Config:PDS_HCAPTCHA_SITE_KEY"] = "",
             };
             if (_additionalConfig != null)
             {

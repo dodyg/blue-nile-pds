@@ -33,6 +33,26 @@ public class CidTests
     }
 
     [Test]
+    public async Task DefaultToString_IsBase32ForV1Async()
+    {
+        var cid = Cid.NewV1(Cid.DAG_PB, Util.Sha2_256Digest("foo"));
+
+        var s = cid.ToString();
+
+        await Assert.That(s.StartsWith("b")).IsTrue();
+        var roundTrip = Cid.FromString(s);
+        await Assert.That(roundTrip.ToString()).IsEqualTo(s);
+    }
+
+    [Test]
+    public async Task DefaultToString_IsBase58ForV0Async()
+    {
+        var cid = Cid.NewV0(Util.Sha2_256Digest("foo"));
+
+        await Assert.That(cid.ToString()).IsEqualTo("QmRJzsvyCQyizr73Gmms8ZRtvNxmgqumxc2KUp71dfEmoj");
+    }
+
+    [Test]
     public async Task BasicMarshallingAsync()
     {
         var cid = Cid.NewV1(Cid.DAG_PB, Util.Sha2_256Digest("beep boop"), MultibaseEncoding.Base32Lower);
