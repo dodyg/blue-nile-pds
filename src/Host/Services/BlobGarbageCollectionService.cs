@@ -1,4 +1,6 @@
 using BlueNilePds.Pds.ActorStore.Db;
+using BlueNilePds.Pds.BlobStore;
+using BlueNilePds.Pds.Config;
 using BlueNilePds.Core.CID;
 using Microsoft.EntityFrameworkCore;
 using BlueNilePds.Core.Repo;
@@ -63,11 +65,79 @@ public class BlobGarbageCollectionService : BackgroundService
         _logger.LogInformation("Blob GC service stopped");
     }
 
-    private async Task RunGcAsync(CancellationToken stoppingToken)
+    /// <summary>
+    /// Runs a single GC cycle over every actor store. Public so it can be
+    /// invoked from tests and operational tooling; the background loop in
+    /// <see cref="ExecuteAsync"/> delegates to it.
+    /// </summary>
+    public async Task RunOnceAsync(CancellationToken stoppingToken = default)
     {
         await using var scope = _serviceProvider.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<ActorStoreDb>();
-        var blobStore = scope.ServiceProvider.GetRequiredService<IBlobStore>();
+        var actorStoreConfig = scope.ServiceProvider.GetRequiredService<ActorStoreConfig>();
+        var blobStoreFactory = scope.ServiceProvider.GetRequiredService<BlobStoreFactory>();
+
+        if (!Directory.Exists(actorStoreConfig.Directory))
+        {
+            return;
+        }
+
+        var storeFiles = Directory
+            .EnumerateFiles(actorStoreConfig.Directory, "store.sqlite", SearchOption.AllDirectories)
+            .ToList();
+
+        foreach (var storeFile in storeFiles)
+        {
+            stoppingToken.ThrowIfCancellationRequested();
+            try
+            {
+                await RunGcForStoreAsync(storeFile, actorStoreConfig, blobStoreFactory, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Blob GC failed for actor store {Path}, continuing with next store", storeFile);
+            }
+        }
+    }
+
+    private async Task RunGcAsync(CancellationToken stoppingToken)
+    {
+        await RunOnceAsync(stoppingToken);
+    }
+
+    private async Task RunGcForStoreAsync(
+        string storeFile,
+        ActorStoreConfig actorStoreConfig,
+        BlobStoreFactory blobStoreFactory,
+        CancellationToken stoppingToken)
+    {
+        var connectionString = $"Data Source={storeFile};";
+        if (actorStoreConfig.DisableWalAutoCheckpoint)
+        {
+            connectionString += "wal_autocheckpoint=0;";
+        }
+
+        var options = new DbContextOptionsBuilder<ActorStoreDb>()
+            .UseSqlite(connectionString)
+            .Options;
+
+        using var db = new ActorStoreDb(options);
+
+        // The DID owns this store; resolve it from the store itself rather than
+        // parsing the directory layout.
+        var did = await db.RepoRoots.AsNoTracking()
+            .Select(r => r.Did)
+            .FirstOrDefaultAsync(stoppingToken);
+        if (string.IsNullOrWhiteSpace(did))
+        {
+            _logger.LogDebug("Blob GC skipping actor store with no repo root: {Path}", storeFile);
+            return;
+        }
+
+        var blobStore = blobStoreFactory.Create(did);
 
         // Temp blob GC: delete temp blobs older than 24h with no associated records
         var tempCutoff = DateTime.UtcNow - _tempBlobMaxAge;
