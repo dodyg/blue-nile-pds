@@ -11,6 +11,7 @@ const nav = [
   { to: '/admin/approvals', label: 'Approvals' },
   { to: '/admin/backup', label: 'Backup' },
   { to: '/admin/repo/resync', label: 'Repo Resync' },
+  { to: '/admin/maintenance', label: 'Maintenance' },
 ];
 
 function SunIcon() {

@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
 using BlueNilePds.Host.Middleware;
 using BlueNilePds.Host.Services;
+using BlueNilePds.Pds.Sequencer.Db;
 using BlueNilePds.Pds.Xrpc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlueNilePds.Host.Endpoints;
 
@@ -22,6 +24,10 @@ public static class AdminApiEndpoints
 
         var export = app.MapGroup("api/admin/export");
         export.MapGet("user", HandleExportUserAsync).WithMetadata(new AdminTokenAttribute());
+
+        var sequencer = app.MapGroup("api/admin/sequencer");
+        sequencer.MapGet("status", HandleSequencerStatusAsync).WithMetadata(new AdminTokenAttribute());
+        sequencer.MapPost("advance", HandleSequencerAdvanceAsync).WithMetadata(new AdminTokenAttribute());
         return app;
     }
 
@@ -124,6 +130,65 @@ public static class AdminApiEndpoints
             Error = state.Error
         });
     }
+
+    private static async Task<IResult> HandleSequencerStatusAsync(IDbContextFactory<SequencerDb> seqDbFactory)
+    {
+        await using var db = await seqDbFactory.CreateDbContextAsync();
+        var current = await db.RepoSeqs.MaxAsync(x => (int?)x.Seq);
+        var earliest = await db.RepoSeqs.MinAsync(x => (int?)x.Seq);
+        var count = await db.RepoSeqs.CountAsync();
+        var earliestTime = await db.RepoSeqs.MinAsync(x => (DateTime?)x.SequencedAt);
+        var latestTime = await db.RepoSeqs.MaxAsync(x => (DateTime?)x.SequencedAt);
+        var counter = await db.Database
+            .SqlQueryRaw<int?>("SELECT seq AS Value FROM sqlite_sequence WHERE name = 'RepoSeqs'")
+            .FirstOrDefaultAsync();
+        return Results.Ok(new SequencerStatusOutput
+        {
+            CurrentSeq = current,
+            EarliestSeq = earliest,
+            EventCount = count,
+            EarliestTime = earliestTime,
+            LatestTime = latestTime,
+            SequenceCounter = counter
+        });
+    }
+
+    private static async Task<IResult> HandleSequencerAdvanceAsync(
+        IDbContextFactory<SequencerDb> seqDbFactory,
+        SequencerAdvanceRequest request,
+        ILogger<Program> logger)
+    {
+        if (request.TargetSeq < 1 || request.TargetSeq == int.MaxValue)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail("targetSeq must be a positive integer below 2147483647"));
+        }
+
+        await using var db = await seqDbFactory.CreateDbContextAsync();
+        var current = await db.RepoSeqs.MaxAsync(x => (int?)x.Seq);
+        if (request.TargetSeq <= (current ?? 0))
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail($"targetSeq must be greater than current max seq {current ?? 0}"));
+        }
+
+        // Advance the AUTOINCREMENT counter so the next sequenced event gets
+        // targetSeq + 1. Used to recover firehose consumers holding a cursor
+        // ahead of this host (e.g. after a database restore). Never moves
+        // backwards: that would collide with existing seq primary keys.
+        var updated = await db.Database.ExecuteSqlRawAsync(
+            "UPDATE sqlite_sequence SET seq = {0} WHERE name = 'RepoSeqs'", request.TargetSeq);
+        if (updated == 0)
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "INSERT INTO sqlite_sequence (name, seq) VALUES ('RepoSeqs', {0})", request.TargetSeq);
+        }
+
+        logger.LogWarning("Sequencer counter advanced from {Previous} to {New} by admin", current, request.TargetSeq);
+        return Results.Ok(new SequencerAdvanceOutput
+        {
+            PreviousSeq = current,
+            NewSeq = request.TargetSeq
+        });
+    }
 }
 
 public record BackupCreateOutput
@@ -202,4 +267,34 @@ public record RepoResyncStatusOutput
     public int RecordsRewritten { get; init; }
     [JsonPropertyName("error")]
     public string? Error { get; init; }
+}
+
+public record SequencerAdvanceRequest
+{
+    [JsonPropertyName("targetSeq")]
+    public int TargetSeq { get; init; }
+}
+
+public record SequencerStatusOutput
+{
+    [JsonPropertyName("currentSeq")]
+    public int? CurrentSeq { get; init; }
+    [JsonPropertyName("earliestSeq")]
+    public int? EarliestSeq { get; init; }
+    [JsonPropertyName("eventCount")]
+    public int EventCount { get; init; }
+    [JsonPropertyName("earliestTime")]
+    public DateTime? EarliestTime { get; init; }
+    [JsonPropertyName("latestTime")]
+    public DateTime? LatestTime { get; init; }
+    [JsonPropertyName("sequenceCounter")]
+    public int? SequenceCounter { get; init; }
+}
+
+public record SequencerAdvanceOutput
+{
+    [JsonPropertyName("previousSeq")]
+    public int? PreviousSeq { get; init; }
+    [JsonPropertyName("newSeq")]
+    public int NewSeq { get; init; }
 }

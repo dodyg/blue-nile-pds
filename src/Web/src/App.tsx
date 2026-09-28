@@ -22,6 +22,7 @@ import CreateInviteCodes from './pages/CreateInviteCodes';
 import SubjectStatus from './pages/SubjectStatus';
 import Backup from './pages/Backup';
 import RepoResync from './pages/RepoResync';
+import Maintenance from './pages/Maintenance';
 
 export default function App() {
   return (
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="approvals/:id" element={<ApprovalDetail />} />
             <Route path="backup" element={<Backup />} />
             <Route path="repo/resync" element={<RepoResync />} />
+            <Route path="maintenance" element={<Maintenance />} />
           </Route>
         </Route>
 

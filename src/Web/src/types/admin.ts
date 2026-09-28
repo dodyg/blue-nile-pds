@@ -125,3 +125,17 @@ export interface RepoResyncCreateResponse {
   status: string;
   startedAt: string;
 }
+
+export interface SequencerStatus {
+  currentSeq?: number;
+  earliestSeq?: number;
+  eventCount: number;
+  earliestTime?: string;
+  latestTime?: string;
+  sequenceCounter?: number;
+}
+
+export interface SequencerAdvanceResponse {
+  previousSeq?: number;
+  newSeq: number;
+}
