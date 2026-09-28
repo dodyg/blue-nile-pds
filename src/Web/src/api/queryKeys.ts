@@ -36,6 +36,11 @@ export const repoResyncKeys = {
   status: ['repoResync', 'status'] as const,
 };
 
+export const sequencerKeys = {
+  all: ['sequencer'] as const,
+  status: ['sequencer', 'status'] as const,
+};
+
 export const pendingKeys = {
   config: ['pending', 'config'] as const,
   profile: ['pending', 'profile'] as const,
