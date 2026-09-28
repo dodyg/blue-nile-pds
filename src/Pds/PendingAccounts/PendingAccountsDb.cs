@@ -17,8 +17,8 @@ public class PendingAccountsDb : DbContext
     {
         modelBuilder.Entity<PendingRegistration>(e =>
         {
-            e.HasIndex(r => r.Email).IsUnique();
-            e.HasIndex(r => r.Handle).IsUnique();
+            e.HasIndex(r => r.Email).IsUnique().HasFilter("[Status] = 0");
+            e.HasIndex(r => r.Handle).IsUnique().HasFilter("[Status] = 0");
             e.HasIndex(r => r.Status);
         });
 

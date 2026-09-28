@@ -77,7 +77,14 @@ public class PendingAccountService
             UpdatedAt = now
         };
         _pendingDb.PendingRegistrations.Add(registration);
-        await _pendingDb.SaveChangesAsync();
+        try
+        {
+            await _pendingDb.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE constraint failed") == true)
+        {
+            return new RegisterResult(false, "Email or handle already in use", null, null);
+        }
 
         var profile = new PendingProfile
         {
