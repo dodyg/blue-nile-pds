@@ -23,6 +23,16 @@ public class Program
             ContentRootPath = AppContext.BaseDirectory
         });
 
+        // Configure OpenTelemetry Logging
+        builder.Logging.AddOpenTelemetry(options =>
+        {
+            options.IncludeFormattedMessage = true;
+            options.IncludeScopes = true;
+            options.ParseStateValues = true;
+
+            options.AddOtlpExporter();
+        });
+
         // Register OpenTelemetry for tracing
         builder.Services.AddOpenTelemetry().WithTracing(static builder =>
         {
