@@ -127,6 +127,7 @@ public static class AdminApiEndpoints
             CompletedAt = state.CompletedAt,
             RecordsScanned = state.RecordsScanned,
             RecordsRewritten = state.RecordsRewritten,
+            SkippedRecords = state.SkippedRecords,
             Error = state.Error
         });
     }
@@ -265,6 +266,8 @@ public record RepoResyncStatusOutput
     public int RecordsScanned { get; init; }
     [JsonPropertyName("recordsRewritten")]
     public int RecordsRewritten { get; init; }
+    [JsonPropertyName("skippedRecords")]
+    public List<string> SkippedRecords { get; init; } = new();
     [JsonPropertyName("error")]
     public string? Error { get; init; }
 }

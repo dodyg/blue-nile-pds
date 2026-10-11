@@ -90,7 +90,7 @@ public static class ApplyWritesEndpoints
             ? new ApplyWritesUpdate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }
             : new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record };
 
-        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, env);
+        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, tx.SwapRecord, [write], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, logger, env);
         var commitMeta = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev };
 
         if (isUpdate)
@@ -127,7 +127,7 @@ public static class ApplyWritesEndpoints
     {
         var tx = DeleteRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid delete payload."));
         logger.LogInformation("DeleteRecord: {tx}", tx);
-        var (commit, _) = await HandleAsync(context, tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new ApplyWritesDelete { Collection = tx.Collection, Rkey = tx.Rkey }], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, env);
+        var (commit, _) = await HandleAsync(context, tx.Repo, false, tx.SwapCommit, tx.SwapRecord, [new ApplyWritesDelete { Collection = tx.Collection, Rkey = tx.Rkey }], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, logger, env);
         return Results.Ok(new DeleteRecordOutput
         {
             Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev }
@@ -146,7 +146,7 @@ public static class ApplyWritesEndpoints
     {
         var tx = CreateRecordInput.FromJson(json.RootElement) ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid create payload."));
         logger.LogInformation("CreateRecord: {tx}", tx);
-        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, null, [new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, env);
+        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, null, [new ApplyWritesCreate { Collection = tx.Collection, Rkey = tx.Rkey, Value = tx.Record }], accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, logger, env);
         var write = (PreparedCreate)writeArr[0];
         return Results.Ok(new CreateRecordOutput
         {
@@ -170,7 +170,7 @@ public static class ApplyWritesEndpoints
         var tx = JsonSerializer.Deserialize<ApplyWritesInput>(json.RootElement.GetRawText(), ApplyWritesJsonOptions)
                  ?? throw new XRPCError(new InvalidRequestErrorDetail("Invalid applyWrites payload."));
         logger.LogInformation("ApplyWrites: {tx}", tx);
-        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, null, tx.Writes, accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, env);
+        var (commit, writeArr) = await HandleAsync(context, tx.Repo, tx.Validate, tx.SwapCommit, null, tx.Writes, accountRepository, actorRepositoryProvider, sequencer, writeSnapshotCache, logger, env);
         return Results.Ok(new ApplyWritesOutput
         {
             Commit = new DefsCommitMeta { Cid = commit.Cid.ToString(), Rev = commit.Rev },
@@ -206,6 +206,7 @@ public static class ApplyWritesEndpoints
         ActorRepositoryProvider actorRepositoryProvider,
         SequencerRepository sequencer,
         WriteSnapshotCache writeSnapshotCache,
+        ILogger<Program> logger,
         ServerEnvironment env)
     {
         var did = await CheckAccountAsync(context, repo, accountRepository);
@@ -253,7 +254,27 @@ public static class ApplyWritesEndpoints
         Cid? swapCommitCid = swapCommit != null ? Cid.FromString(swapCommit) : null;
         var writeArr = writes.ToArray();
         await using var db = actorRepositoryProvider.Open(did);
-        var commit = await db.Repo.ProcessWritesAsync(writeArr, swapCommitCid);
+        CommitData commit;
+        try
+        {
+            commit = await db.Repo.ProcessWritesAsync(writeArr, swapCommitCid);
+        }
+        catch (MissingBlockException ex)
+        {
+            string rootCid;
+            try
+            {
+                var (cid, _) = await db.Repo.Storage.GetRootDetailedAsync();
+                rootCid = cid.ToString();
+            }
+            catch (Exception rootEx)
+            {
+                rootCid = $"unreadable ({rootEx.Message})";
+            }
+            logger.LogError(ex, "Repo write failed for {Did}: missing block {MissingCid} under root {RootCid}",
+                did, ex.Cid, rootCid);
+            throw new XRPCError(new InvalidRequestErrorDetail("RepoCorrupted", "Repo data is corrupted and needs repair."));
+        }
 
         await sequencer.SequenceCommitAsync(did, commit, writeArr);
         await accountRepository.UpdateRepoRootAsync(did, commit.Cid, commit.Rev);

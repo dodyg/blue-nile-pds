@@ -6,6 +6,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
 import { Card, CardHeader } from '../components/Card';
+import { RepoCollections } from '../components/RepoExplorer';
 import PageHeader from '../components/PageHeader';
 import { Table, Th, Tr, Td } from '../components/Table';
 import { useAccountInfo, useSubjectStatus, useUpdateSubjectStatus, useDeleteAccount, useEnableInvites, useDisableInvites, useUpdateAccountPassword, useUpdateAccountEmail, useUpdateAccountHandle } from '../hooks/useAccounts';
@@ -204,21 +205,11 @@ export default function AccountDetail() {
         </Card>
       )}
 
-      {repoInfo && repoInfo.collections.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader title="Repo Collections" subtitle={`${repoInfo.collections.length} collections`} />
-          <div className="flex flex-wrap gap-2 p-4">
-            {repoInfo.collections.sort().map(col => (
-              <button
-                key={col}
-                onClick={() => navigate(`/admin/accounts/${encodeURIComponent(info.did)}/collections/${encodeURIComponent(col)}`)}
-                className="rounded-sm border border-subtle bg-page px-3 py-1.5 font-mono text-xs text-ghost transition-colors hover:border-accent-ring hover:bg-accent-soft hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-              >
-                {col}
-              </button>
-            ))}
-          </div>
-        </Card>
+      {repoInfo && (
+        <RepoCollections
+          collections={repoInfo.collections}
+          basePath={`/admin/accounts/${encodeURIComponent(info.did)}`}
+        />
       )}
 
       {message && <p className="mb-4 text-sm text-success-deep dark:text-success">{message}</p>}
