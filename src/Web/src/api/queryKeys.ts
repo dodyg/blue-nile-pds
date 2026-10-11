@@ -10,6 +10,7 @@ export const serverKeys = {
 export const accountKeys = {
   all: ['accounts'] as const,
   search: (email?: string) => [...accountKeys.all, 'search', email] as const,
+  autocomplete: (term: string) => [...accountKeys.all, 'autocomplete', term] as const,
   detail: (did: string) => [...accountKeys.all, 'detail', did] as const,
   subjectStatus: (did: string) => [...accountKeys.all, 'subjectStatus', did] as const,
   session: ['account', 'session'] as const,
