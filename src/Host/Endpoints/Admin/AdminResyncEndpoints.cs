@@ -40,6 +40,7 @@ public static class AdminResyncEndpoints
             CompletedAt = state.CompletedAt,
             RecordsScanned = state.RecordsScanned,
             RecordsRewritten = state.RecordsRewritten,
+            SkippedRecords = state.SkippedRecords,
             Error = state.Error
         });
     }

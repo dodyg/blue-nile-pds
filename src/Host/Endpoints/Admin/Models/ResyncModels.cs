@@ -30,6 +30,8 @@ public record RepoResyncStatusOutput
     public int RecordsScanned { get; init; }
     [JsonPropertyName("recordsRewritten")]
     public int RecordsRewritten { get; init; }
+    [JsonPropertyName("skippedRecords")]
+    public List<string> SkippedRecords { get; init; } = new();
     [JsonPropertyName("error")]
     public string? Error { get; init; }
 }

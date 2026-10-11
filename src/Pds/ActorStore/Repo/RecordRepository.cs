@@ -109,6 +109,16 @@ public class RecordRepository
     }
 
     /// <summary>
+    /// All indexed records for this DID. Used by repo resync as ground truth when the
+    /// MST itself is unreadable (missing blocks): the index survives corruption that
+    /// the tree does not.
+    /// </summary>
+    public async Task<List<Record>> GetAllRecordsAsync()
+    {
+        return await _db.Records.AsNoTracking().ToListAsync();
+    }
+
+    /// <summary>
     /// Rebuild the record index to match a fully re-encoded repo (repo resync).
     /// Updates the Cid of existing rows in place so takedown state and indexedAt are preserved.
     /// </summary>
