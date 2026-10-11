@@ -38,6 +38,19 @@ export function useSearchAccounts(email: string) {
   });
 }
 
+export function useAccountAutocomplete(term: string, limit = 10) {
+  const q = term.trim();
+  return useQuery({
+    queryKey: accountKeys.autocomplete(q),
+    queryFn: () =>
+      xrpcGet<SearchAccountsResponse>('com.atproto.admin.searchAccounts', {
+        email: q,
+        limit: String(limit),
+      }),
+    enabled: q.length >= 1,
+  });
+}
+
 export function useUpdateSubjectStatus() {
   const queryClient = useQueryClient();
   return useMutation({
