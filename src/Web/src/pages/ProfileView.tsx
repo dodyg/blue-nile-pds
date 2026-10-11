@@ -1,7 +1,9 @@
 import { useParams } from 'react-router-dom';
 import { useLookup } from '../hooks/useDirectory';
+import { usePublicDescribeRepo } from '../hooks/usePublicRepo';
 import AsyncState from '../components/AsyncState';
 import { Card } from '../components/Card';
+import { RepoCollections } from '../components/RepoExplorer';
 
 const AVATAR_URL = (did: string, cid: string) =>
   `/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(cid)}`;
@@ -9,9 +11,10 @@ const AVATAR_URL = (did: string, cid: string) =>
 export default function ProfileView() {
   const { did } = useParams<{ did: string }>();
   const lookup = useLookup(did ?? 'did:placeholder');
+  const { data: repoInfo } = usePublicDescribeRepo(did ?? '');
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mx-auto max-w-xl space-y-6">
       <Card>
         <AsyncState loading={lookup.isPending} error={lookup.isError}>
           {lookup.data && (
@@ -57,6 +60,13 @@ export default function ProfileView() {
           )}
         </AsyncState>
       </Card>
+
+      {repoInfo && (
+        <RepoCollections
+          collections={repoInfo.collections}
+          basePath={`/profile/${encodeURIComponent(did ?? '')}`}
+        />
+      )}
     </div>
   );
 }

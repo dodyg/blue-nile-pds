@@ -8,6 +8,8 @@ import SignIn from './pages/SignIn';
 import ForgotPassword from './pages/ForgotPassword';
 import Profile from './pages/Profile';
 import ProfileView from './pages/ProfileView';
+import PublicCollectionRecords from './pages/PublicCollectionRecords';
+import PublicRecordDetail from './pages/PublicRecordDetail';
 import PendingProfile from './pages/PendingProfile';
 import Approvals from './pages/Approvals';
 import ApprovalDetail from './pages/ApprovalDetail';
@@ -35,6 +37,8 @@ export default function App() {
           <Route path="profile/forgot-password" element={<ForgotPassword />} />
           <Route path="profile" element={<Profile />} />
           <Route path="profile/:did" element={<ProfileView />} />
+          <Route path="profile/:did/collections/:collection" element={<PublicCollectionRecords />} />
+          <Route path="profile/:did/collections/:collection/:rkey" element={<PublicRecordDetail />} />
           <Route path="pending/profile" element={<PendingProfile />} />
         </Route>
 
