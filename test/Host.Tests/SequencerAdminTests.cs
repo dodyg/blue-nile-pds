@@ -60,6 +60,7 @@ public class SequencerAdminTests
     }
 
     [Test]
+    [NotInParallel]
     public async Task Status_ReturnsSequenceInfoAsync()
     {
         var account = await CreateAccountAsync();
@@ -71,6 +72,7 @@ public class SequencerAdminTests
     }
 
     [Test]
+    [NotInParallel]
     public async Task Advance_MovesCounterForwardAsync()
     {
         var account = await CreateAccountAsync();
@@ -92,6 +94,7 @@ public class SequencerAdminTests
     }
 
     [Test]
+    [NotInParallel]
     public async Task Advance_Backwards_ReturnsBadRequestAsync()
     {
         var account = await CreateAccountAsync();
@@ -105,6 +108,7 @@ public class SequencerAdminTests
     }
 
     [Test]
+    [NotInParallel]
     public async Task Advance_RequiresAdminAuthAsync()
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/admin/sequencer/advance")
