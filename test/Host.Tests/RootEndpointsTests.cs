@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Mvc.Testing;
 using BlueNilePds.Host.Tests.Infrastructure;
 
 namespace BlueNilePds.Host.Tests;
@@ -7,6 +8,19 @@ public class RootEndpointsTests
 {
     private static readonly TestWebAppFactory Factory = new();
     private HttpClient Client => Factory.CreateClient();
+
+    private HttpClient NoRedirectClient => Factory.CreateClient(new WebApplicationFactoryClientOptions
+    {
+        AllowAutoRedirect = false
+    });
+
+    private static HttpRequestMessage BrowserRootRequest(string host)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Host = host;
+        request.Headers.Accept.ParseAdd("text/html");
+        return request;
+    }
 
     [Test]
     public async Task Root_ReturnsOk()
@@ -79,6 +93,40 @@ public class RootEndpointsTests
         var json = await AuthTestHelper.ReadJsonAsync(response);
         var links = json.GetProperty("links");
         await Assert.That(links.TryGetProperty("support", out _)).IsTrue();
+    }
+
+    [Test]
+    public async Task Root_BrowserHandleSubdomain_RedirectsToBskyProfile()
+    {
+        // Test env PDS_HOSTNAME is localhost, so alice.localhost is a handle subdomain.
+        var response = await NoRedirectClient.SendAsync(BrowserRootRequest("alice.localhost"));
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Found);
+        await Assert.That(response.Headers.Location?.ToString()).IsEqualTo("https://bsky.app/profile/alice.localhost");
+    }
+
+    [Test]
+    public async Task Root_BrowserApexDomain_DoesNotRedirect()
+    {
+        var response = await NoRedirectClient.SendAsync(BrowserRootRequest("localhost"));
+        await Assert.That(response.StatusCode).IsNotEqualTo(HttpStatusCode.Found);
+    }
+
+    [Test]
+    public async Task Root_BrowserReservedSubdomain_DoesNotRedirect()
+    {
+        var response = await NoRedirectClient.SendAsync(BrowserRootRequest("www.localhost"));
+        await Assert.That(response.StatusCode).IsNotEqualTo(HttpStatusCode.Found);
+    }
+
+    [Test]
+    public async Task Root_ApiClientHandleSubdomain_ReturnsJson()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Host = "alice.localhost";
+        var response = await Client.SendAsync(request);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var json = await AuthTestHelper.ReadJsonAsync(response);
+        await Assert.That(json.TryGetProperty("serviceName", out _)).IsTrue();
     }
 
     [Test]
