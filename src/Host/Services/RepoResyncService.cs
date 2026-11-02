@@ -111,7 +111,7 @@ public class RepoResyncService
         foreach (var op in ops)
         {
             var uri = ATUri.Create(did, op.Collection, op.RKey).ToString();
-            foreach (var blobRef in Prepare.ExtractBlobReferences(op.Record.ToJSONString()))
+            foreach (var blobRef in Prepare.ExtractBlobReferences(DagCborJson.ToJsonElement(op.Record)))
             {
                 desiredLinks.Add((uri, blobRef.Cid.ToString()));
             }

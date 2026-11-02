@@ -49,7 +49,7 @@ public class Prepare
         AssertNoExplicitSlurs(collection, rkey, record);
         var recordJson = record.GetRawText();
         var recordCbor = CBORObject.FromJSONString(recordJson);
-        var recordBytes = CanonicalDagCbor.Encode(record);
+        var recordBytes = EncodeRecord(record);
         return new PreparedCreate(
             ATUri.Create(did, collection, rkey),
             CidForBytes(recordBytes),
@@ -73,7 +73,7 @@ public class Prepare
         var validationStatus = ValidateRecord(record, collection, maybeValidate, createdAtTolerance);
 
         AssertNoExplicitSlurs(collection, rkey, record);
-        var recordBytes = CanonicalDagCbor.Encode(record);
+        var recordBytes = EncodeRecord(record);
         return new PreparedUpdate(
             ATUri.Create(did, collection, rkey),
             CidForBytes(recordBytes),
@@ -166,6 +166,23 @@ public class Prepare
     {
         var hash = Multihash.Encode(System.Security.Cryptography.SHA256.HashData(bytes), HashType.SHA2_256);
         return Cid.NewV1((ulong)MulticodecCode.MerkleDAGCBOR, hash);
+    }
+
+    /// <summary>
+    /// Encodes a record payload as canonical DAG-CBOR, translating the atproto
+    /// JSON special objects (<c>$link</c>, <c>$bytes</c>) into native links and
+    /// byte strings. Malformed special objects are a client error, not a 500.
+    /// </summary>
+    public static byte[] EncodeRecord(JsonElement record)
+    {
+        try
+        {
+            return CanonicalDagCbor.Encode(record);
+        }
+        catch (DagCborEncodingException e)
+        {
+            throw new XRPCError(new InvalidRequestErrorDetail(e.Message), e);
+        }
     }
 
     public static void AssertNoExplicitSlurs(string collection, string rkey, JsonElement record)

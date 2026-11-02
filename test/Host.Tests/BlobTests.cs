@@ -2,6 +2,10 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using BlueNilePds.Host.Tests.Infrastructure;
+using BlueNilePds.Pds.ActorStore;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
+using PeterO.Cbor;
 
 namespace BlueNilePds.Host.Tests;
 
@@ -51,7 +55,7 @@ public class BlobTests
         return (account, cid);
     }
 
-    private async Task<(AccountInfo account, string cid)> UploadBlobAndAttachAsync()
+    private async Task<(AccountInfo account, string cid, string uri)> UploadBlobAndAttachAsync()
     {
         var (account, cid) = await UploadBlobAsync();
 
@@ -92,7 +96,8 @@ public class BlobTests
         var response = await Client.SendAsync(request);
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        return (account, cid);
+        var json = await AuthTestHelper.ReadJsonAsync(response);
+        return (account, cid, json.GetProperty("uri").GetString()!);
     }
 
     [Test]
@@ -123,7 +128,7 @@ public class BlobTests
     [Test]
     public async Task GetBlob_ReturnsUploaded()
     {
-        var (account, cid) = await UploadBlobAndAttachAsync();
+        var (account, cid, _) = await UploadBlobAndAttachAsync();
 
         var response = await Client.GetAsync(
             $"/xrpc/com.atproto.sync.getBlob?did={account.Did}&cid={cid}");
@@ -136,7 +141,7 @@ public class BlobTests
     [Test]
     public async Task ListBlobs_ReturnsUploaded()
     {
-        var (account, _) = await UploadBlobAndAttachAsync();
+        var (account, _, _) = await UploadBlobAndAttachAsync();
 
         var response = await Client.GetAsync(
             $"/xrpc/com.atproto.sync.listBlobs?did={account.Did}");
@@ -167,5 +172,60 @@ public class BlobTests
     {
         var (_, cid) = await UploadBlobAsync();
         await Assert.That(cid).IsNotNull();
+    }
+
+    private static string GetActorDbPath(string did)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var provider = scope.ServiceProvider.GetRequiredService<ActorRepositoryProvider>();
+        return provider.GetLocation(did).DbLocation;
+    }
+
+    private static async Task<string> GetRecordCidAsync(string dbPath, string uri)
+    {
+        using var conn = new SqliteConnection($"Data Source={dbPath}");
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT Cid FROM record WHERE Uri = @uri";
+        cmd.Parameters.AddWithValue("@uri", uri);
+        return await cmd.ExecuteScalarAsync() as string
+            ?? throw new InvalidOperationException($"Record index row not found for {uri}");
+    }
+
+    private static async Task<byte[]> ReadBlockAsync(string dbPath, string cid)
+    {
+        using var conn = new SqliteConnection($"Data Source={dbPath}");
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT Content FROM repo_block WHERE Cid = @cid";
+        cmd.Parameters.AddWithValue("@cid", cid);
+        return await cmd.ExecuteScalarAsync() as byte[]
+            ?? throw new InvalidOperationException($"Block {cid} not found");
+    }
+
+    [Test]
+    [NotInParallel]
+    public async Task BlobPost_StoresLinkRefAndServesJsonLink()
+    {
+        var (account, cid, uri) = await UploadBlobAndAttachAsync();
+        var rkey = uri.Split('/').Last();
+
+        // Stored record block must use a tag-42 link, not a {"$link": ...} map.
+        var dbPath = GetActorDbPath(account.Did);
+        var recordCid = await GetRecordCidAsync(dbPath, uri);
+        var record = CBORObject.DecodeFromBytes(await ReadBlockAsync(dbPath, recordCid));
+        var storedRef = record["embed"]["images"][0]["image"]["ref"];
+        await Assert.That(storedRef.IsTagged).IsTrue();
+        await Assert.That((long)storedRef.GetAllTags()[0]).IsEqualTo(42L);
+        await Assert.That(storedRef.Untag().Type).IsEqualTo(CBORType.ByteString);
+
+        // And the API still renders the atproto JSON form.
+        var response = await Client.GetAsync(
+            $"/xrpc/com.atproto.repo.getRecord?repo={account.Did}&collection=app.bsky.feed.post&rkey={rkey}");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var json = await AuthTestHelper.ReadJsonAsync(response);
+        var servedLink = json.GetProperty("value").GetProperty("embed").GetProperty("images")[0]
+            .GetProperty("image").GetProperty("ref").GetProperty("$link").GetString();
+        await Assert.That(servedLink).IsEqualTo(cid);
     }
 }

@@ -2,6 +2,7 @@
 using BlueNilePds.Pds.ActorStore.Db;
 using CarpaNet;
 using BlueNilePds.Core.CID;
+using BlueNilePds.Core.Common;
 using BlueNilePds.Core.Crypto;
 using Microsoft.EntityFrameworkCore;
 using PeterO.Cbor;
@@ -319,7 +320,6 @@ public class RecordRepository
 
     private static JsonElement ToJsonElement(CBORObject value)
     {
-        using var document = JsonDocument.Parse(value.ToJSONString());
-        return document.RootElement.Clone();
+        return DagCborJson.ToJsonElement(value);
     }
 }
