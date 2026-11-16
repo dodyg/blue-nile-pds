@@ -153,4 +153,51 @@ public class EmailTests
 
         await Assert.That(confirmResponse.StatusCode).IsNotEqualTo(HttpStatusCode.OK);
     }
+
+    private async Task<string> StoredTokenAsync(string did, BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose purpose)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BlueNilePds.Pds.AccountManager.Db.AccountManagerDb>();
+        var token = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstAsync(db.EmailTokens.Where(t => t.Did == did && t.Purpose == purpose));
+        return token.Token;
+    }
+
+    private async Task<HttpResponseMessage> PostAsync(string nsid, Dictionary<string, object?> body, string? accessJwt = null)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/xrpc/{nsid}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), System.Text.Encoding.UTF8, "application/json")
+        };
+        if (accessJwt != null)
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessJwt);
+        return await Client.SendAsync(request);
+    }
+
+    [Test]
+    public async Task ConfirmEmail_CodeInCapitalsWithSpaces_Succeeds()
+    {
+        var account = await CreateAccountAsync();
+        await PostAsync("com.atproto.server.requestEmailConfirmation", [], account.AccessJwt);
+        var token = await StoredTokenAsync(account.Did, BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose.confirm_email);
+
+        var response = await PostAsync("com.atproto.server.confirmEmail",
+            new() { ["email"] = account.Email, ["token"] = $"  {token.ToUpperInvariant()} " }, account.AccessJwt);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task ResetPassword_CodeInCapitals_Succeeds()
+    {
+        var email = UniqueEmail();
+        var account = await AccountHelper.CreateAccountAsync(Client, handle: UniqueHandle(), email: email);
+        await PostAsync("com.atproto.server.requestPasswordReset", new() { ["email"] = email });
+        var token = await StoredTokenAsync(account.Did, BlueNilePds.Pds.AccountManager.Db.EmailToken.EmailTokenPurpose.reset_password);
+
+        var response = await PostAsync("com.atproto.server.resetPassword",
+            new() { ["token"] = token.ToUpperInvariant(), ["password"] = "another-password-456" });
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
 }

@@ -11,62 +11,52 @@ public class SmtpMailer : IMailer
 {
     private readonly ILogger<SmtpMailer> _logger;
     private readonly SmtpMailerConfig _config;
+    private readonly string _serviceName;
 
-    public SmtpMailer(SmtpMailerConfig config, ILogger<SmtpMailer> logger)
+    public SmtpMailer(SmtpMailerConfig config, string serviceName, ILogger<SmtpMailer> logger)
     {
         _config = config;
+        _serviceName = serviceName;
         _logger = logger;
     }
 
-    public async Task SendAccountDeleteAsync(string token, string to)
+    public Task SendAccountDeleteAsync(string token, string to, string? handle, DateTimeOffset issuedAt) =>
+        SendCodeAsync(EmailPurpose.AccountDelete, token, to, handle, issuedAt);
+
+    public Task SendEmailConfirmationAsync(string token, string to, string? handle, DateTimeOffset issuedAt) =>
+        SendCodeAsync(EmailPurpose.ConfirmEmail, token, to, handle, issuedAt);
+
+    public Task SendEmailUpdateAsync(string token, string to, string? handle, DateTimeOffset issuedAt) =>
+        SendCodeAsync(EmailPurpose.EmailUpdate, token, to, handle, issuedAt);
+
+    public Task SendPasswordResetAsync(string token, string to, string? handle, DateTimeOffset issuedAt) =>
+        SendCodeAsync(EmailPurpose.PasswordReset, token, to, handle, issuedAt);
+
+    public Task SendPlcOperationSignatureAsync(string token, string to, string? handle, DateTimeOffset issuedAt) =>
+        SendCodeAsync(EmailPurpose.PlcOperation, token, to, handle, issuedAt);
+
+    public Task SendCustomEmailAsync(string subject, string content, string to, string? handle) =>
+        SendEmailAsync(to, EmailTemplates.RenderCustom(subject, content, handle, _serviceName), "custom");
+
+    public static MimeMessage BuildMessage(RenderedEmail email, string to, string fromName, string fromAddress)
     {
-        var subject = "Account Deletion";
-        var body = $"Your account deletion token is: {token}";
-        await SendEmailAsync(to, subject, body);
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(fromName, fromAddress));
+        message.To.Add(MailboxAddress.Parse(to));
+        message.Subject = email.Subject;
+        message.Body = new BodyBuilder { TextBody = email.Text, HtmlBody = email.Html }.ToMessageBody();
+        return message;
     }
 
-    public async Task SendEmailConfirmationAsync(string token, string to)
-    {
-        var subject = "Confirm Your Email";
-        var body = $"Your email confirmation code is: {token}";
-        await SendEmailAsync(to, subject, body);
-    }
+    private Task SendCodeAsync(EmailPurpose purpose, string token, string to, string? handle, DateTimeOffset issuedAt) =>
+        SendEmailAsync(to, EmailTemplates.Render(purpose, token, handle, _serviceName, issuedAt), purpose.ToString());
 
-    public async Task SendEmailUpdateAsync(string token, string to)
-    {
-        var subject = "Confirm Email Update";
-        var body = $"Your email update confirmation code is: {token}";
-        await SendEmailAsync(to, subject, body);
-    }
-
-    public async Task SendPasswordResetAsync(string token, string to)
-    {
-        var subject = "Password Reset";
-        var body = $"Your password reset code is: {token}";
-        await SendEmailAsync(to, subject, body);
-    }
-
-    public async Task SendPlcOperationSignatureAsync(string token, string to)
-    {
-        var subject = "PLC Operation Verification";
-        var body = $"Your PLC operation verification code is: {token}";
-        await SendEmailAsync(to, subject, body);
-    }
-
-    public async Task SendCustomEmailAsync(string subject, string content, string to)
-    {
-        await SendEmailAsync(to, subject, content);
-    }
-
-    private async Task SendEmailAsync(string to, string subject, string body)
+    // The subject carries the code, so only the purpose is logged.
+    private async Task SendEmailAsync(string to, RenderedEmail email, string purpose)
     {
         try
         {
-            using var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("PDS", _config.FromAddress));
-            message.To.Add(MailboxAddress.Parse(to));
-            message.Subject = subject;
-            message.Body = new TextPart("plain") { Text = body };
+            using var message = BuildMessage(email, to, _serviceName, _config.FromAddress);
 
             using var client = new SmtpClient();
             await client.ConnectAsync(_config.Host, _config.Port, SecureSocketOptions.StartTls);
@@ -79,11 +69,11 @@ public class SmtpMailer : IMailer
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
 
-            _logger.LogInformation("Sent email to {to} with subject '{subject}'", to, subject);
+            _logger.LogInformation("Sent {purpose} email to {to}", purpose, to);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to send email to {to}", to);
+            _logger.LogError(e, "Failed to send {purpose} email to {to}", purpose, to);
             throw;
         }
     }

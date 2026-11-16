@@ -34,7 +34,8 @@ public static class SendEmailAdminEndpoints
         await mailer.SendCustomEmailAsync(
             request.Subject ?? "Message via your PDS",
             request.Content,
-            account.Email);
+            account.Email,
+            account.Handle);
 
         return Results.Ok(new SendEmailOutput { Sent = true });
     }

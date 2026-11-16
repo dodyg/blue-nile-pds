@@ -72,7 +72,8 @@ public static class PendingAdminEndpoints
                 await mailer.SendCustomEmailAsync(
                     "Your account has been approved",
                     $"Hello {registration.Handle},\n\nYour account has been approved and is now active.\n\nBest,\n{environment.PDS_SERVICE_NAME}",
-                    registration.Email);
+                    registration.Email,
+                    registration.Handle);
             }
 
             return Results.Ok(new { did = result.Did, handle = result.Handle });
@@ -103,7 +104,8 @@ public static class PendingAdminEndpoints
             await mailer.SendCustomEmailAsync(
                 "Your account was not approved",
                 $"Hello {registration.Handle},\n\nUnfortunately your account was not approved. If you believe this is a mistake, please contact support.\n\nBest,\n{environment.PDS_SERVICE_NAME}",
-                registration.Email);
+                registration.Email,
+                registration.Handle);
         }
 
         await pendingAccountService.RejectAsync(pendingId, request.Reason);

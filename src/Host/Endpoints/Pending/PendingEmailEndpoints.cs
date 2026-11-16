@@ -32,7 +32,7 @@ public static class PendingEmailEndpoints
         if (token == null)
             return Results.BadRequest(new { error = "Unable to send confirmation email" });
 
-        await mailer.SendEmailConfirmationAsync(token, profile.Email);
+        await mailer.SendEmailConfirmationAsync(token, profile.Email, profile.Handle);
         return Results.Ok();
     }
 
@@ -72,7 +72,7 @@ public static class PendingEmailEndpoints
             if (token == null)
                 return Results.BadRequest(new { error = "Unable to send verification email" });
 
-            await mailer.SendEmailUpdateAsync(token, profile.Email);
+            await mailer.SendEmailUpdateAsync(token, profile.Email, profile.Handle);
         }
 
         return Results.Ok(new { tokenRequired });
