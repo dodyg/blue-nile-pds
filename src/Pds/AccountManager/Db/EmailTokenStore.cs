@@ -48,8 +48,12 @@ public class EmailTokenStore
         await _db.SaveChangesAsync();
         return token;
     }
+    // Codes are stored lowercase and shown in capitals, so what people type is compared without case or stray spaces.
+    public static string Normalize(string token) => token.Trim().ToLowerInvariant();
+
     public async Task AssertValidTokenAsync(string did, string token, EmailToken.EmailTokenPurpose purpose)
     {
+        token = Normalize(token);
         var emailToken = await _db.EmailTokens
             .Where(x => x.Did == did && x.Token == token && x.Purpose == purpose)
             .FirstOrDefaultAsync();
@@ -68,6 +72,7 @@ public class EmailTokenStore
 
     public async Task<string> GetDidByTokenAsync(string token, EmailToken.EmailTokenPurpose purpose)
     {
+        token = Normalize(token);
         var emailToken = await _db.EmailTokens
             .Where(x => x.Token == token && x.Purpose == purpose)
             .Select(x => new { x.Did, x.RequestedAt })

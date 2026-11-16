@@ -1,4 +1,5 @@
-using System.Security.Cryptography;
+using BlueNilePds.Core.Crypto;
+using BlueNilePds.Pds.AccountManager.Db;
 using Microsoft.EntityFrameworkCore;
 using BlueNilePds.Pds.PendingAccounts.Models;
 
@@ -15,9 +16,8 @@ public class PendingEmailTokenStore
 
     public async Task<string> CreateTokenAsync(int pendingRegistrationId, PendingEmailTokenPurpose purpose, string? newEmail = null)
     {
-        var bytes = RandomNumberGenerator.GetBytes(5);
-        var encoded = Convert.ToBase64String(bytes).Replace("+", "A").Replace("/", "B").Replace("=", "C");
-        var token = $"{encoded[..4]}-{encoded[4..8]}";
+        var encoded = Utils.RandomBase32String(8);
+        var token = $"{encoded[..5]}-{encoded[5..10]}";
         var now = DateTime.UtcNow;
 
         var existing = await _db.PendingEmailTokens
@@ -48,6 +48,7 @@ public class PendingEmailTokenStore
 
     public async Task AssertValidTokenAsync(int pendingRegistrationId, string token, PendingEmailTokenPurpose purpose)
     {
+        token = EmailTokenStore.Normalize(token);
         var emailToken = await _db.PendingEmailTokens
             .FirstOrDefaultAsync(t =>
                 t.PendingRegistrationId == pendingRegistrationId &&

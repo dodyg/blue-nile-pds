@@ -420,7 +420,7 @@ public record ServerConfig
                 config._env.PDS_SMTP_USERNAME,
                 config._env.PDS_SMTP_PASSWORD,
                 config._env.PDS_SMTP_FROM_ADDRESS ?? $"noreply@{config._env.PDS_HOSTNAME}");
-            services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig,
+            services.AddSingleton<IMailer>(sp => new SmtpMailer(smtpConfig, config._env.PDS_SERVICE_NAME,
                 sp.GetRequiredService<ILogger<SmtpMailer>>()));
         }
         else

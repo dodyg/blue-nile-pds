@@ -33,7 +33,7 @@ public static class DeleteAccountEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("Account has no email."));
 
         var emailToken = await accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.delete_account);
-        await mailer.SendAccountDeleteAsync(emailToken, account.Email);
+        await mailer.SendAccountDeleteAsync(emailToken, account.Email, account.Handle);
     }
 
     private static async Task<IResult> DeleteAsync(

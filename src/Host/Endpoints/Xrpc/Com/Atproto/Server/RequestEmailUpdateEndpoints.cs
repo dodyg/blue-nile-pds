@@ -45,7 +45,7 @@ public static class RequestEmailUpdateEndpoints
         if (tokenRequired)
         {
             var token = await accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.update_email);
-            await mailer.SendEmailUpdateAsync(token, account.Email);
+            await mailer.SendEmailUpdateAsync(token, account.Email, account.Handle, DateTimeOffset.UtcNow);
         }
 
         return Results.Ok(new RequestEmailUpdateOutput { TokenRequired = tokenRequired });

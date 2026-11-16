@@ -10,39 +10,39 @@ public class StubMailer : IMailer
         _logger = logger;
     }
 
-    public Task SendCustomEmailAsync(string subject, string content, string to)
+    public Task SendCustomEmailAsync(string subject, string content, string to, string? handle)
     {
-        _logger.LogInformation("[STUB] Sending custom email to {to} with subject '{subject}' and content '{content}'", to, subject, content);
+        _logger.LogInformation("[STUB] Sending custom email to {to} about {handle} with subject '{subject}' and content '{content}'", to, handle, subject, content);
         return Task.CompletedTask;
     }
 
-    public Task SendAccountDeleteAsync(string token, string to)
+    public Task SendAccountDeleteAsync(string token, string to, string? handle, DateTimeOffset issuedAt)
     {
-        _logger.LogInformation("[STUB] Sending account delete email to {to} with token [REDACTED]", to);
+        _logger.LogInformation("[STUB] Sending account delete email to {to} about {handle} with token [REDACTED]", to, handle);
         return Task.CompletedTask;
     }
 
-    public Task SendEmailConfirmationAsync(string token, string to)
+    public Task SendEmailConfirmationAsync(string token, string to, string? handle, DateTimeOffset issuedAt)
     {
-        _logger.LogInformation("[STUB] Sending email confirmation to {to} with token [REDACTED]", to);
+        _logger.LogInformation("[STUB] Sending email confirmation to {to} about {handle} with token [REDACTED]", to, handle);
         return Task.CompletedTask;
     }
 
-    public Task SendEmailUpdateAsync(string token, string to)
+    public Task SendEmailUpdateAsync(string token, string to, string? handle, DateTimeOffset issuedAt)
     {
-        _logger.LogInformation("[STUB] Sending email update to {to} with token [REDACTED]", to);
+        _logger.LogInformation("[STUB] Sending email update to {to} about {handle} with token [REDACTED]", to, handle);
         return Task.CompletedTask;
     }
 
-    public Task SendPasswordResetAsync(string token, string to)
+    public Task SendPasswordResetAsync(string token, string to, string? handle, DateTimeOffset issuedAt)
     {
-        _logger.LogInformation("[STUB] Sending password reset to {to} with token [REDACTED]", to);
+        _logger.LogInformation("[STUB] Sending password reset to {to} about {handle} with token [REDACTED]", to, handle);
         return Task.CompletedTask;
     }
 
-    public Task SendPlcOperationSignatureAsync(string token, string to)
+    public Task SendPlcOperationSignatureAsync(string token, string to, string? handle, DateTimeOffset issuedAt)
     {
-        _logger.LogInformation("[STUB] Sending PLC operation signature to {to} with token [REDACTED]", to);
+        _logger.LogInformation("[STUB] Sending PLC operation signature to {to} about {handle} with token [REDACTED]", to, handle);
         return Task.CompletedTask;
     }
 }

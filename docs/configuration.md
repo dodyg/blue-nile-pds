@@ -35,6 +35,20 @@ Typical fields:
 - crawler URLs
 - metadata links such as privacy policy and support URL
 
+## Account emails
+
+The PDS sends the codes for email confirmation, email change, password reset, account deletion and identity (PLC) changes, plus the pending-signup and admin emails. Each email carries the code only, never a link, because the PDS serves accounts for any app and can't know which page should take the code.
+
+| Setting | Default | Notes |
+|---|---|---|
+| `PDS_SMTP_HOST` | unset | Without it, emails are only logged (`StubMailer`) and nothing is sent. |
+| `PDS_SMTP_PORT` | `587` | STARTTLS. |
+| `PDS_SMTP_USERNAME`, `PDS_SMTP_PASSWORD` | unset | Keep the password out of committed files. |
+| `PDS_SMTP_FROM_ADDRESS` | `noreply@{PDS_HOSTNAME}` | Use an address on a domain with SPF, DKIM and DMARC set up for the SMTP provider, or mail lands in spam. |
+| `PDS_SERVICE_NAME` | `Blue Nile PDS` | The From display name, and shown in the subject, the header and the footer. Use a name, not a domain. |
+
+The subject is `{CODE} is your {service} {purpose} code for {handle}`, so the code shows in notifications and codes for accounts that share an inbox are told apart. Every email names the account and gives the expiry (15 minutes) as a duration and a UTC time, counted from when the code was made. Codes are compared ignoring case and surrounding spaces.
+
 ## Safety-sensitive settings
 
 ### `PDS_DEV_MODE`

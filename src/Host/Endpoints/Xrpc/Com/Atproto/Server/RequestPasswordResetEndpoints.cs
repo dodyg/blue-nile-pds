@@ -26,7 +26,7 @@ public static class RequestPasswordResetEndpoints
             return Results.Ok();
 
         var token = await accountRepository.CreateEmailTokenAsync(account.Did, EmailToken.EmailTokenPurpose.reset_password);
-        await mailer.SendPasswordResetAsync(token, request.Email);
+        await mailer.SendPasswordResetAsync(token, request.Email, account.Handle);
 
         return Results.Ok();
     }

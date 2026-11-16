@@ -30,7 +30,7 @@ public static class RequestEmailConfirmationEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("Account has no email"));
 
         var token = await accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.confirm_email);
-        await mailer.SendEmailConfirmationAsync(token, account.Email);
+        await mailer.SendEmailConfirmationAsync(token, account.Email, account.Handle);
 
         return Results.Ok();
     }

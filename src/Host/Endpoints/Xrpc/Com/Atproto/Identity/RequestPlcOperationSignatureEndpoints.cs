@@ -30,7 +30,7 @@ public static class RequestPlcOperationSignatureEndpoints
             throw new XRPCError(new InvalidRequestErrorDetail("Account has no email"));
 
         var token = await accountRepository.CreateEmailTokenAsync(did, EmailToken.EmailTokenPurpose.plc_operation);
-        await mailer.SendPlcOperationSignatureAsync(token, account.Email);
+        await mailer.SendPlcOperationSignatureAsync(token, account.Email, account.Handle);
 
         return Results.Ok();
     }
